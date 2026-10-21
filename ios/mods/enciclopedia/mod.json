@@ -1,0 +1,37 @@
+{
+    "id": "enciclopedia",
+    "name": "Enciclopedia",
+    "version": "0.3.1",
+    "author": "Alessio",
+    "description": "Nella Libreria premi Triangolo su una carta (nella griglia o nella sua pagina): si apre la sua scheda con la carta grande, password e costo in starchip (e se te la puoi permettere) e le pagine FUSIONI (con chi si fonde, prima le carte che hai), SI OTTIENE (le fusioni che la creano), EQUIP, RITUALE e DROP (chi la droppa, con i colori di rarita). Sx/Dx cambia pagina, X apre la carta della riga, Quadrato la mette o toglie dalla lista desideri, Triangolo apre la lista desideri con dove farmare ogni carta. R2 (nella Libreria o dalla scheda) apre CERCA: tutte le carte, anche quelle mai viste, con i filtri a destra (nome da scrivere con una tastiera, numero, ATK, DEF con = >= <=, livello, tipo, attributo, stella guardiana, se le hai, desideri, password) e l'ordine; X su una carta apre la sua scheda. R2 nella ricerca (o la riga DOVE FARMARLE) apre la classifica di contro chi conviene giocare per ottenere le carte che rispettano i filtri (es. Draghi con ATK >= 1600): tutti i duellanti con rank, probabilita e 1 ogni N duelli, dal migliore; X su un duellante mostra quali carte della ricerca droppa. Cerchio indietro, Start chiude. Si apre solo dalla Libreria: mai in duello. Spenta, il gioco e identico all'originale.",
+    "min_api": 13,
+    "game": "slus_01411",
+    "library": "enciclopedia",
+    "enabled": true,
+    "settings": [
+        {
+            "key": "open_key",
+            "label": "Tasto per aprire la scheda",
+            "type": "key",
+            "default": 4096,
+            "description": "Il tasto che apre la scheda della carta sotto il cursore, nella Libreria."
+        },
+        {
+            "key": "search_key",
+            "label": "Tasto per cercare",
+            "type": "key",
+            "default": 512,
+            "description": "Il tasto che apre CERCA (tutte le carte con i filtri), nella Libreria e dalla scheda."
+        },
+        {
+            "key": "draft_choices",
+            "label": "Carte del draft (per la stima)",
+            "type": "int",
+            "default": 5,
+            "min": 1,
+            "max": 10,
+            "step": 1,
+            "description": "Quante carte offre il Draft dei drop a fine duello: serve solo a stimare in quanti duelli vinti esce una carta. 1 = gioco normale senza draft."
+        }
+    ]
+}

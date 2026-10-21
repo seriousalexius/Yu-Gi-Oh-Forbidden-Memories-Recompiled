@@ -1,7 +1,10 @@
 """Build native macOS code mods while retaining PS1 guest data layouts.
 
 This uses the game's structured LLVM translation, not an ordinary LP64
-recompile. The existing ELF object is preserved for Linux/Windows.
+recompile. The existing ELF object is preserved for Linux/Windows. The
+iPhone's game (build_arm64.py --target ios, ios-simulator) takes the same
+dylib built with its SDK (sdk_name), which package_ios.py signs into the
+app as a framework.
 """
 
 import hashlib
@@ -11,10 +14,10 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from build_config import MACOS_MINIMUM
 from guest_build import (
     CHECKED_LIBC,
     HOST_LIBC,
+    darwin_flags,
     guest_frontend_flags,
     maps,
 )
@@ -85,6 +88,12 @@ def validate_imports(text, signatures):
     return has_entry
 
 
+def target_flags(sdk):
+    """The SDK and deployment target, for objects and the link: the
+    frontend's own (darwin_flags) without its definitions."""
+    return [flag for flag in darwin_flags(sdk) if not flag.startswith("-D")]
+
+
 def compile_units(sources, folder, compiler, sdk, flags, aliases, signatures, pins):
     """Compile original C at O0, lower guest accesses, then generate O2 objects."""
     objects, routines = [], []
@@ -116,9 +125,7 @@ def compile_units(sources, folder, compiler, sdk, flags, aliases, signatures, pi
         subprocess.run(
             [
                 compiler,
-                "-isysroot",
-                sdk,
-                f"-mmacosx-version-min={MACOS_MINIMUM}",
+                *target_flags(sdk),
                 "-O2",
                 "-c",
                 str(ir),
@@ -154,9 +161,7 @@ def link_library(folder, library_name, objects, routines, compiler, sdk, exporte
     subprocess.run(
         [
             compiler,
-            "-isysroot",
-            sdk,
-            f"-mmacosx-version-min={MACOS_MINIMUM}",
+            *target_flags(sdk),
             "-dynamiclib",
             "-Wl,-undefined,dynamic_lookup",
             *objects,
@@ -195,7 +200,7 @@ def link_library(folder, library_name, objects, routines, compiler, sdk, exporte
     return staged
 
 
-def build(directory, out=None, *, game=None):
+def build(directory, out=None, *, game=None, sdk_name="macosx"):
     directory = Path(directory).resolve()
     sources = sorted(directory.glob("*.c"))
     if not sources:
@@ -233,7 +238,7 @@ def build(directory, out=None, *, game=None):
     )
     aliases.update(rand="Mods_ModRand", srand="Mods_ModSrand")
     compiler = str(toolchain() / "bin/clang")
-    sdk = str(sdk_path())
+    sdk = str(sdk_path(sdk_name))
     flags = [
         *guest_frontend_flags(sdk),
         "-fno-common",
@@ -302,5 +307,5 @@ def build(directory, out=None, *, game=None):
         temporary_path = Path(temporary.name)
     temporary_path.chmod(0o755)
     temporary_path.replace(output)
-    print(f"{output}: macOS ARM64, {len(sources)} translated source(s)")
+    print(f"{output}: {sdk_name} ARM64, {len(sources)} translated source(s)")
     return output

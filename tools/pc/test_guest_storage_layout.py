@@ -108,6 +108,8 @@ def check_target_source_contract():
         "windows",
         "windows-x64",
         "macos",
+        "ios",
+        "ios-simulator",
         "android-arm64-v8a",
         "android-arm64-translated",
         "android-x86",
@@ -123,6 +125,8 @@ def check_target_source_contract():
         BUILD_TARGETS[name]["memory_model"] == "fixed-32" for name in fixed_targets
     )
     assert BUILD_TARGETS["macos"]["memory_model"] == "translated-32"
+    assert BUILD_TARGETS["ios"]["memory_model"] == "translated-32"
+    assert BUILD_TARGETS["ios-simulator"]["memory_model"] == "translated-32"
 
     for name in fixed_targets:
         sources = set(native_sources(BUILD_TARGETS[name], None))

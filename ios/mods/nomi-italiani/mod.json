@@ -1,0 +1,10 @@
+{
+    "id": "nomi-italiani",
+    "name": "Nomi italiani completi",
+    "version": "0.1",
+    "author": "Alessio",
+    "description": "Da usare col gioco in italiano (Game > Language > Italiano). I nomi delle carte della versione italiana originale sono tagliati o abbreviati (DragoBianco Occhi, ElfoMist., Guardia del...): questa mod mette i nomi completi, quelli ufficiali del gioco di carte italiano dove esistono (Drago Bianco Occhi Blu, Elfo Mistico, Guardiano del Cancello) e una traduzione fedele dall'inglese per le carte mai uscite in Italia. Cambia anche il nome scritto sopra il disegno della carta e l'ordine alfabetico. Tocca solo i nomi delle carte: dialoghi, descrizioni e menu restano quelli del gioco. Serve riavviare il gioco. Spenta, il gioco e identico all'originale.",
+    "game": "slus_01411",
+    "text": "nomi.txt",
+    "enabled": true
+}

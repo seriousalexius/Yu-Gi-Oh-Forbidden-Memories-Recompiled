@@ -1,0 +1,11 @@
+{
+    "id": "autosalvataggio",
+    "name": "Autosalvataggio",
+    "version": "0.1",
+    "author": "Alessio",
+    "description": "Dopo ogni duello VINTO nel Free Duel, appena torni alla griglia degli avversari, il gioco salva da solo nello slot che hai caricato o salvato per ultimo, come il salvataggio normale (in alto a sinistra compare 'Salvato nello slot N'). Non salva se non hai ancora caricato o salvato una partita, ne se quello slot e di un'altra partita. Prima di ogni autosalvataggio il salvataggio precedente di quello slot viene copiato in mod-data/autosalvataggio/riserva-slotNN.sav. Solo Free Duel: nella storia salvi tu quando vuoi. I Deck slots si registrano ancora solo col salvataggio a mano. Spenta, il gioco e identico all'originale.",
+    "min_api": 13,
+    "game": "slus_01411",
+    "library": "autosalvataggio",
+    "enabled": true
+}

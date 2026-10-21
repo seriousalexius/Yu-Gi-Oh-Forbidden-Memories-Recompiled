@@ -27,7 +27,9 @@ xcrun simctl boot "$device"
 xcrun simctl bootstatus "$device" -b > /dev/null
 xcrun simctl install "$device" "$app"
 bundle=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Info.plist")
-xcrun simctl launch --console-pty --terminate-running-process "$device" "$bundle" > "$out/console.txt" 2>&1 &
+# MEMORIES_TEST_MODS: the code mods' frameworks loaded first (ios.c).
+SIMCTL_CHILD_MEMORIES_TEST_MODS=1 xcrun simctl launch --console-pty --terminate-running-process "$device" "$bundle" \
+    > "$out/console.txt" 2>&1 &
 launcher=$!
 shot=0
 for wait in 10 20 $((seconds - 30)); do
@@ -41,9 +43,16 @@ echo "still running after ${seconds}s: $running" | tee "$out/result.txt"
 kill "$launcher" 2> /dev/null || true
 # Again with the disc's document picker open at once (sdl.c,
 # MEMORIES_TEST_PICKER): the Files app's sheet, in picker.png.
-SIMCTL_CHILD_MEMORIES_TEST_PICKER=1 xcrun simctl launch --console-pty --terminate-running-process "$device" "$bundle"     > "$out/console-picker.txt" 2>&1 &
+SIMCTL_CHILD_MEMORIES_TEST_PICKER=1 xcrun simctl launch --console-pty --terminate-running-process "$device" "$bundle" \
+    > "$out/console-picker.txt" 2>&1 &
 launcher=$!
-sleep 15
+# A relaunch on a CI runner takes its time: the shot once the game has
+# started (its first line), and the sheet has come up.
+for _ in $(seq 60); do
+    grep -q "user folder" "$out/console-picker.txt" 2> /dev/null && break
+    sleep 1
+done
+sleep 10
 xcrun simctl io "$device" screenshot "$out/picker.png" > /dev/null 2>&1 || true
 kill "$launcher" 2> /dev/null || true
 documents=$(xcrun simctl get_app_container "$device" "$bundle" data 2> /dev/null)/Documents

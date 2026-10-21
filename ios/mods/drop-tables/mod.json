@@ -1,0 +1,20 @@
+{
+    "id": "drop-tables",
+    "name": "Tabelle dei drop",
+    "version": "0.3.1",
+    "author": "Alessio",
+    "description": "Nella schermata Free Duel premi Triangolo sul duellante: si apre la sua tabella dei drop (si apre sempre su S/A-POW; Destra: S/A-TEC, poi B/C/D; l'ultima pagina, MAZZO, mostra le carte che puo avere nel mazzo e ci arrivi anche con Sinistra da S/A-POW) dalla carta piu rara, con la probabilita di ognuna e quante ne hai, e la carta disegnata accanto. X su una carta: la carta grande e chi la droppa. Quadrato: tutte le carte per numero. Cerchio: indietro. Non cambia niente del gioco: spenta, il gioco e identico all'originale.",
+    "min_api": 13,
+    "game": "slus_01411",
+    "library": "droptables",
+    "enabled": true,
+    "settings": [
+        {
+            "key": "open_key",
+            "label": "Tasto per aprire la tabella",
+            "type": "key",
+            "default": 4096,
+            "description": "Il tasto che apre la tabella del duellante sotto il cursore, nella schermata Free Duel."
+        }
+    ]
+}

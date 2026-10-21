@@ -1252,7 +1252,16 @@ static int load_library(Mod *mod)
     union { void *pointer; int (*function)(const MemoriesModHost *, MemoriesMod *); } symbol;
     if (!mod->library[0]) return 1;   /* data only: nothing to load */
     if (mod->object.image || mod->object.native_handle) return 1;
+#ifdef MEMORIES_IOS
+    /* An iPhone runs only code signed with the app: a shipped mod's dylib
+     * is a framework of the app's own, Frameworks/<id>.framework/<id>
+     * (tools/pc/package_ios.py), wherever the mod's folder is. */
+    if (snprintf(path, sizeof(path), "%s/Frameworks/%s.framework/%s", Paths_ProgramDir(), mod->id, mod->id) >=
+        (int)sizeof(path))
+        return 0;
+#else
     if (snprintf(path, sizeof(path), "%s/%s", mod->directory, mod->library) >= (int)sizeof(path)) return 0;
+#endif
     symbol.pointer = load_object(mod, path);
     if (!symbol.pointer) return 0;
     entry = symbol.function;

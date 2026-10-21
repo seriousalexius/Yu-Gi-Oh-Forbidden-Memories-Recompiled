@@ -1,0 +1,44 @@
+{
+    "id": "turbo",
+    "name": "Turbo",
+    "version": "0.6",
+    "author": "Alessio",
+    "description": "Fa andare il gioco piu veloce. Da solo, in duello: nel TUO turno 400%, nel turno dell'AVVERSARIO la velocita MASSIMA (in alto compare >> AVVERSARIO); fuori dal duello (mappa, menu, dialoghi) la velocita di Game > Game speed. Il tasto L2 (se non ne scegli un altro) vale sopra tutto: premi = velocita MASSIMA (>> MAX), ripremi = spento. La MASSIMA si regola da sola: ogni pochi secondi prova se il tuo telefono va piu veloce senza limite o al 400% e tiene la piu veloce, cosi non va mai piu piano del 400%. Spenta, il gioco e identico all'originale.",
+    "min_api": 13,
+    "game": "slus_01411",
+    "library": "turbo",
+    "enabled": true,
+    "settings": [
+        {
+            "key": "key",
+            "label": "Tasto del turbo",
+            "type": "key",
+            "default": 256,
+            "description": "Il tasto del turbo (L2 se non ne scegli un altro): premi = velocita massima, ripremi = spento."
+        },
+        {
+            "key": "mine",
+            "label": "Velocita nel tuo turno",
+            "type": "choice",
+            "default": 3,
+            "choices": [
+                "Come Game speed",
+                "200%",
+                "300%",
+                "400%"
+            ],
+            "description": "La velocita durante i tuoi turni di duello. 'Come Game speed' = quella di Game > Game speed, come nel gioco senza mod."
+        },
+        {
+            "key": "avversario",
+            "label": "Velocita nel turno avversario",
+            "type": "choice",
+            "default": 1,
+            "choices": [
+                "Come il tuo turno",
+                "Massima"
+            ],
+            "description": "Massima: il turno dell'avversario passa quasi subito. Metti 'Come il tuo turno' quando vuoi guardare come gioca l'avversario (es. con l'IA difficile)."
+        }
+    ]
+}

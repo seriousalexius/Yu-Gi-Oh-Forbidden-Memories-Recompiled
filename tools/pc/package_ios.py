@@ -7,8 +7,16 @@ build also becomes an .ipa (Payload/YFM.app) that a sideloading tool
 (SideStore, AltStore, Sideloadly) signs with the player's own Apple ID;
 here it is only ad-hoc signed. The simulator's .app runs as it is.
 
-The player's disc goes in the Files app, On My iPhone > YFM > game
-(platform/ios.c, Info.plist UIFileSharingEnabled).
+The player's disc goes in the Files app, On My iPhone > (the game) > game
+(platform/ios.c, Info.plist UIFileSharingEnabled), or Choose ROM... copies
+it there (sdl.c, ios_picker.m).
+
+The mods are the repository's (mods/) and this fork's own (ios/mods/). An
+iPhone runs only code signed with the app, so a code mod is built for the
+iPhone (build_mod_arm64.py, with the game's exports) and goes in as a
+framework, Frameworks/<id>.framework/<id>, where mods.c loads it from; a
+sideloading tool signs it with the app. ios/app.json may name the app
+("name") and the mods to switch on ("enable"); ios/icon.png is its icon.
 """
 
 import argparse
@@ -27,6 +35,9 @@ from build_config import IOS_MINIMUM, ROOT
 
 APP = "YFM.app"
 EXECUTABLE = "memories-arm64"
+EXTRA = ROOT / "ios"  # this fork's own: mods/, icon.png, app.json
+ICONS = {"AppIcon60x60@2x.png": 120, "AppIcon60x60@3x.png": 180,
+         "AppIcon76x76@2x~ipad.png": 152, "AppIcon83.5x83.5@2x~ipad.png": 167}
 PLATFORMS = {2: "iphoneos", 7: "iphonesimulator"}  # LC_BUILD_VERSION platform
 
 
@@ -48,18 +59,93 @@ def build_platform(data):
     raise ValueError("executable has no LC_BUILD_VERSION")
 
 
-def shipped_mod_files():
-    """The repository's data mods. Code mods (a library) need their iPhone
-    build, which is not made yet: they are left out."""
-    tracked = subprocess.check_output(["git", "ls-files", "-z", "mods"], cwd=ROOT, text=True).split("\0")
-    files = [Path(name) for name in tracked if name and Path(name).suffix not in (".c", ".h", ".o", ".dylib")]
-    code = set()
-    for relative in files:
-        if relative.name == "mod.json":
-            manifest = json.loads((ROOT / relative).read_text(encoding="utf-8-sig"))
-            if manifest.get("library"):
-                code.add(relative.parent)
-    return [path for path in files if not any(path.is_relative_to(folder) for folder in code)]
+def settings():
+    path = EXTRA / "app.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
+def shipped_mods():
+    """{source folder: [its tracked files, from the folder]}: mods/<mod> and
+    ios/mods/<mod>, which goes in as mods/<mod> too (and wins)."""
+    tracked = subprocess.check_output(["git", "ls-files", "-z", "mods", "ios/mods"], cwd=ROOT, text=True).split("\0")
+    mods = {}
+    for name in filter(None, tracked):
+        parts = Path(name).parts
+        depth = 3 if parts[0] == "ios" else 2
+        if len(parts) > depth:
+            mods.setdefault(Path(*parts[:depth]), []).append(Path(*parts[depth:]))
+    return dict(sorted(mods.items(), key=lambda item: item[0].parts[0] == "ios"))
+
+
+def framework(app, mod_id, library, sdk):
+    """The mod's dylib as the app's framework, Frameworks/<id>.framework."""
+    folder = app / "Frameworks" / f"{mod_id}.framework"
+    shutil.rmtree(folder, ignore_errors=True)
+    folder.mkdir(parents=True)
+    executable = folder / mod_id
+    shutil.copyfile(library, executable)
+    executable.chmod(0o755)
+    subprocess.run(["install_name_tool", "-id", f"@rpath/{mod_id}.framework/{mod_id}", str(executable)], check=True)
+    info = dict(
+        CFBundleExecutable=mod_id,
+        CFBundleIdentifier="org.yfm-redecomp.memories.mod." + re.sub(r"[^A-Za-z0-9.-]", "-", mod_id),
+        CFBundleName=mod_id,
+        CFBundlePackageType="FMWK",
+        CFBundleInfoDictionaryVersion="6.0",
+        CFBundleVersion="1",
+        CFBundleShortVersionString="1.0",
+        CFBundleSupportedPlatforms=["iPhoneSimulator" if sdk == "iphonesimulator" else "iPhoneOS"],
+        MinimumOSVersion=IOS_MINIMUM,
+    )
+    (folder / "Info.plist").write_bytes(plistlib.dumps(info))
+    subprocess.run(["codesign", "--force", "--sign", "-", "--timestamp=none", str(folder)], check=True)
+    return executable
+
+
+def stage_mods(app, game, sdk, enable):
+    """The mods' files into the app, each code mod built for this SDK."""
+    from build_mod_arm64 import build
+
+    staged, libraries = [], {}
+    for source, files in shipped_mods().items():
+        target = Path("mods") / source.name
+        shutil.rmtree(app / target, ignore_errors=True)
+        for relative in files:
+            if relative.suffix in (".c", ".h", ".o", ".dylib"):
+                continue
+            destination = app / target / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / source / relative, destination)
+            staged.append(target / relative)
+        manifest_path = app / target / "mod.json"
+        if not manifest_path.is_file():
+            continue
+        text = manifest_path.read_text(encoding="utf-8-sig")
+        manifest = json.loads(text)
+        if manifest.get("id") in enable:
+            text = re.sub(r'"enabled"\s*:\s*false', '"enabled": true', text)
+            if '"enabled"' not in text:
+                text = re.sub(r"^\s*\{", '{\n  "enabled": true,', text, count=1)
+        manifest_path.write_text(text, encoding="utf-8")
+        if manifest.get("library") or manifest.get("libraries"):
+            built = build(ROOT / source, out=game / "ios-mods" / source.name, game=game, sdk_name=sdk)
+            libraries[manifest["id"]] = framework(app, manifest["id"], built, sdk)
+    return staged, libraries
+
+
+def icons(app):
+    """ios/icon.png at the iPhone's and iPad's sizes (sips), for CFBundleIcons."""
+    source = EXTRA / "icon.png"
+    if not source.is_file():
+        return {}
+    for name, size in ICONS.items():
+        subprocess.run(["sips", "-s", "format", "png", "-z", str(size), str(size), str(source),
+                        "--out", str(app / name)], check=True, capture_output=True)
+    return {
+        "CFBundleIcons": {"CFBundlePrimaryIcon": {"CFBundleIconFiles": ["AppIcon60x60"]}},
+        "CFBundleIcons~ipad": {"CFBundlePrimaryIcon": {"CFBundleIconFiles": ["AppIcon60x60", "AppIcon76x76",
+                                                                             "AppIcon83.5x83.5"]}},
+    }
 
 
 def package(binary, out, label):
@@ -79,11 +165,9 @@ def package(binary, out, label):
     languages.mkdir()
     for name in ("en-eu", "fr", "de", "it", "es"):
         shutil.copyfile(ROOT / f"languages/{name}.txt", languages / f"{name}.txt")
-    mod_files = shipped_mod_files()
-    for relative in mod_files:
-        destination = app / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / relative, destination)
+    extra = settings()
+    mod_files, mod_libraries = stage_mods(app, binary.parent, sdk, set(extra.get("enable", ())))
+    app_icons = icons(app)
     shutil.copyfile(ROOT / "LICENSE", app / "LICENSE.txt")
     licenses = app / "licenses"
     licenses.mkdir()
@@ -96,7 +180,7 @@ def package(binary, out, label):
     landscape = ["UIInterfaceOrientationLandscapeLeft", "UIInterfaceOrientationLandscapeRight"]
     info = dict(
         CFBundleName="YFM",
-        CFBundleDisplayName="Forbidden Memories",
+        CFBundleDisplayName=extra.get("name", "Forbidden Memories"),
         CFBundleIdentifier="org.yfm-redecomp.memories",
         CFBundleExecutable=EXECUTABLE,
         CFBundlePackageType="APPL",
@@ -122,6 +206,7 @@ def package(binary, out, label):
         # A mouse or trackpad's own events (SDL asks for it).
         UIApplicationSupportsIndirectInputEvents=True,
         PackageVersion=label,
+        **app_icons,
     )
     (app / "Info.plist").write_bytes(plistlib.dumps(info))
     (app / "PkgInfo").write_bytes(b"APPL????")
@@ -131,6 +216,7 @@ def package(binary, out, label):
         minimum_ios=IOS_MINIMUM,
         source_binary_sha256=hashlib.sha256(data).hexdigest(),
         mod_files={str(path): hashlib.sha256((app / path).read_bytes()).hexdigest() for path in mod_files},
+        mod_libraries={mod: hashlib.sha256(path.read_bytes()).hexdigest() for mod, path in mod_libraries.items()},
     )
     (app / "build.json").write_text(json.dumps(manifest, indent=2) + "\n")
     subprocess.run(["codesign", "--force", "--sign", "-", "--timestamp=none", str(app)], check=True)

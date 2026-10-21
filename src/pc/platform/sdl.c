@@ -2490,8 +2490,8 @@ int Platform_SelectDisc(char *path, size_t size, char *why, size_t why_size)
         "Choose your copy of Yu-Gi-Oh! Forbidden Memories to begin.\n\n"
         "Select the .bin ROM from your USA disc (SLUS-01411), wherever it is in Files. "
         "The game keeps a copy of its own, so this is needed only once.\n\n"
-        "You can also copy the .bin into Files > On My iPhone > Forbidden Memories > game "
-        "and open the game again.",
+        "You can also copy the .bin with the Files app into On My iPhone, in this game's "
+        "\"game\" folder, and open the game again.",
 #else
         "Choose your copy of Yu-Gi-Oh! Forbidden Memories to begin.\n\n"
         "Select the .bin ROM from your USA disc (SLUS-01411).\n"

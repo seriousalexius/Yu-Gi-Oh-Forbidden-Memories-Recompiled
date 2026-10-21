@@ -1,0 +1,2170 @@
+# Nomi italiani completi delle carte (traduzione ufficiale del gioco di carte
+# dove esiste, altrimenti tradotti dall'inglese). Carta n = [8000 + n esadecimale].
+
+@bank names
+
+[8001]
+Drago Bianco Occhi Blu{end}
+
+[8002]
+Elfo Mistico{end}
+
+[8003]
+Gigante Hitotsu-Me{end}
+
+[8004]
+Cucciolo di Drago{end}
+
+[8005]
+Ryu-Kishin{end}
+
+[8006]
+Demone Selvaggio{end}
+
+[8007]
+Drago Alato #1{end}
+
+[8008]
+Uomo-Fungo{end}
+
+[8009]
+Spettro Ombra{end}
+
+[800A]
+Drago Infuocato della Terra Nera{end}
+
+[800B]
+Braccio Spada di Drago{end}
+
+[800C]
+Guardiano delle Paludi{end}
+
+[800D]
+Tyhone Alato{end}
+
+[800E]
+Toro da Battaglia{end}
+
+[800F]
+Spadaccino di Fuoco{end}
+
+[8010]
+Stregone del Tempo{end}
+
+[8011]
+Gamba Dx del Proibito{end}
+
+[8012]
+Gamba Sx del Proibito{end}
+
+[8013]
+Braccio Dx del Proibito{end}
+
+[8014]
+Braccio Sx del Proibito{end}
+
+[8015]
+Exodia il Proibito{end}
+
+[8016]
+Teschio Evocato{end}
+
+[8017]
+Verme Bestiale{end}
+
+[8018]
+Servitore del Teschio{end}
+
+[8019]
+Demone Cornuto{end}
+
+[801A]
+Ascia da Guerra{end}
+
+[801B]
+Castoro Guerriero{end}
+
+[801C]
+Orco di Pietra #1{end}
+
+[801D]
+Guerriero della Montagna{end}
+
+[801E]
+Zombie Guerriero{end}
+
+[801F]
+Drago Koumori{end}
+
+[8020]
+Tirannosauro Rex a Due Teste{end}
+
+[8021]
+Il Giudicatore{end}
+
+[8022]
+Saggi, Clown Oscuro{end}
+
+[8023]
+Mago Nero{end}
+
+[8024]
+Capelli di Serpente{end}
+
+[8025]
+Gaia il Dragone{end}
+
+[8026]
+Gaia il Cavaliere{end}
+
+[8027]
+Anatema del Drago{end}
+
+[8028]
+Pifferaio di Draghi{end}
+
+[8029]
+Guardiano Celtico{end}
+
+[802A]
+Mago Senza Volto Illusionista{end}
+
+[802B]
+Guerriero Karbonala{end}
+
+[802C]
+Bambola Mortale{end}
+
+[802D]
+Wattragazzo{end}
+
+[802E]
+Griffore{end}
+
+[802F]
+Torike{end}
+
+[8030]
+Sangan{end}
+
+[8031]
+Grande Insetto{end}
+
+[8032]
+Insetto della Foresta{end}
+
+[8033]
+Lucertola Corazzata{end}
+
+[8034]
+Scarabeo Erculeo{end}
+
+[8035]
+Pungiglione Assassino{end}
+
+[8036]
+Gokibore{end}
+
+[8037]
+Pulce Gigante{end}
+
+[8038]
+Larva di Falena{end}
+
+[8039]
+Grande Falena{end}
+
+[803A]
+Kuriboh{end}
+
+[803B]
+Mammuth delle Tombe{end}
+
+[803C]
+Mega Squalo Bianco{end}
+
+[803D]
+Lupo{end}
+
+[803E]
+Lady Arpia{end}
+
+[803F]
+Sorelle Arpie{end}
+
+[8040]
+Ascia Tigre{end}
+
+[8041]
+Zanna d'Argento{end}
+
+[8042]
+Kojikocy{end}
+
+[8043]
+Grande Falena Perfetta{end}
+
+[8044]
+Garoozis{end}
+
+[8045]
+Drago Millenario{end}
+
+[8046]
+Kraken il Demone{end}
+
+[8047]
+Medusa{end}
+
+[8048]
+Bozzolo dell'Evoluzione{end}
+
+[8049]
+Kairyu-Shin{end}
+
+[804A]
+Soldato di Pietra{end}
+
+[804B]
+Pianta Mangia-Uomini{end}
+
+[804C]
+Kokkodrillus{end}
+
+[804D]
+Il Soffocatore{end}
+
+[804E]
+Predone d'Ascia{end}
+
+[804F]
+Megazowler{end}
+
+[8050]
+Urabysauro{end}
+
+[8051]
+Drago Strisciante #2{end}
+
+[8052]
+Drago Nero Occhi Rossi{end}
+
+[8053]
+Castello delle Illusioni Oscure{end}
+
+[8054]
+Mieti-Carte{end}
+
+[8055]
+Re di Yamimakai{end}
+
+[8056]
+Barox{end}
+
+[8057]
+Chimera Oscura{end}
+
+[8058]
+Guardiano Metallico{end}
+
+[8059]
+Tartaruga Catapulta{end}
+
+[805A]
+Gyakutenno Megami{end}
+
+[805B]
+Centauro Mistico{end}
+
+[805C]
+Cavaliere Rabbioso{end}
+
+[805D]
+Zanki{end}
+
+[805E]
+Drago Strisciante{end}
+
+[805F]
+Clown Stupido{end}
+
+[8060]
+Zombie Corazzato{end}
+
+[8061]
+Drago Zombie{end}
+
+[8062]
+Zombie Clown{end}
+
+[8063]
+Re dei Fantasmi{end}
+
+[8064]
+Guerriero da Battaglia{end}
+
+[8065]
+Ali di Fiamma Malvagia{end}
+
+[8066]
+Maschera dell'Oscurità{end}
+
+[8067]
+Specchio Trasformatore{end}
+
+[8068]
+Sipario degli Oscuri{end}
+
+[8069]
+Tomozaurus{end}
+
+[806A]
+Spirito dei Venti{end}
+
+[806B]
+Kageningen{end}
+
+[806C]
+Il Cimitero e la Mano Invitante{end}
+
+[806D]
+Dea dal Terzo Occhio{end}
+
+[806E]
+Eroe dell'Est{end}
+
+[806F]
+Doma Angelo Silente{end}
+
+[8070]
+Mangiatore di Vita{end}
+
+[8071]
+La Bestia Grigia{end}
+
+[8072]
+Bianco Cappello Magico{end}
+
+[8073]
+Kamionmago{end}
+
+[8074]
+Scorpione dell'Incubo{end}
+
+[8075]
+Spirito dei Libri{end}
+
+[8076]
+Aiutante dell'Ombra{end}
+
+[8077]
+La Prova dell'Incubo{end}
+
+[8078]
+Clown del Sogno{end}
+
+[8079]
+Leone Dormiente{end}
+
+[807A]
+Rotolo del Drago Yamatano{end}
+
+[807B]
+Pianta Oscura{end}
+
+[807C]
+Attrezzo Antico{end}
+
+[807D]
+Uccello della Fede{end}
+
+[807E]
+Orion il Re della Battaglia{end}
+
+[807F]
+Ansatsu l'Assassino{end}
+
+[8080]
+LaMoon{end}
+
+[8081]
+Nemuriko{end}
+
+[8082]
+Controllo Meteo{end}
+
+[8083]
+Octoberser{end}
+
+[8084]
+La Tredicesima Tomba{end}
+
+[8085]
+Cavaliere di Fuoco{end}
+
+[8086]
+Catena Mistica di Cattura{end}
+
+[8087]
+Mano del Demone{end}
+
+[8088]
+Spettro Oscuro{end}
+
+[8089]
+Mano Misteriosa{end}
+
+[808A]
+Statua del Drago{end}
+
+[808B]
+Zombie Argenteo Occhi Color Blu{end}
+
+[808C]
+Maestro Rospo{end}
+
+[808D]
+Lumaca Chiodata{end}
+
+[808E]
+Signore delle Fiamme{end}
+
+[808F]
+Necrolancer il Tempo-Signore{end}
+
+[8090]
+Djinn, Guardiano del Vento{end}
+
+[8091]
+Il Seducente Ladro Fantasma{end}
+
+[8092]
+Tempio dei Teschi{end}
+
+[8093]
+Uovo Mostro{end}
+
+[8094]
+Ombra dell'Oscurità{end}
+
+[8095]
+Signore della Lampada{end}
+
+[8096]
+Akihiron{end}
+
+[8097]
+Rhaimundos Spada Rossa{end}
+
+[8098]
+L'Ombra Rossa Fondente{end}
+
+[8099]
+Dokuroizo il Tristo Mietitore{end}
+
+[809A]
+Mietitore di Fuoco{end}
+
+[809B]
+Uccello-Larva{end}
+
+[809C]
+Armatura Vivente{end}
+
+[809D]
+Erba di Fuoco{end}
+
+[809E]
+Mangiatore di Uomini{end}
+
+[809F]
+Becco Perforante{end}
+
+[80A0]
+Guerriero-M #1{end}
+
+[80A1]
+Guerriero-M #2{end}
+
+[80A2]
+Saggezza Infetta{end}
+
+[80A3]
+Lisark{end}
+
+[80A4]
+Signore di Zemia{end}
+
+[80A5]
+La Mano del Giudizio{end}
+
+[80A6]
+Burattinaio Misterioso{end}
+
+[80A7]
+Giara Antica{end}
+
+[80A8]
+Drago del Fuoco Nero{end}
+
+[80A9]
+Nero Re degli Abissi{end}
+
+[80AA]
+Spirito dell'Arpa{end}
+
+[80AB]
+Grande Occhio{end}
+
+[80AC]
+Armaill delle Lame{end}
+
+[80AD]
+Prigioniero Oscuro{end}
+
+[80AE]
+Hurricail{end}
+
+[80AF]
+Antico Cervello{end}
+
+[80B0]
+Occhio di Fuoco{end}
+
+[80B1]
+Tartamostro{end}
+
+[80B2]
+Sferra-Artigli{end}
+
+[80B3]
+Dewan Fantasma{end}
+
+[80B4]
+Arlownay{end}
+
+[80B5]
+Ombra Oscura{end}
+
+[80B6]
+Clown Mascherato{end}
+
+[80B7]
+Portafortuna{end}
+
+[80B8]
+Genin{end}
+
+[80B9]
+Occhio Corazzato{end}
+
+[80BA]
+Riflesso Evocatore #2{end}
+
+[80BB]
+Deeg il Portale{end}
+
+[80BC]
+Synchar{end}
+
+[80BD]
+Fusionista{end}
+
+[80BE]
+Akakieisu{end}
+
+[80BF]
+Nuvola LaLa Li-oon{end}
+
+[80C0]
+Mazza Chiave{end}
+
+[80C1]
+Tartaruga-Tigre{end}
+
+[80C2]
+Terra il Terribile{end}
+
+[80C3]
+Doron{end}
+
+[80C4]
+Arma Knight{end}
+
+[80C5]
+Zombie Talpa Meccanica{end}
+
+[80C6]
+Amore Felice{end}
+
+[80C7]
+Cavaliere Pinguino{end}
+
+[80C8]
+Piccolo Drago{end}
+
+[80C9]
+Panda Scatenato{end}
+
+[80CA]
+Marmotta Arcidemone della Sventura{end}
+
+[80CB]
+Fantasma Spettrale{end}
+
+[80CC]
+Mabarrel{end}
+
+[80CD]
+Dorover l'Avvelenatore{end}
+
+[80CE]
+Frustacode Gemelle #1{end}
+
+[80CF]
+Uccello Buffo{end}
+
+[80D0]
+Piccolo Angelo{end}
+
+[80D1]
+Mannaia Alata{end}
+
+[80D2]
+Spirito Hinotama{end}
+
+[80D3]
+Ragazzo Tuono{end}
+
+[80D4]
+Meotoko{end}
+
+[80D5]
+Mago delle Acque{end}
+
+[80D6]
+Kagemusha della Fiamma Blu{end}
+
+[80D7]
+Fantasma di Fuoco{end}
+
+[80D8]
+Driade{end}
+
+[80D9]
+Drago Teschio Nero{end}
+
+[80DA]
+Elettrosauro Doppiafauce{end}
+
+[80DB]
+Isolamento{end}
+
+[80DC]
+Stregone Mascherato{end}
+
+[80DD]
+Kumootoko{end}
+
+[80DE]
+Demone di Mezzanotte{end}
+
+[80DF]
+Serpente Oceanico{end}
+
+[80E0]
+Maestro di Trappola{end}
+
+[80E1]
+Spada del Demone{end}
+
+[80E2]
+Cacciatore di Teschi{end}
+
+[80E3]
+Hitodenchak{end}
+
+[80E4]
+Resti di Legno{end}
+
+[80E5]
+Clessidra della Vita{end}
+
+[80E6]
+Pesce Raro{end}
+
+[80E7]
+Clown di Legno{end}
+
+[80E8]
+Madjinn Gunn{end}
+
+[80E9]
+Titano del Terrore{end}
+
+[80EA]
+La Bella Cacciatrice di Teste{end}
+
+[80EB]
+Wodan l'Abitante della Foresta{end}
+
+[80EC]
+Guardia del Labirinto{end}
+
+[80ED]
+Haniwa{end}
+
+[80EE]
+Yashinoki{end}
+
+[80EF]
+Vishwar Randi{end}
+
+[80F0]
+Il Drdek{end}
+
+[80F1]
+Assalitore Oscuro{end}
+
+[80F2]
+Candela del Destino{end}
+
+[80F3]
+Elemento Acquatico{end}
+
+[80F4]
+Dissolviroccia{end}
+
+[80F5]
+Pipistrello Meda{end}
+
+[80F6]
+Il Cacciatore di Anime{end}
+
+[80F7]
+Acqua di Radice{end}
+
+[80F8]
+Maestro ed Esperto{end}
+
+[80F9]
+Trasforma-Acque{end}
+
+[80FA]
+Hyo{end}
+
+[80FB]
+Sirena Incantatrice{end}
+
+[80FC]
+Nekogal #1{end}
+
+[80FD]
+Strega Angelica{end}
+
+[80FE]
+Bestia Embrionale{end}
+
+[80FF]
+Corazzatopo{end}
+
+[8100]
+Guerriero D.D.{end}
+
+[8101]
+Armadillatore di Pietra{end}
+
+[8102]
+Re delle Bestie delle Paludi{end}
+
+[8103]
+Stregone Antico{end}
+
+[8104]
+Elzaim Regina della Luna{end}
+
+[8105]
+Specchio Arcidemone{end}
+
+[8106]
+Piccolo Spadaccino di Aile{end}
+
+[8107]
+Orco di Pietra #2{end}
+
+[8108]
+Elfo dell'Uovo Alato{end}
+
+[8109]
+Furioso Re dei Mari{end}
+
+[810A]
+Principessa di Tsurugi{end}
+
+[810B]
+Guerriero Sconosciuto{end}
+
+[810C]
+Adepto dei Segreti{end}
+
+[810D]
+Versago il Distruttore{end}
+
+[810E]
+Wetha{end}
+
+[810F]
+Luce di Megirus{end}
+
+[8110]
+Mavelo{end}
+
+[8111]
+Antico Albero della Saggezza{end}
+
+[8112]
+Re Verde degli Spettri{end}
+
+[8113]
+Bugroth di Terra{end}
+
+[8114]
+Raggio e Temperatura{end}
+
+[8115]
+Uovo della Gorgone{end}
+
+[8116]
+Piccola Falena{end}
+
+[8117]
+Re della Nebbia{end}
+
+[8118]
+Protettrice del Trono{end}
+
+[8119]
+Clown Mistico{end}
+
+[811A]
+Pecora Mistica #2{end}
+
+[811B]
+Holograh{end}
+
+[811C]
+Tao il Cantore{end}
+
+[811D]
+Serpente Predone{end}
+
+[811E]
+Custode del Cancello{end}
+
+[811F]
+Orco delle Ombre Nere{end}
+
+[8120]
+Artista Oscuro{end}
+
+[8121]
+Melma Cangiante{end}
+
+[8122]
+Emissario della Luna{end}
+
+[8123]
+Fireyarou{end}
+
+[8124]
+Psi-Kappa{end}
+
+[8125]
+Masaki lo Spadaccino Leggendario{end}
+
+[8126]
+Dragonessa a Cavallo{end}
+
+[8127]
+Bio-Pianta{end}
+
+[8128]
+Drago con Scudo{end}
+
+[8129]
+Cyber-Soldato del Mondoscuro{end}
+
+[812A]
+Drago Malvagio dalla Testa Finta{end}
+
+[812B]
+Fanciulla Sonica{end}
+
+[812C]
+Uccello Kurama{end}
+
+[812D]
+Spada Leggendaria{end}
+
+[812E]
+Spada Distruttrice{end}
+
+[812F]
+Energia Oscura{end}
+
+[8130]
+Ascia di Distruzione{end}
+
+[8131]
+Armatura Laser{end}
+
+[8132]
+Armatura Insetto con Cannone Laser{end}
+
+[8133]
+Luce dell'Elfo{end}
+
+[8134]
+Zanne della Bestia{end}
+
+[8135]
+Corazza d'Acciaio{end}
+
+[8136]
+Germi Malefici{end}
+
+[8137]
+Pendente Nero{end}
+
+[8138]
+Arco d'Argento{end}
+
+[8139]
+Corno di Luce{end}
+
+[813A]
+Corno dell'Unicorno{end}
+
+[813B]
+Tesoro del Drago{end}
+
+[813C]
+Elettro-Frusta{end}
+
+[813D]
+Cyber Scudo{end}
+
+[813E]
+Egotista Elegante{end}
+
+[813F]
+Luna Mistica{end}
+
+[8140]
+Blocca Difesa{end}
+
+[8141]
+Nuzzler Malevolo{end}
+
+[8142]
+Cristallo Viola{end}
+
+[8143]
+Libro delle Arti Segrete{end}
+
+[8144]
+Rinvigorimento{end}
+
+[8145]
+Fabbrica di Macchine{end}
+
+[8146]
+Alza Calore Corporeo{end}
+
+[8147]
+Vento Inseguitore{end}
+
+[8148]
+Potere di Kaishin{end}
+
+[8149]
+Cattura-Draghi{end}
+
+[814A]
+Foresta{end}
+
+[814B]
+Lande Desolate{end}
+
+[814C]
+Montagna{end}
+
+[814D]
+Sogen{end}
+
+[814E]
+Umi{end}
+
+[814F]
+Yami{end}
+
+[8150]
+Buco Nero{end}
+
+[8151]
+Raigeki{end}
+
+[8152]
+Curry Mooyan{end}
+
+[8153]
+Pozione Rossa{end}
+
+[8154]
+Cura Segreta Goblin{end}
+
+[8155]
+Anima del Puro{end}
+
+[8156]
+Dian Keto il Curatore{end}
+
+[8157]
+Scintille{end}
+
+[8158]
+Hinotama{end}
+
+[8159]
+Fiamme Finali{end}
+
+[815A]
+Ookazi{end}
+
+[815B]
+Fuoco Tremendo{end}
+
+[815C]
+Spada Rivelatrice{end}
+
+[815D]
+Cerchio Incantatore{end}
+
+[815E]
+Luce Oscura Perforante{end}
+
+[815F]
+Yaranzo{end}
+
+[8160]
+Kanan la Maestraspada{end}
+
+[8161]
+Takriminos{end}
+
+[8162]
+Peluche{end}
+
+[8163]
+Occhio Megasonico{end}
+
+[8164]
+Super Leone da Guerra{end}
+
+[8165]
+Yamadron{end}
+
+[8166]
+Seiyaryu{end}
+
+[8167]
+Zombie Tre-Gambe{end}
+
+[8168]
+Zera la Manta{end}
+
+[8169]
+Pinguino Volante{end}
+
+[816A]
+Scudo del Millennio{end}
+
+[816B]
+Dono della Fata{end}
+
+[816C]
+Glorioso Soldato Nero{end}
+
+[816D]
+Specchio del Demone Bestiale{end}
+
+[816E]
+Mura Labirintiche{end}
+
+[816F]
+Jirai Gumo{end}
+
+[8170]
+Demone Fantasma{end}
+
+[8171]
+Muro-Ombra{end}
+
+[8172]
+Carrarmato-Labirinto{end}
+
+[8173]
+Sanga del Tuono{end}
+
+[8174]
+Kazejin{end}
+
+[8175]
+Suijin{end}
+
+[8176]
+Guardiano del Cancello{end}
+
+[8177]
+Verme del Dungeon{end}
+
+[8178]
+Domatore di Mostri{end}
+
+[8179]
+Ryu-Kishin Potenziato{end}
+
+[817A]
+Spada in Agguato{end}
+
+[817B]
+Genio della Lampada{end}
+
+[817C]
+Drago Occhi Blu Finale{end}
+
+[817D]
+Alligatore Toon{end}
+
+[817E]
+Kaiser la Bestia{end}
+
+[817F]
+Pappadragallo{end}
+
+[8180]
+Coniglio Oscuro{end}
+
+[8181]
+Bickuribox{end}
+
+[8182]
+Draghetto delle Arpie{end}
+
+[8183]
+Lampada Mistica{end}
+
+[8184]
+Macchina Pendolo{end}
+
+[8185]
+Giltia il Cavaliere dei D.{end}
+
+[8186]
+Ragno Lancia-Missili{end}
+
+[8187]
+Zoa{end}
+
+[8188]
+Metalzoa{end}
+
+[8189]
+Mangia-Zone{end}
+
+[818A]
+Scorpione d'Acciaio{end}
+
+[818B]
+Elfo Danzante{end}
+
+[818C]
+Ocubeam{end}
+
+[818D]
+Leghul{end}
+
+[818E]
+Ooguchi{end}
+
+[818F]
+Spadaccino da una Terra Lontana{end}
+
+[8190]
+Imperatore di Terra e Mare{end}
+
+[8191]
+Ushi Oni{end}
+
+[8192]
+Occhio Mostruoso{end}
+
+[8193]
+Leo-Cannone{end}
+
+[8194]
+Tatsunootoshigo{end}
+
+[8195]
+Squarciatore Spada{end}
+
+[8196]
+Yaiba il Robot{end}
+
+[8197]
+Re delle Macchine{end}
+
+[8198]
+Mech-Soldato Gigante{end}
+
+[8199]
+Drago Metallico{end}
+
+[819A]
+Ragno Karakuri{end}
+
+[819B]
+Pipistrello{end}
+
+[819C]
+Lupo Tecnologico{end}
+
+[819D]
+Cyber-Soldato{end}
+
+[819E]
+Annientatore Badile{end}
+
+[819F]
+Meccacciatore{end}
+
+[81A0]
+Bloccatore{end}
+
+[81A1]
+Giocoliere Devastante{end}
+
+[81A2]
+Golgoil{end}
+
+[81A3]
+Giganto{end}
+
+[81A4]
+Ciberstein{end}
+
+[81A5]
+Cyber-Comandante{end}
+
+[81A6]
+Jinzo #7{end}
+
+[81A7]
+Armadillo Dado{end}
+
+[81A8]
+Drago del Cielo{end}
+
+[81A9]
+Drago del Tuono{end}
+
+[81AA]
+Drago di Pietra{end}
+
+[81AB]
+Drago Kaiser{end}
+
+[81AC]
+Mago della Fede{end}
+
+[81AD]
+Dea del Capriccio{end}
+
+[81AE]
+Mago Acquatico{end}
+
+[81AF]
+Acqua Ghiacciata{end}
+
+[81B0]
+Fata Drago d'Acqua{end}
+
+[81B1]
+Elfo Antico{end}
+
+[81B2]
+Superba Addestratrice di Bestie{end}
+
+[81B3]
+Ragazza dell'Acqua{end}
+
+[81B4]
+Delfino Bianco{end}
+
+[81B5]
+Squalo degli Abissi{end}
+
+[81B6]
+Pesce Metallico{end}
+
+[81B7]
+Abitatore degli Abissi{end}
+
+[81B8]
+Pesce dei 7 Colori{end}
+
+[81B9]
+Mecha-Spigola{end}
+
+[81BA]
+Drago Acquatico{end}
+
+[81BB]
+Drago Re dei Mari{end}
+
+[81BC]
+Turu-Purun{end}
+
+[81BD]
+Sentinella dei Mari{end}
+
+[81BE]
+Serpente Acquatico{end}
+
+[81BF]
+Serpente Marino Gigante Rosso{end}
+
+[81C0]
+Seadra degli Aculei{end}
+
+[81C1]
+Tartaruga Bianca di 30.000 Anni{end}
+
+[81C2]
+Kappa Vendicatore{end}
+
+[81C3]
+Kanikabuto{end}
+
+[81C4]
+Zarigun{end}
+
+[81C5]
+Golem del Millennio{end}
+
+[81C6]
+Golem Distruttore{end}
+
+[81C7]
+Barile di Roccia{end}
+
+[81C8]
+Guerriero Minomushi{end}
+
+[81C9]
+Fantasma di Pietra{end}
+
+[81CA]
+Attacco Kaminari{end}
+
+[81CB]
+Elettro-Bestia{end}
+
+[81CC]
+Lumaca Fulminante{end}
+
+[81CD]
+Pinguino Fulminante{end}
+
+[81CE]
+Immortale del Tuono{end}
+
+[81CF]
+Serpente Elettrico{end}
+
+[81D0]
+Aquila Alata{end}
+
+[81D1]
+Aquila Punita{end}
+
+[81D2]
+Uccello Teschio Rosso{end}
+
+[81D3]
+Uccello del Sole Cremisi{end}
+
+[81D4]
+Uccello Regina{end}
+
+[81D5]
+Ninja Armato{end}
+
+[81D6]
+Fantasma Magico{end}
+
+[81D7]
+Predatore di Anime{end}
+
+[81D8]
+Mangiatore d'Aria{end}
+
+[81D9]
+Passero Vermiglio{end}
+
+[81DA]
+Kamen del Mare{end}
+
+[81DB]
+Serpente Sinistro{end}
+
+[81DC]
+Ganigumo{end}
+
+[81DD]
+Alinsection{end}
+
+[81DE]
+Soldati-Insetto del Cielo{end}
+
+[81DF]
+Cavaliere-Scarafaggio{end}
+
+[81E0]
+Kuwagata Alfa{end}
+
+[81E1]
+Ladruncolo{end}
+
+[81E2]
+Pragtical{end}
+
+[81E3]
+Garvas{end}
+
+[81E4]
+Ameba{end}
+
+[81E5]
+Korogashi{end}
+
+[81E6]
+Boo Koo{end}
+
+[81E7]
+Fiore di Lupo{end}
+
+[81E8]
+Fiore dell'Arcobaleno{end}
+
+[81E9]
+Giglio a Barile{end}
+
+[81EA]
+Palla Spilli{end}
+
+[81EB]
+Pavone{end}
+
+[81EC]
+Hoshiningen{end}
+
+[81ED]
+Maha Vailo{end}
+
+[81EE]
+Sirena Marina Arcobaleno{end}
+
+[81EF]
+Re Musicista{end}
+
+[81F0]
+Wilmee{end}
+
+[81F1]
+Yado Karu{end}
+
+[81F2]
+Morinphen{end}
+
+[81F3]
+Kattapillar{end}
+
+[81F4]
+Cercatore di Draghi{end}
+
+[81F5]
+Insetto Mangia-Uomini{end}
+
+[81F6]
+Guerriero D. Umano{end}
+
+[81F7]
+Procione Tartaruga{end}
+
+[81F8]
+Funghi del Muschio{end}
+
+[81F9]
+Prisman{end}
+
+[81FA]
+Dogra Burrasca{end}
+
+[81FB]
+Pesce Matto{end}
+
+[81FC]
+Cyber-Sauro{end}
+
+[81FD]
+Bracchio-raidus{end}
+
+[81FE]
+Fiore che Ride{end}
+
+[81FF]
+Soldato a Fagiolo{end}
+
+[8200]
+Soldato-Cannone{end}
+
+[8201]
+Guardiano del Trono{end}
+
+[8202]
+Scizzar il Coraggioso{end}
+
+[8203]
+La Statua dell'Isola dell'Est{end}
+
+[8204]
+Muka Muka{end}
+
+[8205]
+Pietra di Sabbia{end}
+
+[8206]
+Tartaruga Macigno{end}
+
+[8207]
+Kraken di Fuoco{end}
+
+[8208]
+Uccello Tartaruga{end}
+
+[8209]
+Uccello-Teschio{end}
+
+[820A]
+Uccello Mostruoso{end}
+
+[820B]
+Il Macellaio da Bistrò{end}
+
+[820C]
+Stellone{end}
+
+[820D]
+Spirito della Montagna{end}
+
+[820E]
+Cacciatore di Colli{end}
+
+[820F]
+Milus il Raggiante{end}
+
+[8210]
+Togex{end}
+
+[8211]
+Cerbero Infuocato{end}
+
+[8212]
+Eldeen{end}
+
+[8213]
+Sabbia Mistica{end}
+
+[8214]
+Elfi Gemelli{end}
+
+[8215]
+Kwagar Erculeo{end}
+
+[8216]
+Minar{end}
+
+[8217]
+Kamakiriman{end}
+
+[8218]
+Mechaleon{end}
+
+[8219]
+Mega-Sfera del Tuono{end}
+
+[821A]
+Niwatori{end}
+
+[821B]
+Squalo Corrosivo{end}
+
+[821C]
+Angelo Scheletrico{end}
+
+[821D]
+Hane-Hane{end}
+
+[821E]
+Pesce Misairuzame{end}
+
+[821F]
+Tongyo{end}
+
+[8220]
+Cannone Dharma{end}
+
+[8221]
+Skelgon{end}
+
+[8222]
+Guerriero Wow{end}
+
+[8223]
+Griggle{end}
+
+[8224]
+Topo d'Ossa{end}
+
+[8225]
+Rospo Melma{end}
+
+[8226]
+Behegon{end}
+
+[8227]
+Elfo Oscuro{end}
+
+[8228]
+Drago Alato #2{end}
+
+[8229]
+Uomo-Fungo #2{end}
+
+[822A]
+Guardiano di Lava{end}
+
+[822B]
+Tyhone #2{end}
+
+[822C]
+I Dannati Erranti{end}
+
+[822D]
+Orco d'Acciaio #1{end}
+
+[822E]
+Pot il Trucco{end}
+
+[822F]
+Oscillo Eroe{end}
+
+[8230]
+Invasore Dimensionale{end}
+
+[8231]
+Drago Minore{end}
+
+[8232]
+Verme Pungiglione{end}
+
+[8233]
+Fantasma Miserabile della Soffitta{end}
+
+[8234]
+Grande Mammuth di Goldfine{end}
+
+[8235]
+Squalo Mangia-Uomini{end}
+
+[8236]
+Yormungarde{end}
+
+[8237]
+Aculei degli Abissi{end}
+
+[8238]
+Anthrosaurus{end}
+
+[8239]
+Lucertola Affamata{end}
+
+[823A]
+Drago Trakodon{end}
+
+[823B]
+Drago Nero Re della Giungla{end}
+
+[823C]
+Giudice Imperatrice{end}
+
+[823D]
+Piccolo D{end}
+
+[823E]
+Strega della Foresta Nera{end}
+
+[823F]
+Antico della Foresta{end}
+
+[8240]
+Scorpione Gigante della Tundra{end}
+
+[8241]
+Goblin Corvo{end}
+
+[8242]
+Mago Leone{end}
+
+[8243]
+Fiore dell'Abisso{end}
+
+[8244]
+Robo-Pattuglia{end}
+
+[8245]
+Takuhee{end}
+
+[8246]
+Strega Oscura{end}
+
+[8247]
+Previsioni Meteo{end}
+
+[8248]
+Catena Vincolante{end}
+
+[8249]
+Mecha-Chiocciola{end}
+
+[824A]
+Kappa Verde{end}
+
+[824B]
+Mon Larvas{end}
+
+[824C]
+Vaso Vivente{end}
+
+[824D]
+Pianta Tentacolare{end}
+
+[824E]
+Serpente col Becco{end}
+
+[824F]
+Giara Trasformante{end}
+
+[8250]
+Musa-A{end}
+
+[8251]
+Tartaruga Mangia-Fiamme{end}
+
+[8252]
+Rosa Spettro di Dunn{end}
+
+[8253]
+Riflesso Evocatore #1{end}
+
+[8254]
+Demone Affamato{end}
+
+[8255]
+Bestia Pallida{end}
+
+[8256]
+Piccola Chimera{end}
+
+[8257]
+Pioggia Violenta{end}
+
+[8258]
+Mazza Chiave #2{end}
+
+[8259]
+Tenerezza{end}
+
+[825A]
+Soldato Pinguino{end}
+
+[825B]
+Drago Fatato{end}
+
+[825C]
+Marmotta Obesa della Malvagità{end}
+
+[825D]
+Bestia Liquida{end}
+
+[825E]
+Frustacode Gemelle #2{end}
+
+[825F]
+Grande Becco{end}
+
+[8260]
+Amicizia Splendente{end}
+
+[8261]
+Volama{end}
+
+[8262]
+Lucertola Elettrica{end}
+
+[8263]
+Esploratore-Ombra di Hiro{end}
+
+[8264]
+Signora della Fede{end}
+
+[8265]
+Drago di Tuono Bifronte{end}
+
+[8266]
+Ragno-Cacciatore{end}
+
+[8267]
+Stella Corazzata{end}
+
+[8268]
+Clessidra del Coraggio{end}
+
+[8269]
+Bestia Marina{end}
+
+[826A]
+Guerriero della Tradizione{end}
+
+[826B]
+Spirito di Roccia{end}
+
+[826C]
+Snakeyashi{end}
+
+[826D]
+Cavaliere Terrificante{end}
+
+[826E]
+Strega Malvagia{end}
+
+[826F]
+La Cosa che si Cela nel Fango{end}
+
+[8270]
+Gyojin della Marea{end}
+
+[8271]
+Fata della Fonte{end}
+
+[8272]
+Amazzone dei Mari{end}
+
+[8273]
+Nekogal #2{end}
+
+[8274]
+Apprendista Strega{end}
+
+[8275]
+Ratto Corazzato{end}
+
+[8276]
+Antico Guerriero Lucertola{end}
+
+[8277]
+Fanciulla del Chiaro di Luna{end}
+
+[8278]
+Orco di Pietra{end}
+
+[8279]
+Uovo Alato della Nuova Vita{end}
+
+[827A]
+Lucertola Notturna{end}
+
+[827B]
+Doppio della Regina{end}
+
+[827C]
+Corona dalle Ali Blu{end}
+
+[827D]
+Trent{end}
+
+[827E]
+Regina delle Foglie d'Autunno{end}
+
+[827F]
+Bugroth Anfibio{end}
+
+[8280]
+Strisciante Acido{end}
+
+[8281]
+Invasore del Trono{end}
+
+[8282]
+Pecora Mistica #1{end}
+
+[8283]
+Mago del Disco{end}
+
+[8284]
+Vipera di Fiamma{end}
+
+[8285]
+Guardia Reale{end}
+
+[8286]
+Poltiglia Repellente{end}
+
+[8287]
+Hyosube{end}
+
+[8288]
+Macchina d'Assalto{end}
+
+[8289]
+Hibikime{end}
+
+[828A]
+Corvo Coda-di-Frusta{end}
+
+[828B]
+Kunai con Catena{end}
+
+[828C]
+Labirinto Magico{end}
+
+[828D]
+Eliminazione del Guerriero{end}
+
+[828E]
+Salamandra{end}
+
+[828F]
+Spezzamaledizioni{end}
+
+[8290]
+Riposo Eterno{end}
+
+[8291]
+Megamorph{end}
+
+[8292]
+Metalmorph{end}
+
+[8293]
+Trombettiere Alato{end}
+
+[8294]
+Pioggia Acida{end}
+
+[8295]
+Virus Distruggi-Carte{end}
+
+[8296]
+Spray{end}
+
+[8297]
+Soffio di Luce{end}
+
+[8298]
+Siccità Eterna{end}
+
+[8299]
+Maledizione dello Scudo{end}
+
+[829A]
+Rito Yamadron{end}
+
+[829B]
+Rito del Guardiano del Cancello{end}
+
+[829C]
+Palazzo Scintillante{end}
+
+[829D]
+Magia Ombra{end}
+
+[829E]
+Rito della Gloria Nera{end}
+
+[829F]
+Rito di Zera{end}
+
+[82A0]
+Spolverino dell'Arpia{end}
+
+[82A1]
+Rituale del Leone da Guerra{end}
+
+[82A2]
+Rituale Specchio Bestiale{end}
+
+[82A3]
+Drago Finale{end}
+
+[82A4]
+Inizio delle Danze{end}
+
+[82A5]
+Ricetta dell'Hamburger{end}
+
+[82A6]
+Risveglio di Sennen Genjin{end}
+
+[82A7]
+Preghiera di Novox{end}
+
+[82A8]
+Maledizione del Tricorno{end}
+
+[82A9]
+Casa del Nastro Adesivo{end}
+
+[82AA]
+Mangia-Gaboon{end}
+
+[82AB]
+Trappola per Orsi{end}
+
+[82AC]
+Filo Invisibile{end}
+
+[82AD]
+Buco Trappola Acido{end}
+
+[82AE]
+Rovine Diffuse{end}
+
+[82AF]
+Ventaglio Goblin{end}
+
+[82B0]
+Brutta Reazione a Simochi{end}
+
+[82B1]
+Inverti Trappola{end}
+
+[82B2]
+Trappola Finta{end}
+
+[82B3]
+Drago-Serpente Notturno{end}
+
+[82B4]
+Giuramento della Tartaruga{end}
+
+[82B5]
+Costruzione della Maschera{end}
+
+[82B6]
+Resurrezione di Chakra{end}
+
+[82B7]
+Rito del Burattino{end}
+
+[82B8]
+Patto dello Scarabeo-Lancia{end}
+
+[82B9]
+Giuramento della Spada Garma{end}
+
+[82BA]
+Preghiera Regina del Cosmo{end}
+
+[82BB]
+Rinascita di Dokurorider{end}
+
+[82BC]
+Giuramento della Balena Fortezza{end}
+
+[82BD]
+Prestazione della Spada{end}
+
+[82BE]
+Hamburger Affamato{end}
+
+[82BF]
+Sengenjin{end}
+
+[82C0]
+Guardiano Teschio{end}
+
+[82C1]
+Drago Tricorno{end}
+
+[82C2]
+Drago Serpente Notturno{end}
+
+[82C3]
+Cavaliere Teschio{end}
+
+[82C4]
+Regina del Cosmo{end}
+
+[82C5]
+Chakra{end}
+
+[82C6]
+Tartaruga-Granchio{end}
+
+[82C7]
+Mikazukinoyaiba{end}
+
+[82C8]
+Drago Meteora{end}
+
+[82C9]
+Drago Nero Meteora{end}
+
+[82CA]
+Pegaso Alafuoco{end}
+
+[82CB]
+Psico-Burattino{end}
+
+[82CC]
+Spada Garma{end}
+
+[82CD]
+Scarabeo-Lancia{end}
+
+[82CE]
+Balena Fortezza{end}
+
+[82CF]
+Dokurorider{end}
+
+[82D0]
+Splendore e Oscurità{end}
+
+[82D1]
+Rito Magia Oscura{end}
+
+[82D2]
+Mago del Chaos Oscuro{end}
