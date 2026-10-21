@@ -585,10 +585,12 @@ static uint64_t real_now_us(void)
  * and present and gl_picture.c's replay: the events and the menu (pump),
  * the picture into the window's texture (the OpenGL picture's copy, or the
  * software picture's upload), and the swap, which waits while the GPU is
- * behind, or for the display with vsync on. Untimed while the channel is
- * off. */
-enum { PHASE_EVENTS, PHASE_COPY, PHASE_SWAP, PHASES };
-static struct { uint64_t total[PHASES]; unsigned max[PHASES], frames; } phases;
+ * behind, or for the display with vsync on; and the overlay (menu, HUD,
+ * mods, touch pad) drawn again and uploaded when it changed, and the
+ * renderer's queued draws flushed before the swap. Untimed while the
+ * channel is off. */
+enum { PHASE_EVENTS, PHASE_COPY, PHASE_SWAP, PHASE_COMPOSE, PHASE_UPLOAD, PHASE_FLUSH, PHASES };
+static struct { uint64_t total[PHASES], pixels; unsigned max[PHASES], frames, composes; } phases;
 
 static uint64_t phase_start(void) { return Log_Enabled(LOG_FRAMES) ? real_now_us() : 0; }
 
@@ -622,6 +624,13 @@ static void phases_shown(void)
         (unsigned)(phases.total[PHASE_EVENTS] / 120), (unsigned)(phases.total[PHASE_COPY] / 120),
         (unsigned)(phases.total[PHASE_SWAP] / 120), phases.max[PHASE_EVENTS], phases.max[PHASE_COPY],
         phases.max[PHASE_SWAP], images, image_us, image_max);
+    LOG(LOG_FRAMES, "overlay %dx%d: composed %u times, draw %u us, upload %u us (max %u, %u), %u kpixels a time; "
+        "flush %u us per shown frame (max %u)",
+        layout.win_w, layout.win_h, phases.composes,
+        (unsigned)(phases.composes ? phases.total[PHASE_COMPOSE] / phases.composes : 0),
+        (unsigned)(phases.composes ? phases.total[PHASE_UPLOAD] / phases.composes : 0), phases.max[PHASE_COMPOSE],
+        phases.max[PHASE_UPLOAD], (unsigned)(phases.composes ? phases.pixels / phases.composes / 1000 : 0),
+        (unsigned)(phases.total[PHASE_FLUSH] / 120), phases.max[PHASE_FLUSH]);
     memset(&phases, 0, sizeof(phases));
 }
 
@@ -1695,6 +1704,11 @@ static void show(void)
     apply_swap_interval();
     {
         uint64_t started = phase_start();
+        if (started) {
+            SDL_FlushRenderer(renderer);
+            phase_end(PHASE_FLUSH, started);
+            started = phase_start();
+        }
         SDL_RenderPresent(renderer);
         phase_end(PHASE_SWAP, started);
     }
@@ -1709,6 +1723,7 @@ static unsigned compose_count; /* MEMORIES_TRACE=window: compositions per 120 fr
 static void compose_menu(void)
 {
     int x, y, w, h, x0, y0, x1, y1, row;
+    uint64_t started = phase_start();
     menu_dirty = 0;
     compose_count++;
     for (row = shown_menu.y; row < shown_menu.y + shown_menu.h && row < layout.win_h; row++) {
@@ -1723,7 +1738,14 @@ static void compose_menu(void)
     shown_menu.y = y;
     shown_menu.w = w;
     shown_menu.h = h;
+    phase_end(PHASE_COMPOSE, started);
+    started = phase_start();
     upload_overlay(x0, y0, x1 - x0, y1 - y0);
+    phase_end(PHASE_UPLOAD, started);
+    if (started) {
+        phases.composes++;
+        phases.pixels += (uint64_t)(x1 - x0) * (uint64_t)(y1 - y0);
+    }
 }
 
 /* The menu changed under a still picture: repaint it and show the window. */
