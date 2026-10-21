@@ -34,7 +34,7 @@
 #include "pc/compat/signal.h"
 #include "pc/debug/log.h"
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_opengl.h>
+#include "pc/render/gl_headers.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -295,7 +295,7 @@ static unsigned glyphs_generation = ~0u;
 static GLint u_glyphs;
 
 static const char *vertex_source =
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(MEMORIES_IOS) /* the iPhone's are es_source's */
     "#version 150\n"
 #else
     "#version 130\n"
@@ -434,7 +434,7 @@ static const char *vertex_source =
  * Flag 128: a full-bleed card title, whose HD atlas ink is white instead of
  * the retail title CLUT's black. */
 static const char *fragment_source =
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(MEMORIES_IOS)
     "#version 150\n"
 #else
     "#version 130\n"

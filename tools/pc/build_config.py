@@ -6,6 +6,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # Declared deployment baseline; runtime compatibility is validated separately.
 MACOS_MINIMUM = "11.0"
+# iPhone (ios, ios-simulator): the same translated arm64 build, iOS SDK.
+IOS_MINIMUM = "15.0"
 
 # Keep host platform, machine architecture, native calling ABI, and guest
 # memory strategy explicit.  In particular, Windows x64 is still the fixed
@@ -84,7 +86,33 @@ TARGETS = {
         "build": "tmp/pc/macos",
         "executable": "memories-arm64",
     },
+    # The macOS build for the iPhone (build_arm64.py --target ios) and its
+    # simulator: same code, iOS SDK, GLES like Android, an .app of its own
+    # (package_ios.py).
+    "ios": {
+        "platform": "ios",
+        "architecture": "arm64",
+        "abi": "darwin-lp64",
+        "memory_model": "translated-32",
+        "guest_assembly": "translated-arm64",
+        "driver": "build_arm64.py",
+        "build": "tmp/pc/ios",
+        "executable": "memories-arm64",
+    },
+    "ios-simulator": {
+        "platform": "ios-simulator",
+        "architecture": "arm64",
+        "abi": "darwin-lp64",
+        "memory_model": "translated-32",
+        "guest_assembly": "translated-arm64",
+        "driver": "build_arm64.py",
+        "build": "tmp/pc/ios-simulator",
+        "executable": "memories-arm64",
+    },
 }
+
+# The Apple SDK (xcrun --sdk) of each Apple target.
+APPLE_SDKS = {"macos": "macosx", "ios": "iphoneos", "ios-simulator": "iphonesimulator"}
 
 BACKENDS = {
     "sdl": [

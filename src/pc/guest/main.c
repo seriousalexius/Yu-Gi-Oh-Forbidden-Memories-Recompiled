@@ -188,6 +188,10 @@ static void user_dir_fact(int writable, const char *why)
     else Monitor_Fact("user dir", "%s; writable: no: %s", Paths_UserDir(), why);
 }
 
+#ifdef MEMORIES_IOS
+/* The iPhone's main is platform/ios.c's, which SDL's UIKit start calls. */
+#define main Memories_Main
+#endif
 int main(int argc, char **argv)
 {
 #ifdef _WIN32

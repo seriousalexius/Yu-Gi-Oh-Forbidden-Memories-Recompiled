@@ -60,7 +60,7 @@
 #else
 #define HERE(name) name
 #endif
-#include <SDL3/SDL_opengl.h>
+#include "pc/render/gl_headers.h"
 #include "pc/render/gl_picture.h"
 #include "pc/render/texture_pack.h"
 #include "pc/compat/signal.h"
@@ -2231,7 +2231,7 @@ static void create_window(const char *title)
     const char *gles = getenv("MEMORIES_GLES");
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
     update_menu_scale(240 * scale + 26 * Menu_AutoScale(240 * scale));
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(MEMORIES_IOS)
     /* The default macOS context is 2.1. Integer textures need 3.2 core,
      * with shader-based presentation instead of immediate-mode quads. */
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);

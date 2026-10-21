@@ -1,13 +1,13 @@
-/* Where the system's OpenGL is GLES (Android), in place of present_pass.c:
+/* Where the system's OpenGL is GLES (Android, the iPhone), in place of present_pass.c:
  * the present pass and sdl.c's GL presenter call desktop GL's fixed
  * function (glBegin, glOrtho, the matrix stack), which GLES does not have.
  * That path is never taken there, since Platform_HasDesktopGL() is 0 and
  * sdl.c shows the picture through the SDL renderer instead; these only
  * complete the link. tools/pc/build_game32.py picks this file for Android
  * builds (ANDROID_BACKEND). */
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(MEMORIES_IOS)
 #include "present_pass.h"
-#include <SDL3/SDL_opengl.h>
+#include "gl_headers.h"
 
 int PresentPass_InitCore(void) { return 0; }
 

@@ -1,0 +1,79 @@
+name: iPhone build
+
+# The iPhone port (tools/pc/package_ios.py): the simulator build runs in an
+# iOS Simulator (screenshots in the ios-simulator artifact), the iPhone
+# build becomes an .ipa to sideload.
+on:
+  push:
+    branches: [ios]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            tmp/pc/llvm-macos
+            tmp/pc/tools/macos
+            tmp/pc/macos-deps
+            tmp/pc/ios-deps
+          key: ios-llvm21.1.8-${{ hashFiles('tools/pc/macos_toolchain.json', 'tools/pc/macos_deps.py', 'tools/pc/dependency_archives.py', 'tools/pc/fetch_tools.py') }}
+      - name: Xcode
+        run: xcodebuild -version; xcrun --sdk iphoneos --show-sdk-path; xcrun --sdk iphonesimulator --show-sdk-path
+      - name: Build for the iPhone simulator
+        run: python tools/pc/build.py --target ios-simulator
+      - name: Package the simulator app
+        run: python3 tools/pc/package_ios.py --binary tmp/pc/ios-simulator/memories-arm64 --out tmp/pc-release/ios-simulator
+      - name: Run in the iOS Simulator
+        run: bash tools/pc/ios/simulator_test.sh tmp/pc-release/ios-simulator/stage/YFM.app tmp/ios-run 60
+      - name: Build for the iPhone
+        if: ${{ !cancelled() }}
+        run: python tools/pc/build.py --target ios
+      - name: Package the iPhone app
+        if: ${{ !cancelled() }}
+        run: python3 tools/pc/package_ios.py --binary tmp/pc/ios/memories-arm64 --out tmp/pc-release/ios
+      - name: Upload the simulator run
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator
+          path: |
+            tmp/ios-run
+            tmp/pc-release/ios-simulator/*.zip
+          if-no-files-found: ignore
+      - name: Upload the iPhone app
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-iphone
+          path: tmp/pc-release/ios/*.ipa
+          if-no-files-found: ignore
+      - name: Upload the build logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-logs
+          path: |
+            tmp/pc/ios-simulator/logs
+            tmp/pc/ios/logs
+            tmp/pc/ios-deps/*/build/*/CMakeFiles/*.log
+          if-no-files-found: ignore

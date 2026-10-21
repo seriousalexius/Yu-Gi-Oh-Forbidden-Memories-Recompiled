@@ -329,7 +329,11 @@ void Platform_SetClockRate(int percent)
 int Platform_ClockRate(void) { return rate; }
 
 #ifndef __ANDROID__ /* android.c: GLES only */
+#ifdef MEMORIES_IOS
+int Platform_HasDesktopGL(void) { return 0; } /* the iPhone's GL is GLES, as Android's */
+#else
 int Platform_HasDesktopGL(void) { return 1; }
+#endif
 int Platform_GuestMemoryHelp(char *why, size_t size)
 {
     (void)why;

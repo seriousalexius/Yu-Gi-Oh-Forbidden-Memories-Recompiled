@@ -23,6 +23,7 @@ import subprocess
 from pathlib import Path
 
 from build_config import (
+    APPLE_SDKS,
     GATED_MODULES,
     MODULE_CONFIG,
     MODULES,
@@ -73,6 +74,8 @@ ORDINARY = {
     # The crash-report table: host memory of its own, never a registered
     # heap region, so a save state neither holds nor replaces it.
     "src/pc/debug/symbols.c",
+    # The iPhone's entry (SDL's UIKit main calls it), host code only.
+    "src/pc/platform/ios.c",
 }
 
 
@@ -612,6 +615,30 @@ def write_mod_translation(build, address_tables):
     (build / "mod_translation.json").write_text(json.dumps(table, indent=1, sort_keys=True) + "\n")
 
 
+def ios_libraries(cc, sdk, dependencies):
+    """The iPhone's link: SDL's own frameworks (its sdl3.pc), CoreText and
+    CoreGraphics for the fonts (macos_fonts.c), iconv, and clang's builtins
+    for iOS (__isPlatformVersionAtLeast, SDL's @available) from Xcode where
+    the LLVM archive has none."""
+    import shlex
+
+    pc = (dependencies / "lib/pkgconfig/sdl3.pc").read_text()
+    private = next(line for line in pc.splitlines() if line.startswith("Libs.private:"))
+    libraries = [t for t in shlex.split(private.split(":", 1)[1]) if not t.startswith("-L") and t != "-lSDL3"]
+    libraries += ["-framework", "CoreText", "-framework", "CoreGraphics", "-framework", "Foundation", "-liconv"]
+    simulator = Path(sdk).name.lower().startswith("iphonesimulator")
+    runtime = "libclang_rt.iossim.a" if simulator else "libclang_rt.ios.a"
+    llvm = Path(cc).resolve().parents[1]
+    if not list((llvm / "lib/clang").glob("*/lib/darwin/" + runtime)):
+        xcode = subprocess.check_output(
+            ["xcrun", "--sdk", "iphonesimulator" if simulator else "iphoneos", "clang", "-print-resource-dir"],
+            text=True,
+        ).strip()
+        if (Path(xcode) / "lib/darwin" / runtime).is_file():
+            libraries.append(str(Path(xcode) / "lib/darwin" / runtime))
+    return libraries
+
+
 def link_game(
     build, jobs, path_for, tables, export_object, cc, sdk, flags, dependencies
 ):
@@ -654,6 +681,7 @@ def link_game(
             str(dependencies / "lib" / name)
             for name in ["libfreetype.a", "libpng16.a", "libz.a", "libSDL3.a"]
         ],
+        *(ios_libraries(cc, sdk, dependencies) if Path(sdk).name.lower().startswith("iphone") else [
         "-liconv",
         "-framework",
         "Cocoa",
@@ -689,6 +717,7 @@ def link_game(
         "Carbon",
         "-framework",
         "CoreHaptics",
+        ]),
         "-Wl,-export_dynamic",
         "-o",
         str(build / "memories-arm64"),
@@ -709,7 +738,8 @@ def link_game(
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target", choices=("macos", "android-arm64-translated"), default="macos")
+    parser.add_argument("--target", choices=("macos", "ios", "ios-simulator", "android-arm64-translated"),
+                        default="macos")
     parser.add_argument("--build", type=Path)
     parser.add_argument("--jobs", type=int, default=8)
     parser.add_argument("--compile-only", action="store_true")
@@ -750,8 +780,13 @@ def main():
         cc = str(llvm / "bin/clang")
         from macos_deps import ensure, sdk_path
 
-        dependencies = ensure(jobs=args.jobs)
-        sdk = str(sdk_path())
+        sdk_name = APPLE_SDKS[args.target]
+        if sdk_name == "macosx":
+            dependencies = ensure(jobs=args.jobs)
+        else:
+            # zstd is the host guest pass's alone (macos_deps.py).
+            dependencies = ensure(("zlib", "libpng", "freetype", "sdl-source"), jobs=args.jobs, sdk_name=sdk_name)
+        sdk = str(sdk_path(sdk_name))
     build = (args.build or ROOT / TARGETS[args.target]["build"]).resolve()
     for d in ["raw", "ir", "obj", "logs"]:
         (build / d).mkdir(parents=True, exist_ok=True)
@@ -759,9 +794,9 @@ def main():
     groups = game_sources()
     target = TARGETS[args.target]
     natives = native_sources(target)
-    if ANDROID_BIN:
+    if ANDROID_BIN or args.target.startswith("ios"):
         # GLES has no desktop GL presenter (build_game32.py ANDROID_BACKEND);
-        # the loader is libmain.so's own unit.
+        # the loader is libmain.so's own unit. The iPhone's GL is GLES too.
         natives = sorted(
             {"src/pc/render/gl_desktop_none.c" if s == "src/pc/render/present_pass.c" else s
              for s in natives}
