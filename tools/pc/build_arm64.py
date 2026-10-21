@@ -623,8 +623,10 @@ def ios_libraries(cc, sdk, dependencies):
     import shlex
 
     pc = (dependencies / "lib/pkgconfig/sdl3.pc").read_text()
-    private = next(line for line in pc.splitlines() if line.startswith("Libs.private:"))
-    libraries = [t for t in shlex.split(private.split(":", 1)[1]) if not t.startswith("-L") and t != "-lSDL3"]
+    # A static-only SDL lists its system libraries on Libs: or Libs.private:.
+    tokens = [t for line in pc.splitlines() if line.startswith(("Libs:", "Libs.private:"))
+              for t in shlex.split(line.split(":", 1)[1])]
+    libraries = [t for t in tokens if not t.startswith("-L") and t != "-lSDL3" and "${" not in t]
     libraries += ["-framework", "CoreText", "-framework", "CoreGraphics", "-framework", "Foundation", "-liconv"]
     simulator = Path(sdk).name.lower().startswith("iphonesimulator")
     runtime = "libclang_rt.iossim.a" if simulator else "libclang_rt.ios.a"
