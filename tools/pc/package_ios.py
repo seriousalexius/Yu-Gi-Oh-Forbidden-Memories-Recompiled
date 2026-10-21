@@ -187,7 +187,9 @@ def package(binary, out, label):
         CFBundleInfoDictionaryVersion="6.0",
         CFBundleDevelopmentRegion="en",
         CFBundleVersion=build_number,
-        CFBundleShortVersionString=release.group(1) if release else "0.0.0",
+        # SideStore offers an update when the version changes: builds that are
+        # not releases count up with the branch.
+        CFBundleShortVersionString=release.group(1) if release else "1.0." + build_number,
         CFBundleSupportedPlatforms=["iPhoneSimulator" if sdk == "iphonesimulator" else "iPhoneOS"],
         DTPlatformName=sdk,
         MinimumOSVersion=IOS_MINIMUM,
