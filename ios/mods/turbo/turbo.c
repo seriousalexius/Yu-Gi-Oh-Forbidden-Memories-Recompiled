@@ -1,7 +1,8 @@
-/* Turbo: a pad button (L2 unless the player chose another) turns flat out
- * on, and a second press off, so a phone, which has no Tab key, can hurry
- * the long animations along. It is the host's own
- * Turbo (host_actions.c): Platform_SetClockRate, and back to the player's
+/* Turbo: a pad button (L2 unless the player chose another) runs the game
+ * flat out, so a phone, which has no Tab key, can hurry the long animations
+ * along. "uso" picks how: a press turns it on and a second press off, or it
+ * is on only while the button is held. It is the host's own Turbo
+ * (host_actions.c): Platform_SetClockRate, and back to the player's
  * Game > Game speed when it ends. Never while the game is paused (a clock
  * rate of 0), which is left alone.
  *
@@ -9,11 +10,10 @@
  * nothing else. A small ">> MAX" in the corner says it is on.
  *
  * In a duel (main mode 3, up to the result screen: scene phase 12 on) the
- * speed also follows the turn by itself: "mine" for the player's turns
- * (400% unless chosen otherwise), "opponent" for the opponent's (flat out
- * unless chosen otherwise), told apart by D_8009B1D5, the acting side (1 the
- * opponent). The button, when on, goes over both. Out of a duel it is
- * Game > Game speed.
+ * opponent's turns, told apart by D_8009B1D5 (the acting side, 1 the
+ * opponent), run flat out by themselves unless "avversario" says Game speed.
+ * The player's own turns, and everything out of a duel, are Game > Game
+ * speed unless the button is on.
  *
  * Flat out is measured, not assumed. The game moves everything by its
  * per-frame step (D_8009B0D8, graphics_frame.h), which counts the VBlanks
@@ -41,7 +41,7 @@ extern int D_8009B0D8;                /* graphics_frame.h: the per-frame step */
 enum { MODE_MASK = 0x1F, MODE_DUEL = 3, PHASE_RESULT = 12 };
 enum { FLAT_OUT = -1, TOP_FIXED = 400 };
 enum { TRY_US = 500000, KEEP_US = 4000000 };
-enum { BY_NONE, BY_BUTTON, BY_MINE, BY_OPPONENT };
+enum { BY_NONE, BY_BUTTON, BY_OPPONENT };
 
 static const MemoriesModHost *host;
 static int level, applied_rate;     /* level: 1 while the button has it on; applied_rate: the rate last applied, 0 none */
@@ -60,20 +60,11 @@ static int in_duel(void)
     return (D_8009B26C & MODE_MASK) == MODE_DUEL && (gDuel_wSceneStateFlags & 0xF) < PHASE_RESULT;
 }
 
-/* The player's turns: 0 Game > Game speed, else the chosen rate. */
-static int mine_rate(void)
-{
-    static const int rates[] = {0, 200, 300, 400};
-    int at = host->setting(host, "mine", 3);
-    return at >= 0 && at <= 3 ? rates[at] : 0;
-}
-
-/* The opponent's turns: 0 as the player's, 1 flat out (2, the retired fixed
- * speed, kept as 400%). */
+/* The opponent's turns: 0 Game > Game speed, else flat out (2, a retired
+ * choice, too). */
 static int opponent_rate(void)
 {
-    int at = host->setting(host, "avversario", 1);
-    return at == 1 ? FLAT_OUT : at == 2 ? TOP_FIXED : mine_rate();
+    return host->setting(host, "avversario", 1) ? FLAT_OUT : 0;
 }
 
 static int other(int rate) { return rate == FLAT_OUT ? TOP_FIXED : FLAT_OUT; }
@@ -111,8 +102,8 @@ static int flat_out(void)
     return flat_trying ? other(flat_best) : flat_best;
 }
 
-/* This frame's rate and what asked for it: the button's, else the turn's in
- * a duel, else none (Game > Game speed). */
+/* This frame's rate and what asked for it: the button's, else the
+ * opponent's turn in a duel, else none (Game > Game speed). */
 static void choose(void)
 {
     int rate = 0;
@@ -120,10 +111,9 @@ static void choose(void)
     if (level) {
         rate = FLAT_OUT;
         target_by = BY_BUTTON;
-    } else if (in_duel()) {
-        int theirs = D_8009B1D5 == 1;
-        rate = theirs ? opponent_rate() : mine_rate();
-        target_by = !rate ? BY_NONE : theirs ? BY_OPPONENT : BY_MINE;
+    } else if (in_duel() && D_8009B1D5 == 1) {
+        rate = opponent_rate();
+        target_by = rate ? BY_OPPONENT : BY_NONE;
     }
     if (rate == FLAT_OUT) rate = flat_out();
     else flat_on = 0;
@@ -147,7 +137,7 @@ static void apply(void)
     }
     if ((want != 0) != (applied_rate != 0) && host->log_enabled(host))
         host->log(host, "%d%% -> %d%%%s\n", rate, Platform_ClockRate(),
-                  target_by == BY_OPPONENT ? " (avversario)" : target_by == BY_MINE ? " (tuo turno)" : "");
+                  target_by == BY_OPPONENT ? " (avversario)" : "");
     applied_rate = want;
 }
 
@@ -158,7 +148,8 @@ static void frame(void)
     int down = key && (pad & key) == key, held_before = key && (was & key) == key;
 
     key_bits = key;
-    if (down && !held_before) level = !level;
+    if (host->setting(host, "uso", 0) == 1) level = down;
+    else if (down && !held_before) level = !level;
     was = pad;
     choose();
     apply();
@@ -180,8 +171,7 @@ static void applied(int is_on)
     }
 }
 
-/* The label: the button's level, or the opponent's turn. The player's own
- * turn has none, its speed is the duel's normal one. */
+/* The label: the button's, or the opponent's turn. Game speed has none. */
 static void draw(void)
 {
     int width, height, scale, left = 0, right, w, rate = shown_rate();
