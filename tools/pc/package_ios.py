@@ -119,6 +119,8 @@ def package(binary, out, label):
         UIFileSharingEnabled=True,
         LSSupportsOpeningDocumentsInPlace=True,
         GCSupportsControllerUserInteraction=True,
+        # A mouse or trackpad's own events (SDL asks for it).
+        UIApplicationSupportsIndirectInputEvents=True,
         PackageVersion=label,
     )
     (app / "Info.plist").write_bytes(plistlib.dumps(info))

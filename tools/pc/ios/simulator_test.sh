@@ -39,6 +39,13 @@ running=yes
 kill -0 "$launcher" 2> /dev/null || running=no
 echo "still running after ${seconds}s: $running" | tee "$out/result.txt"
 kill "$launcher" 2> /dev/null || true
+# Again with the disc's document picker open at once (sdl.c,
+# MEMORIES_TEST_PICKER): the Files app's sheet, in picker.png.
+SIMCTL_CHILD_MEMORIES_TEST_PICKER=1 xcrun simctl launch --console-pty --terminate-running-process "$device" "$bundle"     > "$out/console-picker.txt" 2>&1 &
+launcher=$!
+sleep 15
+xcrun simctl io "$device" screenshot "$out/picker.png" > /dev/null 2>&1 || true
+kill "$launcher" 2> /dev/null || true
 documents=$(xcrun simctl get_app_container "$device" "$bundle" data 2> /dev/null)/Documents
 [ -d "$documents" ] && ls -laR "$documents" > "$out/documents.txt" 2>&1
 find ~/Library/Logs/DiagnosticReports -name 'memories*' -newer "$app/Info.plist" -exec cp {} "$out/" \; 2> /dev/null

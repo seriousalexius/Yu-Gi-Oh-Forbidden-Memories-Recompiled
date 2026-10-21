@@ -74,8 +74,10 @@ ORDINARY = {
     # The crash-report table: host memory of its own, never a registered
     # heap region, so a save state neither holds nor replaces it.
     "src/pc/debug/symbols.c",
-    # The iPhone's entry (SDL's UIKit main calls it), host code only.
+    # The iPhone's entry (SDL's UIKit main calls it) and its document
+    # picker (Objective-C), host code only.
     "src/pc/platform/ios.c",
+    "src/pc/platform/ios_picker.m",
 }
 
 
@@ -134,6 +136,8 @@ def compile_sources(jobs, ordinary, path_for, cc, flags, game_extra, args):
         extra = game_extra if group != "native" else []
         if source == "src/pc/compat/gte.c" and source in ordinary:
             extra = [*extra, "-DMEMORIES_NATIVE_GTE"]
+        if source.endswith(".m"):
+            extra = [*extra, "-fobjc-arc"]
         emit_flags = [
             ("-O2" if args.optimize and source in ordinary and flag == "-O0" else flag)
             for flag in flags
@@ -628,6 +632,8 @@ def ios_libraries(cc, sdk, dependencies):
               for t in shlex.split(line.split(":", 1)[1])]
     libraries = [t for t in tokens if not t.startswith("-L") and t != "-lSDL3" and "${" not in t]
     libraries += ["-framework", "CoreText", "-framework", "CoreGraphics", "-framework", "Foundation", "-liconv"]
+    # The document picker's types (ios_picker.m).
+    libraries += ["-framework", "UIKit", "-framework", "UniformTypeIdentifiers"]
     simulator = Path(sdk).name.lower().startswith("iphonesimulator")
     runtime = "libclang_rt.iossim.a" if simulator else "libclang_rt.ios.a"
     llvm = Path(cc).resolve().parents[1]
@@ -803,6 +809,8 @@ def main():
             {"src/pc/render/gl_desktop_none.c" if s == "src/pc/render/present_pass.c" else s
              for s in natives}
         )
+    if args.target.startswith("ios"):
+        natives = sorted({*natives, "src/pc/platform/ios_picker.m"})
     required = {
         "src/pc/guest/translated_image_backend.c",
         "src/pc/guest/state_translated.c",
@@ -845,7 +853,7 @@ def main():
     fingerprint_inputs.extend(
         path
         for path in (ROOT / "src").rglob("*")
-        if path.is_file() and path.suffix in {".c", ".h", ".S"}
+        if path.is_file() and path.suffix in {".c", ".h", ".S", ".m"}
     )
     fingerprint_inputs.extend(
         path

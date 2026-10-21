@@ -60,6 +60,11 @@
 #else
 #define HERE(name) name
 #endif
+/* A phone: Android, or the iPhone (ios.c). One window, the whole screen,
+ * played by touch; panels instead of windows. */
+#if defined(SDL_PLATFORM_ANDROID) || defined(MEMORIES_IOS)
+#define PHONE 1
+#endif
 #include "pc/render/gl_headers.h"
 #include "pc/render/gl_picture.h"
 #include "pc/render/texture_pack.h"
@@ -107,6 +112,38 @@ static MenuCanvas canvas;
 /* Menu/input geometry is in SDL window coordinates (logical pixels). The
  * renderer target may have more physical pixels on a high-DPI display. */
 static struct { int win_w, win_h; float pixel_x, pixel_y; SDL_FRect dst; } layout;
+#ifdef MEMORIES_IOS
+/* The iPhone's window coordinates are points, three pixels across each:
+ * the menu, the pad and the panels drawn in them would be blurred three
+ * times over. They are laid out in pixels instead, as on Android, and a
+ * touch's mouse events come here in pixels too (to_pixels). */
+static float window_points(void)
+{
+    float density = window ? SDL_GetWindowPixelDensity(window) : 0.0f;
+    return density > 0.0f ? density : 1.0f;
+}
+static void to_pixels(SDL_Event *event)
+{
+    float density = window_points();
+    switch (event->type) {
+    case SDL_EVENT_MOUSE_BUTTON_DOWN: case SDL_EVENT_MOUSE_BUTTON_UP:
+        event->button.x *= density;
+        event->button.y *= density;
+        break;
+    case SDL_EVENT_MOUSE_MOTION:
+        event->motion.x *= density;
+        event->motion.y *= density;
+        event->motion.xrel *= density;
+        event->motion.yrel *= density;
+        break;
+    case SDL_EVENT_MOUSE_WHEEL:
+        event->wheel.mouse_x *= density;
+        event->wheel.mouse_y *= density;
+        break;
+    default: break;
+    }
+}
+#endif
 static int menu_visible = 1;
 static int display_settings_pending;
 static int menu_reveal_frames;
@@ -126,7 +163,7 @@ static int pointer_x, pointer_y, pointer_inside, cursor_hidden;
 /* The pointer's place is a mouse's (it hovers): the mouse events SDL makes
  * of a touch move it only while the finger is down, and leave it where the
  * finger lifted, so they never reveal the bar by hovering. */
-#ifdef SDL_PLATFORM_ANDROID
+#ifdef PHONE
 static int pointer_is_mouse;
 #else
 static int pointer_is_mouse = 1;
@@ -176,6 +213,10 @@ static float touch_density(void)
     float density = Android_Density();
     if (density <= 0.0f) density = display ? SDL_GetDisplayContentScale(display) : 0.0f;
     return density > 0.0f ? density : 1.0f;
+#elif defined(MEMORIES_IOS)
+    /* pixels per point, as the layout is in pixels (window_points); a point
+     * is about Android's dp */
+    return window_points();
 #else
     return 0.0f;
 #endif
@@ -280,7 +321,7 @@ static void resize_mods(int w, int h)
 }
 int HERE(Platform_OpenFolder)(const char *path)
 {
-#ifdef SDL_PLATFORM_ANDROID
+#ifdef PHONE
     /* An app has no file manager window to open: SDL_OpenURL there takes a
      * URI for an activity, and a plain path opens nothing. */
     (void)path;
@@ -428,7 +469,7 @@ void HERE(Platform_OpenControls)(void)
 static int panel_paused, panel_clock_rate, panel_typing;
 static int panel_overlay(void)
 {
-#ifdef SDL_PLATFORM_ANDROID
+#ifdef PHONE
     return 1;
 #else
     const char *wanted = getenv("MEMORIES_PANELS");
@@ -444,6 +485,13 @@ static void layout_panel(void)
     SDL_Rect safe;
     static SDL_Rect logged;
     if (window && SDL_GetWindowSafeArea(window, &safe)) {
+#ifdef MEMORIES_IOS
+        float density = window_points();
+        safe.x = (int)(safe.x * density + 0.5f);
+        safe.y = (int)(safe.y * density + 0.5f);
+        safe.w = (int)(safe.w * density + 0.5f);
+        safe.h = (int)(safe.h * density + 0.5f);
+#endif
         if (memcmp(&safe, &logged, sizeof(safe))) {
             logged = safe;
             LOG(LOG_WINDOW, "panel: safe area %d,%d %dx%d of %dx%d", safe.x, safe.y, safe.w, safe.h, layout.win_w,
@@ -1061,8 +1109,8 @@ static void block_signals(sigset_t *previous)
 static void restore_signals(const sigset_t *previous) { pthread_sigmask(SIG_SETMASK, previous, NULL); }
 
 int Platform_Scale(void) { return scale; }
-#ifdef SDL_PLATFORM_ANDROID
-int Platform_HasWindowModes(void) { return 0; } /* the whole screen, always (android.c) */
+#ifdef PHONE
+int Platform_HasWindowModes(void) { return 0; } /* the whole screen, always (android.c, ios.c) */
 #else
 int Platform_HasWindowModes(void) { return 1; }
 #endif
@@ -1252,7 +1300,11 @@ static void relayout(void)
     int ph = logical_h, area_h, mode = Settings_Get(SET_SCALING);
     float factor;
     if ((!renderer && !use_gl) || picture_w <= 0 || picture_h <= 0 ||
+#ifdef MEMORIES_IOS
+        !SDL_GetWindowSizeInPixels(window, &window_w, &window_h) || /* window_points */
+#else
         !SDL_GetWindowSize(window, &window_w, &window_h) ||
+#endif
         !(use_gl ? SDL_GetWindowSizeInPixels(window, &output_w, &output_h) :
                     SDL_GetRenderOutputSize(renderer, &output_w, &output_h)) ||
         window_w <= 0 || window_h <= 0) {
@@ -1909,7 +1961,7 @@ static bool SDLCALL app_event(void *userdata, SDL_Event *event)
             background_paused = 0;
             if (background_clock_rate && Platform_ClockRate() == 0) Platform_SetClockRate(background_clock_rate);
             menu_dirty = 1;
-#ifdef SDL_PLATFORM_ANDROID
+#ifdef PHONE
             /* The window's surface comes back a moment after this event:
              * a still picture (a panel, which pauses the game, or the
              * system's file picker it opened) repainted only now stayed
@@ -1952,6 +2004,9 @@ static void pump(void)
     }
     while (SDL_PollEvent(&event)) {
         MenuEvent menu_event;
+#ifdef MEMORIES_IOS
+        to_pixels(&event);
+#endif
         translate(&event, &menu_event);
         if(event.type==SDL_EVENT_KEYMAP_CHANGED){controls_key_labels();continue;}
         if (event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_MOTION ||
@@ -2415,6 +2470,13 @@ static void SDLCALL disc_selected(void *userdata, const char *const *files, int 
     SDL_SetAtomicInt(&selection->done, 1);
 }
 
+#ifdef MEMORIES_IOS
+/* ios_picker.m: the system's document picker. The chosen document is
+ * copied to target: 1 once it is there, 0 when none was chosen, -1 with
+ * why when it failed. */
+int Ios_PickDocument(const char *target, char *why, size_t why_size);
+#endif
+
 int Platform_SelectDisc(char *path, size_t size, char *why, size_t why_size)
 {
     static const SDL_MessageBoxButtonData buttons[] = {
@@ -2424,24 +2486,60 @@ int Platform_SelectDisc(char *path, size_t size, char *why, size_t why_size)
     static const SDL_DialogFileFilter filters[] = {{"PlayStation disc image (.bin)", "bin;BIN"}};
     const SDL_MessageBoxData welcome = {
         SDL_MESSAGEBOX_INFORMATION, NULL, "Welcome to Forbidden Memories Recompiled",
+#ifdef MEMORIES_IOS
+        "Choose your copy of Yu-Gi-Oh! Forbidden Memories to begin.\n\n"
+        "Select the .bin ROM from your USA disc (SLUS-01411), wherever it is in Files. "
+        "The game keeps a copy of its own, so this is needed only once.\n\n"
+        "You can also copy the .bin into Files > On My iPhone > Forbidden Memories > game "
+        "and open the game again.",
+#else
         "Choose your copy of Yu-Gi-Oh! Forbidden Memories to begin.\n\n"
         "Select the .bin ROM from your USA disc (SLUS-01411).\n"
         "Your ROM stays where it is. We'll remember its location for next time.\n\n"
         "If you moved a previously selected ROM, choose its new location.",
+#endif
         2, buttons, NULL
     };
     DiscSelection selection = {0};
     int button = 0;
+#ifdef MEMORIES_IOS
+    /* An app keeps no lasting right to read a document of the Files app:
+     * the chosen disc is copied into the game folder (game_files.c looks
+     * there), as on Android. A copy the game turned down (GameFiles_Setup
+     * asks again) goes first. MEMORIES_TEST_PICKER opens the picker
+     * without the welcome (tools/pc/ios/simulator_test.sh). */
+    static char copied[1024];
+    const char *test_picker = getenv("MEMORIES_TEST_PICKER");
+    if (*copied) {
+        remove(copied);
+        copied[0] = '\0';
+    }
+#endif
     Monitor_Modal(1);
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
         snprintf(why, why_size, "Could not open ROM setup: %s", SDL_GetError());
         Monitor_Modal(0);
         return -1;
     }
+#ifdef MEMORIES_IOS
+    (void)filters;
+    (void)disc_selected;
+    if (test_picker && *test_picker) button = 1;
+    else
+#endif
     if (!SDL_ShowMessageBox(&welcome, &button)) {
         snprintf(why, why_size, "Could not open ROM setup: %s", SDL_GetError());
         selection.result = -1;
-    } else if (button == 1) {
+        button = 0;
+    }
+    if (button == 1) {
+#ifdef MEMORIES_IOS
+        if (snprintf(path, size, "%s/game/rpg-yfm.bin", Paths_UserDir()) >= (int)size) {
+            snprintf(why, why_size, "The ROM path is too long.");
+            selection.result = -1;
+        } else if ((selection.result = Ios_PickDocument(path, why, why_size)) > 0)
+            snprintf(copied, sizeof(copied), "%s", path);
+#else
         selection.path = path;
         selection.size = size;
         selection.why = why;
@@ -2451,6 +2549,7 @@ int Platform_SelectDisc(char *path, size_t size, char *why, size_t why_size)
             SDL_PumpEvents(); /* Linux portal replies need the event loop. */
             SDL_Delay(10);
         }
+#endif
     }
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
     Monitor_Modal(0);
@@ -2552,8 +2651,8 @@ int Platform_Open(const char *title)
     }
     Menu_SetPresentPass(use_gl); /* present_pass.c: the desktop presenter's alone */
     Menu_Init();
-#ifdef SDL_PLATFORM_ANDROID
-    /* One window, always the whole screen, no update check (android.c):
+#ifdef PHONE
+    /* One window, always the whole screen, no update check (android.c, ios.c):
      * the window's size and mode and the update check are dimmed; Mods and
      * Controls open as panels inside the window. */
     Menu_SetPlatformItems(1, 0, 0);

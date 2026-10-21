@@ -73,7 +73,15 @@ int Platform_RestartGame(void)
 
 static char **launch_argv;
 
-#if !defined(_WIN32) && !defined(__ANDROID__) /* android.c: an app cannot re-execute itself */
+#ifdef MEMORIES_IOS
+/* Nor can an iPhone app: the callers say so (the language is kept for the
+ * next start; the credits go back to the title screen). */
+int Platform_RestartGame(void)
+{
+    errno = ENOTSUP;
+    return -1;
+}
+#elif !defined(_WIN32) && !defined(__ANDROID__) /* android.c: an app cannot re-execute itself */
 int Platform_RestartGame(void)
 {
  #ifdef __APPLE__
