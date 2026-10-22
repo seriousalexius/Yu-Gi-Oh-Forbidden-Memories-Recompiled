@@ -1418,6 +1418,20 @@ static void wrap_notice(int width)
     notice.wrapped_width = width;
 }
 
+/* A button's height: a grid too tall for the window (a phone's touch rows)
+   gets lower rows, down to a line of text, so that every key stays on screen. */
+static int notice_button_h(void)
+{
+    int rows, room, canvas_h = canvas ? canvas->height : 480;
+    if (!notice.columns) return NOTICE_BUTTON_H;
+    rows = notice_rows();
+    room = canvas_h - MENU_H - 16 * ui - (NOTICE_PAD + NOTICE_LINE + 6 * ui + notice.lines * NOTICE_LINE + NOTICE_PAD * 2) -
+           (rows - 1) * NOTICE_BUTTON_GAP;
+    room /= rows;
+    if (room >= NOTICE_BUTTON_H) return NOTICE_BUTTON_H;
+    return room > NOTICE_LINE ? room : NOTICE_LINE;
+}
+
 static void notice_geometry(int *x, int *y, int *w, int *h)
 {
     int canvas_w = canvas ? canvas->width : 640, canvas_h = canvas ? canvas->height : 480;
@@ -1427,8 +1441,8 @@ static void notice_geometry(int *x, int *y, int *w, int *h)
     if (inner > canvas_w - NOTICE_PAD * 2 - 16 * ui) inner = canvas_w - NOTICE_PAD * 2 - 16 * ui;
     if (notice.wrapped_ui != ui || notice.wrapped_width != inner) wrap_notice(inner);
     *w = inner + NOTICE_PAD * 2;
-    *h = NOTICE_PAD + NOTICE_LINE + 6 * ui + notice.lines * NOTICE_LINE + NOTICE_PAD + NOTICE_BUTTON_H + NOTICE_PAD +
-         (notice_rows() - 1) * (NOTICE_BUTTON_H + NOTICE_BUTTON_GAP);
+    *h = NOTICE_PAD + NOTICE_LINE + 6 * ui + notice.lines * NOTICE_LINE + NOTICE_PAD + notice_button_h() + NOTICE_PAD +
+         (notice_rows() - 1) * (notice_button_h() + NOTICE_BUTTON_GAP);
     *x = (canvas_w - *w) / 2;
     *y = (canvas_h - *h) / 2;
     if (*y < MENU_H + 8 * ui) *y = MENU_H + 8 * ui;
@@ -1447,14 +1461,14 @@ static void notice_button(int index, int *bx, int *by, int *bw)
             width = columns * cell + (columns - 1) * NOTICE_BUTTON_GAP;
         }
         *bx = x + (w - width) / 2 + index % notice.columns * (cell + NOTICE_BUTTON_GAP);
-        *by = y + h - NOTICE_PAD - NOTICE_BUTTON_H - (rows - 1 - index / notice.columns) * (NOTICE_BUTTON_H + NOTICE_BUTTON_GAP);
+        *by = y + h - NOTICE_PAD - notice_button_h() - (rows - 1 - index / notice.columns) * (notice_button_h() + NOTICE_BUTTON_GAP);
         *bw = cell;
         return;
     }
     at = x + w - NOTICE_PAD - notice_buttons_width();
     for (i = 0; i < index; i++) at += text_width(notice.buttons[i]) + NOTICE_BUTTON_PAD * 2 + NOTICE_BUTTON_GAP;
     *bx = at;
-    *by = y + h - NOTICE_PAD - NOTICE_BUTTON_H;
+    *by = y + h - NOTICE_PAD - notice_button_h();
     *bw = text_width(notice.buttons[index]) + NOTICE_BUTTON_PAD * 2;
 }
 
@@ -1463,7 +1477,7 @@ static int notice_button_at(int px, int py)
     int i, bx, by, bw;
     for (i = 0; i < notice.count; i++) {
         notice_button(i, &bx, &by, &bw);
-        if (px >= bx && px < bx + bw && py >= by && py < by + NOTICE_BUTTON_H)
+        if (px >= bx && px < bx + bw && py >= by && py < by + notice_button_h())
             return notice.style[i] == MENU_NOTICE_DIM ? -1 : i;
     }
     return -1;
@@ -1497,14 +1511,14 @@ static void draw_notice(void)
     for (i = 0; i < notice.count; i++) {
         int bx, by, bw, focus = i == notice.focus;
         notice_button(i, &bx, &by, &bw);
-        fill(bx, by, bw, NOTICE_BUTTON_H, focus ? C_ACCENT : i == notice.hover ? C_TRACK : C_BAR_HOVER, 255);
-        if (!focus) outline(bx, by, bw, NOTICE_BUTTON_H, C_DROP_EDGE);
+        fill(bx, by, bw, notice_button_h(), focus ? C_ACCENT : i == notice.hover ? C_TRACK : C_BAR_HOVER, 255);
+        if (!focus) outline(bx, by, bw, notice_button_h(), C_DROP_EDGE);
         if (notice.columns) {
             uint32_t color = focus ? C_TEXT_ON_ACCENT : notice.style[i] == MENU_NOTICE_GREEN ? C_GREEN
                            : notice.style[i] == MENU_NOTICE_DIM ? C_TEXT_DIM : C_TEXT;
-            draw_text(bx + (bw - text_width(notice.buttons[i])) / 2, by + NOTICE_BUTTON_H / 2, notice.buttons[i], color);
+            draw_text(bx + (bw - text_width(notice.buttons[i])) / 2, by + notice_button_h() / 2, notice.buttons[i], color);
         } else {
-            draw_text(bx + NOTICE_BUTTON_PAD, by + NOTICE_BUTTON_H / 2, notice.buttons[i], focus ? C_TEXT_ON_ACCENT : C_TEXT);
+            draw_text(bx + NOTICE_BUTTON_PAD, by + notice_button_h() / 2, notice.buttons[i], focus ? C_TEXT_ON_ACCENT : C_TEXT);
         }
     }
 }
