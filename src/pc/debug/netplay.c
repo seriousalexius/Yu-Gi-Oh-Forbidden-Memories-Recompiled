@@ -35,7 +35,7 @@ typedef struct {
     uint64_t hash;
 } Check;
 
-static int active, side, peer_gone, jump_asked, desync_seen, hide = 1, check_ram;
+static int active, side, peer_gone, jump_asked, desync_seen, hide = 1, check_ram, websocket;
 static unsigned delay = 4, check_every = NETPLAY_CHECK_EVERY, desyncs;
 static uint32_t seed, peer_build;
 static unsigned vblank_index, next_check;
@@ -77,6 +77,13 @@ static void send_message(int type, const void *payload, size_t length)
     head[0] = (unsigned char)type;
     head[1] = (unsigned char)length, head[2] = (unsigned char)(length >> 8);
     if (NetplayNet_Send(head, sizeof(head)) || (length && NetplayNet_Send(payload, length))) lost("the connection is gone");
+}
+
+/* What send_message gathered, out as one WebSocket message (the server's
+ * plan counts them); a plain connection has sent it already. */
+static void flush(void)
+{
+    if (!peer_gone && NetplayNet_Flush()) lost("the connection is gone");
 }
 
 static uint64_t mix(uint64_t hash, uint32_t address, size_t size)
@@ -316,7 +323,25 @@ void Netplay_Init(void)
     size_t facts_length;
     uint64_t started;
     if (!config || !*config) return;
-    if (sscanf(config, "%255[^:]:%u/%63[^/]/%d", host, &port, room, &side) != 4 || (side != 1 && side != 2)) {
+    if (!strncmp(config, "ws://", 5)) {
+        /* ws://host[:port]/room/side: the server (server/worker.js), which
+         * adds about 60 ms each way, hence a longer delay. */
+        const char *rest = config + 5;
+        char *end;
+        websocket = 1;
+        delay = 6;
+        port = 80;
+        host[0] = '\0';
+        if (sscanf(rest, "%255[^:/]", host) == 1) rest += strlen(host);
+        if (*rest == ':') {
+            port = (unsigned)strtoul(rest + 1, &end, 10);
+            rest = end;
+        }
+        if (!host[0] || !port || sscanf(rest, "/%63[^/]/%d", room, &side) != 2 || (side != 1 && side != 2)) {
+            fprintf(stderr, "memories-pc: online: MEMORIES_NETPLAY wants ws://host[:port]/room/side, not %s\n", config);
+            return;
+        }
+    } else if (sscanf(config, "%255[^:]:%u/%63[^/]/%d", host, &port, room, &side) != 4 || (side != 1 && side != 2)) {
         fprintf(stderr, "memories-pc: online: MEMORIES_NETPLAY wants host:port/room/side, not %s\n", config);
         return;
     }
@@ -325,12 +350,18 @@ void Netplay_Init(void)
     check_ram = !hide;
     if (getenv("MEMORIES_NETPLAY_CHECK_EVERY")) check_every = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_CHECK_EVERY"), NULL, 10);
     if (check_every < 1) check_every = 1;
-    if (delay < 1) delay = 1;
+    /* At least 2: the input goes out in pairs of VBlanks (Netplay_Pads). */
+    if (delay < 2) delay = 2;
     if (delay >= RING / 4) delay = RING / 4 - 1;
     if (read_save(getenv("MEMORIES_NETPLAY_SAVE"))) return;
-    if (NetplayNet_Connect(host, port, 10000)) return;
-    {
+    if (websocket) {
+        /* The room is in the path: no "YFM-NET" line. */
+        char path[128];
+        snprintf(path, sizeof(path), "/stanza/%s?lato=%d", room, side);
+        if (NetplayNet_ConnectWebSocket(host, port, path, 10000)) return;
+    } else {
         char line[160];
+        if (NetplayNet_Connect(host, port, 10000)) return;
         snprintf(line, sizeof(line), "YFM-NET %d %s %d\n", PROTOCOL, room, side);
         if (NetplayNet_Send(line, strlen(line))) return;
     }
@@ -360,6 +391,7 @@ void Netplay_Init(void)
     }
     send_message(MSG_HELLO, hello, 12 + facts_length);
     send_message(MSG_SAVE, saves[side - 1], SAVE_SIZE);
+    flush();
     started = now_ms();
     while (!(have_hello && have_save[2 - side])) {
         if (receive(100) < 0 || now_ms() - started > 30000u || Platform_ShouldQuit()) {
@@ -381,9 +413,9 @@ void Netplay_Init(void)
                     peer_facts);
     }
     active = 1;
-    fprintf(stderr, "memories-pc: online: player %d of room %s, input delay %u, seed %u, %s, checks of %s\n", side,
-            room, delay, (unsigned)seed, hide ? "the other's hand hidden" : "both hands shown",
-            check_ram ? "all RAM" : "the duel");
+    fprintf(stderr, "memories-pc: online: player %d of room %s (%s), input delay %u, seed %u, %s, checks of %s\n",
+            side, room, websocket ? "WebSocket" : "relay", delay, (unsigned)seed,
+            hide ? "the other's hand hidden" : "both hands shown", check_ram ? "all RAM" : "the duel");
 }
 
 int Netplay_Active(void)
@@ -485,12 +517,19 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
     put32(message, ahead);
     message[4] = (unsigned char)local, message[5] = (unsigned char)(local >> 8);
     send_message(MSG_INPUT, message, sizeof(message));
+    /* Two VBlanks to a message (half the WebSocket messages; the check of
+     * Netplay_Point rides along): the even one waits for the odd one, which
+     * the delay of 2 or more leaves time for. */
+    if (ahead % 2) flush();
     mine = index < delay ? 0 : local_bits[index % RING];
     if (index >= delay && !peer_gone) {
         uint64_t started = 0;
         int warned = 0;
         while (!(remote_have[index % RING] && remote_index[index % RING] == index)) {
             uint64_t now;
+            /* Before any wait, out with what is kept: the other game may be
+             * waiting for it in turn. */
+            flush();
             if (receive(2) < 0) break;
             if (remote_have[index % RING] && remote_index[index % RING] == index) break;
             /* Waiting on purpose: a present while waiting services the
