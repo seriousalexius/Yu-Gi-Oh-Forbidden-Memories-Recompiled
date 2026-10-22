@@ -62,9 +62,19 @@ void TitleJump_SetActive(int enabled)
 
 /* A tower whose mod turns cheats off: no leaving its duel this way
  * (tower.h, Tower_Guard); `tell` says so in a notice. */
+/* Online the two games must go the same way: no jump either takes alone
+ * (pc/debug/netplay.h). */
+static int online_refuses(int tell)
+{
+    static const char *const ok[] = {"OK"};
+    if (!Netplay_Active()) return 0;
+    if (tell) Menu_ShowNotice("Online", "Durante un duello online non si puo'.", ok, 1, 0, NULL);
+    return 1;
+}
+
 static void request(int tell)
 {
-    if (active && !Tower_Guard(TOWER_GUARD_JUMP, tell, NULL, 0)) requested = 1;
+    if (active && !online_refuses(tell) && !Tower_Guard(TOWER_GUARD_JUMP, tell, NULL, 0)) requested = 1;
 }
 
 void TitleJump_Request(void)
@@ -84,6 +94,7 @@ void TitleJump_Confirm(void)
 {
     static const char *const buttons[] = {"Yes", "No"};
     if (!active) return;
+    if (online_refuses(1)) return;
     if (Tower_Guard(TOWER_GUARD_JUMP, 1, NULL, 0)) return;   /* asked before the question */
     /* No is focused and last, so Enter and Escape both keep playing. */
     Menu_ShowNotice("Restart game", "Restart the game? Unsaved progress is lost.", buttons, 2, 1, restart_chosen);
@@ -137,6 +148,10 @@ int TitleJump_RequestTo(int target, int opponent, const char *deck, char *why, u
     }
     /* The caller (Debug > Jump to, the control channel) tells the player. */
     if (Tower_Guard(TOWER_GUARD_JUMP, 0, why, why_size)) return -1;
+    if (Netplay_Active() && target != JUMP_DUEL2P) {
+        snprintf(why, why_size, "not during an online duel");
+        return -1;
+    }
     if (target == JUMP_TITLE) {
         if (!active) jump_count++; /* already at the title (or not past it yet): nothing to do */
         request(0);

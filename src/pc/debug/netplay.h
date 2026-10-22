@@ -35,8 +35,9 @@
  * MEMORIES_NETPLAY_DELAY the VBlanks of input delay (4 by default).
  * Unset, everything here costs one test. */
 #include <stdint.h>
+#include "pc/platform/menu.h"
 
-#define NETPLAY_CHECK_EVERY 120
+#define NETPLAY_CHECK_EVERY 120 /* MEMORIES_NETPLAY_CHECK_EVERY sets another */
 
 /* ResetCallback, before the timers start: connect, wait for the other
  * player, swap the saves. Blocks; on failure the game runs offline. */
@@ -56,5 +57,9 @@ uint32_t Netplay_Seed(void);
 int Netplay_Side(void);
 /* The other player's hand is drawn as backs (MEMORIES_NETPLAY_HIDE). */
 int Netplay_HidesOtherHand(void);
+/* hud.c: while the other player chooses a guardian star, a panel over the
+ * dialog, which would name the stars of the card they put down. */
+unsigned Netplay_DrawSignature(void);
+void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h);
 
 #endif

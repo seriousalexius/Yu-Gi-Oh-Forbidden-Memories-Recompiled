@@ -2,6 +2,7 @@
 #include "pc/compat/fs.h"
 #include "netplay.h"
 #include "netplay_net.h"
+#include "pc/cards/fusion_helper.h"
 #include "pc/debug/monitor.h"
 #include "pc/guest/state.h"
 #include "pc/memory_map.h"
@@ -35,7 +36,7 @@ typedef struct {
 } Check;
 
 static int active, side, peer_gone, jump_asked, desync_seen, hide = 1, check_ram;
-static unsigned delay = 4;
+static unsigned delay = 4, check_every = NETPLAY_CHECK_EVERY, desyncs;
 static uint32_t seed, peer_build;
 static unsigned vblank_index, next_check;
 static unsigned char saves[2][SAVE_SIZE];
@@ -135,11 +136,12 @@ static void desync(const Check *mine, uint64_t theirs)
 {
     char path[600], name[64];
     FILE *file;
+    if (desyncs++ < 20)
+        fprintf(stderr, "memories-pc: online: DESYNC at VBlank %u frame %u: ours %016llx, theirs %016llx\n",
+                (unsigned)mine->index, (unsigned)mine->frame, (unsigned long long)mine->hash,
+                (unsigned long long)theirs);
     if (desync_seen) return;
     desync_seen = 1;
-    fprintf(stderr, "memories-pc: online: DESYNC at VBlank %u frame %u: ours %016llx, theirs %016llx\n",
-            (unsigned)mine->index, (unsigned)mine->frame, (unsigned long long)mine->hash,
-            (unsigned long long)theirs);
     snprintf(name, sizeof(name), "netplay-desync-p%d.ram", side);
     if (Paths_User(path, sizeof(path), name) == 0 && (file = fopen(path, "wb")) != NULL) {
         fwrite((const void *)(uintptr_t)MEMORIES_GUEST_RAM, 1, MEMORIES_GUEST_RAM_SIZE, file);
@@ -157,7 +159,7 @@ static void compare_checks(void)
             const Check *mine = &own_checks[j];
             if (mine->index != theirs->index || mine->frame != theirs->frame) continue;
             if (mine->hash != theirs->hash) desync(mine, theirs->hash);
-            else if (mine->index % (NETPLAY_CHECK_EVERY * 10) < NETPLAY_CHECK_EVERY)
+            else if (mine->index % (check_every * 10) < check_every)
                 fprintf(stderr, "memories-pc: online: in step at VBlank %u\n", (unsigned)mine->index);
             /* Matched: drop it from the other game's list. */
             peer_checks[i] = peer_checks[--peer_count];
@@ -321,6 +323,8 @@ void Netplay_Init(void)
     if (wanted_delay && *wanted_delay) delay = (unsigned)strtoul(wanted_delay, NULL, 10);
     if (getenv("MEMORIES_NETPLAY_HIDE")) hide = strcmp(getenv("MEMORIES_NETPLAY_HIDE"), "0") != 0;
     check_ram = !hide;
+    if (getenv("MEMORIES_NETPLAY_CHECK_EVERY")) check_every = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_CHECK_EVERY"), NULL, 10);
+    if (check_every < 1) check_every = 1;
     if (delay < 1) delay = 1;
     if (delay >= RING / 4) delay = RING / 4 - 1;
     if (read_save(getenv("MEMORIES_NETPLAY_SAVE"))) return;
@@ -397,6 +401,54 @@ int Netplay_HidesOtherHand(void)
     return active && hide;
 }
 
+/* The other player choosing a guardian star: in their turn (D_8009B1D5) of
+ * a two-player duel (main mode 3, a negative gDuel_bOpponentID), the duel's
+ * guardian star phase (8 in gDuel_wSceneStateFlags). The dialog names the
+ * two stars of a card that may be going down face down. */
+static int covering(void)
+{
+    if (!active || !hide || (*(volatile uint8_t *)(uintptr_t)0x8009B26Cu & 31) != 3) return 0;
+    if (*(volatile int8_t *)(uintptr_t)0x8009B361u >= 0) return 0;
+    if (*(volatile uint8_t *)(uintptr_t)0x8009B1D5u == side - 1) return 0;
+    return (*(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF) == 8;
+}
+
+unsigned Netplay_DrawSignature(void)
+{
+    int x, y, w, h;
+    if (!covering()) return 0;
+    FusionHelper_GetViewport(&x, &y, &w, &h);
+    return ((unsigned)x * 31u + (unsigned)y) * 31u + (unsigned)w * 7u + (unsigned)h + 1u;
+}
+
+void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
+{
+    static const char text[] = "L'avversario sceglie la stella guardiana";
+    int vx, vy, vw, vh, wide, left, top, right, bottom, row, column, scale, width;
+    *x = *y = *w = *h = 0;
+    if (!covering()) return;
+    FusionHelper_GetViewport(&vx, &vy, &vw, &vh);
+    if (vw <= 0 || vh <= 0) return;
+    /* The dialog's box, in the game's 320x240 (centred when widescreen). */
+    wide = Platform_Widescreen() ? 426 : 320;
+    left = vx + vw / 2 + (24 - 160) * vw / wide;
+    right = vx + vw / 2 + (296 - 160) * vw / wide;
+    top = vy + 102 * vh / 240;
+    bottom = vy + 174 * vh / 240;
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+    if (right > canvas->width) right = canvas->width;
+    if (bottom > canvas->height) bottom = canvas->height;
+    if (right <= left || bottom <= top) return;
+    for (row = top; row < bottom; row++)
+        for (column = left; column < right; column++) canvas->pixels[row * canvas->stride + column] = 0xFF18181Cu;
+    scale = Menu_Scale();
+    width = Menu_TextWidthScaled(text, scale);
+    Menu_DrawTextScaled(canvas, left + (right - left - width) / 2, (top + bottom) / 2 - 6 * scale, text, 0xFFFFFFFFu,
+                        scale);
+    *x = left, *y = top, *w = right - left, *h = bottom - top;
+}
+
 uint32_t Netplay_Seed(void)
 {
     return seed;
@@ -462,7 +514,7 @@ void Netplay_Point(unsigned frame)
     if (vblank_index >= next_check) {
         Check *check;
         unsigned char message[16];
-        next_check = (vblank_index / NETPLAY_CHECK_EVERY + 1) * NETPLAY_CHECK_EVERY;
+        next_check = (vblank_index / check_every + 1) * check_every;
         if (own_count == CHECKS) memmove(own_checks, own_checks + 1, --own_count * sizeof(*own_checks));
         check = &own_checks[own_count++];
         check->index = vblank_index;

@@ -1,5 +1,6 @@
 #include "hud.h"
 #include "log.h"
+#include "netplay.h"
 #include "pc/cards/fusion_helper.h"
 #include "pc/cards/free_duel_progress.h"
 #include "pc/cards/rank_meter.h"
@@ -149,6 +150,8 @@ void Hud_Draw(MenuCanvas *canvas)
     cover(x, y, w, h);
     TitleScreen_Draw(canvas, &x, &y, &w, &h);
     cover(x, y, w, h);
+    Netplay_Draw(canvas, &x, &y, &w, &h);
+    cover(x, y, w, h);
     if (!mods_drawn) {
         Mods_DrawOverlay(canvas, Menu_Scale(), Menu_DrawTextScaled, Menu_TextWidthScaled, &x, &y, &w, &h);
         cover(x, y, w, h);
@@ -172,6 +175,7 @@ unsigned Hud_Signature(void)
     return stats_signature() ^ SaveMenu_Signature() * 2654435761u ^ DeckMenu_Signature() * 40503u ^
            FusionHelper_Signature() * 16777619u ^ RankMeter_Signature() * 3266489917u ^
            FreeDuelProgress_Signature() * 2654435789u ^ TitleScreen_Signature() * 2166136261u ^
+           Netplay_DrawSignature() * 2654435761u * 3u ^
            Mods_OverlaySignature(Memories_PresentedFrames()) * 2246822519u;
 }
 
