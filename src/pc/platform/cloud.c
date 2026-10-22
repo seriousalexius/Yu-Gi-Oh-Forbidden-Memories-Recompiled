@@ -46,6 +46,10 @@ static struct {
     int take;         /* the player chose the account's: taken even though the local one changed */
 } slots[SAVE_SLOT_COUNT];
 
+/* The slot files' hashes, "" for none: read at the start, at a join and
+ * after each write, never every frame. */
+static char local[SAVE_SLOT_COUNT][HASH];
+
 static char account[16];
 static int started, listed, busy = -1; /* busy: the slot of the request in flight */
 static char busy_hash[HASH];
@@ -80,6 +84,12 @@ static int read_slot(int slot, unsigned char image[SAVE_SLOT_FILE_SIZE], char ha
     hash_of(image, hash);
     if (when) *when = stat(path, &info) ? (long long)time(NULL) : (long long)info.st_mtime;
     return 1;
+}
+
+static void look(int slot)
+{
+    static unsigned char image[SAVE_SLOT_FILE_SIZE];
+    if (!read_slot(slot, image, local[slot], NULL)) local[slot][0] = '\0';
 }
 
 static const char DIGITS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -212,7 +222,10 @@ static void upload(int slot, int base)
     static unsigned char image[SAVE_SLOT_FILE_SIZE];
     static char line[BASE64 + 256], data[BASE64 + 1];
     long long when = 0;
-    if (!read_slot(slot, image, busy_hash, &when)) return;
+    if (!read_slot(slot, image, busy_hash, &when)) {
+        local[slot][0] = '\0'; /* gone meanwhile */
+        return;
+    }
     encode(image, SAVE_SLOT_FILE_SIZE, data);
     snprintf(line, sizeof(line),
              "{\"t\":\"manda\",\"slot\":%d,\"base\":%d,\"quando\":%lld,\"dispositivo\":\"%s\",\"hash\":\"%s\","
@@ -271,6 +284,7 @@ static void take(int slot, int version, long long when, const char *from, const 
         return;
     }
     __atomic_and_fetch(&dirty, ~(1u << slot), __ATOMIC_ACQ_REL);
+    snprintf(local[slot], HASH, "%s", hash);
     fprintf(stderr, "memories-pc: cloud: save slot %d downloaded (version %d)\n", slot + 1, version);
     when_text(when, date, sizeof(date));
     snprintf(line, sizeof(line), "Slot %d: salvataggio aggiornato dall'account (%s, %s).\n", slot + 1, date, from);
@@ -359,12 +373,11 @@ static void tell_news(void)
  * send. */
 static void step(void)
 {
-    static unsigned char image[SAVE_SLOT_FILE_SIZE];
     int slot;
     if (!listed || busy >= 0 || asking >= 0 || SaveMenu_Active()) return;
     for (slot = 0; slot < SAVE_SLOT_COUNT; slot++) {
-        char hash[HASH];
-        int here = read_slot(slot, image, hash, NULL);
+        const char *hash = local[slot];
+        int here = hash[0] != '\0';
         int changed = here && strcmp(hash, slots[slot].hash) != 0;
         if (slots[slot].later) continue;
         if (slots[slot].server.version < slots[slot].synced) {
@@ -385,6 +398,7 @@ static void step(void)
                 download(slot);
                 return;
             }
+            if (Menu_NoticeShown()) continue; /* asked once the window up now is gone */
             fprintf(stderr, "memories-pc: cloud: conflict slot %d\n", slot + 1);
             ask(slot);
             test_wait = TEST_WAIT;
@@ -409,7 +423,7 @@ void Cloud_Start(const char *name)
     if (started && !strcmp(account, name)) return;
     snprintf(account, sizeof(account), "%s", name);
     read_state();
-    for (slot = 0; slot < SAVE_SLOT_COUNT; slot++) slots[slot].server.version = 0;
+    for (slot = 0; slot < SAVE_SLOT_COUNT; slot++) slots[slot].server.version = 0, look(slot);
     SaveSlots_SetWriteListener(written);
     started = 1;
 }
@@ -420,7 +434,7 @@ void Cloud_Joined(void)
     if (!started) return;
     listed = 0;
     busy = -1;
-    for (slot = 0; slot < SAVE_SLOT_COUNT; slot++) slots[slot].later = 0;
+    for (slot = 0; slot < SAVE_SLOT_COUNT; slot++) slots[slot].later = 0, look(slot);
     Lobby_Send("{\"t\":\"salvataggi\"}");
 }
 
@@ -497,6 +511,7 @@ void Cloud_Frame(void)
     for (slot = 0; slot < SAVE_SLOT_COUNT; slot++)
         if (written_now & 1u << slot) {
             slots[slot].later = 0;
+            look(slot);
             if (!listed) fprintf(stderr, "memories-pc: cloud: save slot %d queued\n", slot + 1);
         }
     if (asking >= 0) {

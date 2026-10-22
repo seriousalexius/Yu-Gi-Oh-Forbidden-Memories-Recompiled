@@ -7,6 +7,7 @@
  * notices, is the main thread's. */
 #define _GNU_SOURCE
 #include "pc/compat/fs.h"
+#include "cloud.h"
 #include "lobby.h"
 #include "menu.h"
 #include "paths.h"
@@ -31,7 +32,7 @@
 #define LOBBY_HOST "yfm-online.alessio-scuola.workers.dev"
 #define PING_MS 30000
 #define SILENCE_MS 75000 /* the server answers every ping: this long without a word, the link is gone */
-#define PLAYERS (MENU_NOTICE_GRID - 1)
+#define PLAYERS (MENU_NOTICE_GRID - 2) /* then "Salvataggi" and "Chiudi" */
 #define NAME 13
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -215,10 +216,17 @@ static char test_challenge[NAME];
 static int test_accept;
 
 enum { SCREEN_NONE, SCREEN_NAME, SCREEN_INVITE, SCREEN_JOINING, SCREEN_LIST, SCREEN_PLAYER, SCREEN_WAIT,
-       SCREEN_INCOMING, SCREEN_INFO };
+       SCREEN_INCOMING, SCREEN_INFO, SCREEN_START, SCREEN_PASSWORD, SCREEN_ASK_PASSWORD, SCREEN_SAVES };
 static int screen;
-static char typed[16], typed_name[NAME], picked[NAME];
+static char typed[16], typed_name[NAME], typed_invite[16], picked[NAME];
 static int grid_focus;
+/* What the letter grids are for: a new account (name, invite, password),
+ * "Ho gia' un account" (name, password) or the password of an account made
+ * before there were any. */
+enum { FLOW_MAKE, FLOW_LOGIN, FLOW_PASSWORD };
+static int flow;
+static int ask_password, password_asked; /* the account has none: asked once a run */
+static const char *test_password;
 
 static int account_path(char *path, size_t size) { return Paths_User(path, size, "lobby.txt"); }
 
@@ -337,19 +345,46 @@ static void info(const char *text)
 }
 
 /* The letter grid: A-Z, 0-9, then a space (the name) or a dash (the
- * invite code), Canc, OK and Annulla. */
+ * invite code, the password), Canc, OK and Annulla. */
 #define LETTERS 36
 enum { KEY_EXTRA = LETTERS, KEY_DELETE, KEY_OK, KEY_CANCEL, KEYS };
+enum { GRID_NAME, GRID_INVITE, GRID_PASSWORD };
+#define PASSWORD_MIN 4
+
+/* The grids' end: the account made, logged into, or its password set. */
+static void send_account(const char *password, int quiet)
+{
+    static const char *const cancel[] = {"Annulla"};
+    char line[192], name[NAME], code[sizeof(typed_invite)], secret[sizeof(typed)];
+    clean(name, sizeof(name), typed_name);
+    clean(code, sizeof(code), typed_invite);
+    clean(secret, sizeof(secret), password);
+    if (flow == FLOW_MAKE)
+        snprintf(line, sizeof(line), "{\"t\":\"registra\",\"nome\":\"%s\",\"invito\":\"%s\",\"password\":\"%s\"}", name,
+                 code, secret);
+    else if (flow == FLOW_LOGIN)
+        snprintf(line, sizeof(line), "{\"t\":\"accedi\",\"nome\":\"%s\",\"password\":\"%s\"}", name, secret);
+    else
+        snprintf(line, sizeof(line), "{\"t\":\"password\",\"gettone\":\"%s\",\"password\":\"%s\"}", token, secret);
+    send_line(line);
+    if (quiet) return;
+    screen = SCREEN_JOINING;
+    Menu_ShowNotice("Online",
+                    flow == FLOW_MAKE    ? "Creo l'account..." :
+                    flow == FLOW_LOGIN   ? "Entro nell'account..." :
+                                           "Salvo la password...",
+                    cancel, 1, 0, info_closed);
+}
 
 static void grid_chosen(int button, int *quit)
 {
-    int invite = screen == SCREEN_INVITE;
-    size_t length = strlen(typed), limit = invite ? sizeof(typed) - 1 : NAME - 1;
+    int mode = screen == SCREEN_INVITE ? GRID_INVITE : screen == SCREEN_PASSWORD ? GRID_PASSWORD : GRID_NAME;
+    size_t length = strlen(typed), limit = mode == GRID_NAME ? NAME - 1 : sizeof(typed) - 1;
     (void)quit;
     grid_focus = button;
     if (button < LETTERS || button == KEY_EXTRA) {
         char letter = button < 26 ? (char)('A' + button) : button < LETTERS ? (char)('0' + button - 26)
-                                                                           : invite ? '-' : ' ';
+                                                       : mode == GRID_NAME ? ' ' : '-';
         if (length < limit && !(letter == ' ' && (!length || typed[length - 1] == ' '))) {
             typed[length] = letter;
             typed[length + 1] = '\0';
@@ -358,36 +393,29 @@ static void grid_chosen(int button, int *quit)
         if (length) typed[length - 1] = '\0';
     } else if (button == KEY_OK) {
         while (length && typed[length - 1] == ' ') typed[--length] = '\0';
-        if (!invite) {
-            if (length < 3) {
-                show_grid(0);
-                return;
-            }
-            snprintf(typed_name, sizeof(typed_name), "%s", typed);
-            typed[0] = '\0';
-            grid_focus = 0;
-            show_grid(1);
-        } else {
-            char line[128], name[NAME], code[sizeof(typed)];
-            clean(name, sizeof(name), typed_name);
-            clean(code, sizeof(code), typed);
-            snprintf(line, sizeof(line), "{\"t\":\"registra\",\"nome\":\"%s\",\"invito\":\"%s\"}", name, code);
-            send_line(line);
-            screen = SCREEN_JOINING;
-            {
-                static const char *const cancel[] = {"Annulla"};
-                Menu_ShowNotice("Online", "Creo l'account...", cancel, 1, 0, info_closed);
-            }
+        if (length < (size_t)(mode == GRID_NAME ? 3 : mode == GRID_PASSWORD ? PASSWORD_MIN : 0)) {
+            show_grid(mode);
+            return;
         }
+        if (mode == GRID_PASSWORD) {
+            send_account(typed, 0);
+            typed[0] = '\0';
+            return;
+        }
+        if (mode == GRID_NAME) snprintf(typed_name, sizeof(typed_name), "%s", typed);
+        else snprintf(typed_invite, sizeof(typed_invite), "%s", typed);
+        typed[0] = '\0';
+        grid_focus = 0;
+        show_grid(mode == GRID_NAME && flow == FLOW_MAKE ? GRID_INVITE : GRID_PASSWORD);
         return;
     } else {
         screen = SCREEN_NONE;
         return;
     }
-    show_grid(invite);
+    show_grid(mode);
 }
 
-static void show_grid(int invite)
+static void show_grid(int mode)
 {
     static char letters[LETTERS][2];
     const char *keys[KEYS];
@@ -397,20 +425,103 @@ static void show_grid(int invite)
         letters[i][0] = i < 26 ? (char)('A' + i) : (char)('0' + i - 26);
         keys[i] = letters[i];
     }
-    keys[KEY_EXTRA] = invite ? "-" : "Spazio";
+    keys[KEY_EXTRA] = mode == GRID_NAME ? "Spazio" : "-";
     keys[KEY_DELETE] = "Canc";
     keys[KEY_OK] = "OK";
     keys[KEY_CANCEL] = "Annulla";
-    if (invite)
+    if (mode == GRID_INVITE)
         snprintf(text, sizeof(text), "Nome: %s\nScrivi il codice d'invito (te lo da' chi ti ha invitato):\n\n%s_",
                  typed_name, typed);
-    else
+    else if (mode == GRID_NAME && flow == FLOW_LOGIN)
+        snprintf(text, sizeof(text), "Entra nel tuo account online.\nScrivi il nome dell'account:\n\n%s_", typed);
+    else if (mode == GRID_NAME)
         snprintf(text, sizeof(text),
                  "Crea il tuo account online (una volta sola).\nScegli il nome (da 3 a 12 lettere o cifre):\n\n%s_",
                  typed);
-    screen = invite ? SCREEN_INVITE : SCREEN_NAME;
-    Menu_ShowNoticeGrid(invite ? "Online - codice d'invito" : "Online - nuovo account", text, keys, KEYS, 10, NULL,
-                        grid_focus, grid_chosen);
+    else if (flow == FLOW_LOGIN)
+        snprintf(text, sizeof(text), "Nome: %s\nScrivi la password dell'account:\n\n%s_", typed_name, typed);
+    else
+        snprintf(text, sizeof(text),
+                 "%s: scegli una password (almeno %d lettere o cifre).\nTi serve per entrare nell'account, con i "
+                 "tuoi salvataggi, da un altro telefono o dal PC.\n\n%s_",
+                 flow == FLOW_MAKE ? typed_name : my_name, PASSWORD_MIN, typed);
+    screen = mode == GRID_INVITE ? SCREEN_INVITE : mode == GRID_PASSWORD ? SCREEN_PASSWORD : SCREEN_NAME;
+    Menu_ShowNoticeGrid(mode == GRID_INVITE   ? "Online - codice d'invito" :
+                        mode == GRID_PASSWORD ? "Online - password" :
+                        flow == FLOW_LOGIN    ? "Online - entra" :
+                                                "Online - nuovo account",
+                        text, keys, KEYS, 10, NULL, grid_focus, grid_chosen);
+}
+
+/* No account here yet: a new one, or the one made elsewhere. */
+static void start_chosen(int button, int *quit)
+{
+    (void)quit;
+    screen = SCREEN_NONE;
+    if (button > 1) return;
+    flow = button == 0 ? FLOW_MAKE : FLOW_LOGIN;
+    typed[0] = '\0';
+    grid_focus = 0;
+    show_grid(GRID_NAME);
+}
+
+static void show_start(void)
+{
+    static const char *const buttons[] = {"Crea account", "Ho gia' un account", "Annulla"};
+    screen = SCREEN_START;
+    Menu_ShowNotice("Online",
+                    "Per giocare online serve un account. I tuoi salvataggi stanno anche li': cambiando telefono, "
+                    "passando dal PC al telefono o reinstallando il gioco non perdi niente.",
+                    buttons, 3, 0, start_chosen);
+}
+
+/* An account made before the passwords: one, now or the next time. */
+static void ask_password_chosen(int button, int *quit)
+{
+    (void)quit;
+    screen = SCREEN_NONE;
+    if (button != 0) {
+        fprintf(stderr, "memories-pc: lobby: password put off\n");
+        return;
+    }
+    flow = FLOW_PASSWORD;
+    typed[0] = '\0';
+    grid_focus = 0;
+    show_grid(GRID_PASSWORD);
+}
+
+static void ask_for_password(void)
+{
+    static const char *const buttons[] = {"Scegli la password", "Piu' tardi"};
+    ask_password = 0;
+    password_asked = 1;
+    fprintf(stderr, "memories-pc: lobby: account without password, asking\n");
+    if (test_password) {
+        flow = FLOW_PASSWORD;
+        send_account(test_password, 0);
+        return;
+    }
+    screen = SCREEN_ASK_PASSWORD;
+    Menu_ShowNotice("Online - password",
+                    "Scegli una password per il tuo account.\n\nTi serve per ritrovarlo, con i tuoi salvataggi, su "
+                    "un altro telefono, sul PC o se reinstalli il gioco.",
+                    buttons, 2, 0, ask_password_chosen);
+}
+
+static void saves_closed(int button, int *quit)
+{
+    (void)button, (void)quit;
+    screen = SCREEN_NONE;
+    show_list();
+}
+
+static void show_saves(void)
+{
+    static const char *const back[] = {"Indietro"};
+    char text[900];
+    Cloud_Status(text, sizeof(text));
+    screen = SCREEN_SAVES;
+    Menu_ShowNotice("Salvataggi sull'account", text, back, 1, 0, saves_closed);
 }
 
 static void wait_chosen(int button, int *quit)
@@ -455,6 +566,11 @@ static void list_chosen(int button, int *quit)
     char text[128];
     (void)quit;
     screen = SCREEN_NONE;
+    if (button == player_count) {
+        grid_focus = button;
+        show_saves();
+        return;
+    }
     if (button < 0 || button >= player_count) return; /* Chiudi */
     snprintf(picked, sizeof(picked), "%s", players[button].name);
     grid_focus = button;
@@ -466,8 +582,8 @@ static void list_chosen(int button, int *quit)
 static void show_list(void)
 {
     static char labels[PLAYERS][40];
-    const char *names[PLAYERS + 1];
-    signed char styles[PLAYERS + 1];
+    const char *names[PLAYERS + 2];
+    signed char styles[PLAYERS + 2];
     char text[256];
     int i, online = 0, columns = 3;
     if (!in_lobby) {
@@ -490,13 +606,15 @@ static void show_list(void)
         styles[i] = players[i].online && !me ? MENU_NOTICE_GREEN : MENU_NOTICE_DIM;
         online += players[i].online;
     }
-    names[player_count] = "Chiudi";
+    names[player_count] = "Salvataggi";
     styles[player_count] = MENU_NOTICE_PLAIN;
+    names[player_count + 1] = "Chiudi";
+    styles[player_count + 1] = MENU_NOTICE_PLAIN;
     snprintf(text, sizeof(text), "Sei %s. Online: %d di %d.\nVerde = online: scegline uno per sfidarlo.", my_name,
              online, player_count);
     screen = SCREEN_LIST;
-    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 1, columns, styles,
-                        grid_focus < player_count ? grid_focus : player_count, list_chosen);
+    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 2, columns, styles,
+                        grid_focus <= player_count ? grid_focus : player_count + 1, list_chosen);
 }
 
 /* "via": the duel's room. online.cfg for pc/debug/netplay.c, then a
@@ -601,10 +719,13 @@ static void handle(const char *line)
     const char *from = root ? Json_String(Json_Member(root, "da"), "") : "";
     char text[256];
     if (!document) return;
-    if (!strcmp(type, "_up")) {
+    if (Cloud_Handle(type, root)) {
+        /* the saves' (cloud.c) */
+    } else if (!strcmp(type, "_up")) {
         connected = 1;
     } else if (!strcmp(type, "_down") || !strcmp(type, "_none")) {
         int was = in_lobby;
+        Cloud_Lost();
         if (was || connected) fprintf(stderr, "memories-pc: lobby: link lost\n");
         connected = in_lobby = 0;
         challenger[0] = '\0';
@@ -622,15 +743,24 @@ static void handle(const char *line)
             snprintf(token, sizeof(token), "%s", given);
             write_account();
             share_token();
-            fprintf(stderr, "memories-pc: lobby: account %s made\n", my_name);
+            fprintf(stderr, "memories-pc: lobby: account %s %s\n", my_name, flow == FLOW_LOGIN ? "logged in" : "made");
+            Cloud_Start(my_name);
             join();
         }
+    } else if (!strcmp(type, "account")) {
+        if (!Json_Bool(Json_Member(root, "password"), 1) && !password_asked) ask_password = 1;
+    } else if (!strcmp(type, "password_ok")) {
+        fprintf(stderr, "memories-pc: lobby: password set\n");
+        if (screen == SCREEN_JOINING && Menu_NoticeShown())
+            info("Password salvata. Per entrare nell'account da un altro telefono o dal PC: Online > Ho gia' un "
+                 "account, con il nome e questa password.");
     } else if (!strcmp(type, "lista")) {
         int first = !in_lobby;
         read_list(Json_Member(root, "giocatori"));
         in_lobby = 1;
         if (first) fprintf(stderr, "memories-pc: lobby: connected as %s (%d players)\n", my_name, player_count);
         if (first) tell_results();
+        if (first) Cloud_Joined();
         if ((screen == SCREEN_LIST || screen == SCREEN_JOINING) && Menu_NoticeShown()) show_list();
         if (test_challenge[0] && player_online(test_challenge) && !challenged[0]) {
             challenge(test_challenge);
@@ -672,12 +802,27 @@ static void handle(const char *line)
             info("Questo nome e' gia' preso: riprova da Online con un altro.");
         } else if (!strcmp(why, "nome")) {
             info("Nome non valido: da 3 a 12 lettere, cifre o spazi.");
+        } else if (!strcmp(why, "password")) {
+            info("Nome o password sbagliati. Riprova da Online > Ho gia' un account.");
+        } else if (!strcmp(why, "bloccato")) {
+            snprintf(text, sizeof(text),
+                     "Troppe password sbagliate di fila: per questo account riprova tra %d minuti.",
+                     (int)Json_Number(Json_Member(root, "minuti"), 10));
+            info(text);
+        } else if (!strcmp(why, "senza password")) {
+            info("Questo account non ha ancora una password. Sceglila sul gioco dove l'hai creato (Online, te la "
+                 "chiede da solo), poi riprova da qui.");
+        } else if (!strcmp(why, "password corta")) {
+            snprintf(text, sizeof(text), "La password deve avere almeno %d lettere o cifre.", PASSWORD_MIN);
+            info(text);
         } else if (!strcmp(why, "gettone")) {
+            Cloud_Lost();
             forget_account();
             in_lobby = 0;
             __atomic_store_n(&paused, 1, __ATOMIC_RELEASE);
             info("Il tuo account online non esiste piu'. Creane uno nuovo da Online.");
         } else if (!strcmp(why, "altrove")) {
+            Cloud_Lost();
             in_lobby = 0;
             __atomic_store_n(&paused, 1, __ATOMIC_RELEASE);
             info("Il tuo account si e' collegato da un altro gioco: qui la lobby si ferma. Riapri Online per "
@@ -706,16 +851,22 @@ void Lobby_Frame(void)
     memcpy(lines + kept, inbox, length);
     inbox_length = 0;
     pthread_mutex_unlock(&lock);
-    if (!length) return;
-    length += kept;
-    lines[length] = '\0';
-    for (line = lines; (end = memchr(line, '\n', length - (size_t)(line - lines))); line = end + 1) {
-        *end = '\0';
-        if (*line) handle(line);
+    if (length) {
+        length += kept;
+        lines[length] = '\0';
+        for (line = lines; (end = memchr(line, '\n', length - (size_t)(line - lines))); line = end + 1) {
+            *end = '\0';
+            if (*line) handle(line);
+        }
+        /* A line the next frame finishes. */
+        kept = length - (size_t)(line - lines);
+        memmove(lines, line, kept);
     }
-    /* A line the next frame finishes. */
-    kept = length - (size_t)(line - lines);
-    memmove(lines, line, kept);
+    /* The password question over nothing, or over the lobby's own list. */
+    if (ask_password && in_lobby &&
+        (!Menu_NoticeShown() || screen == SCREEN_LIST || screen == SCREEN_JOINING))
+        ask_for_password();
+    Cloud_Frame();
 }
 
 /* --- start ----------------------------------------------------------- */
@@ -750,8 +901,30 @@ void Lobby_Start(void)
     /* The test's challenge once: not again when back from its duel (a
      * result to tell), which the restart's environment cannot say. */
     if (wanted && !result_count) snprintf(test_challenge, sizeof(test_challenge), "%s", wanted);
-    if (!token[0]) return; /* no account: nothing until Online... */
+    test_password = getenv("MEMORIES_LOBBY_TEST_PASSWORD");
+    if (!token[0]) {
+        /* No account: nothing until Online..., or the test's. */
+        const char *made = getenv("MEMORIES_LOBBY_TEST_REGISTER"), *login = getenv("MEMORIES_LOBBY_TEST_LOGIN");
+        char fields[3][32] = {"", "", ""};
+        const char *given = made && *made ? made : login && *login ? login : NULL;
+        int count = 0;
+        if (!given) return;
+        while (count < 3) {
+            size_t span = strcspn(given, ":");
+            snprintf(fields[count++], sizeof(fields[0]), "%.*s", (int)(span < 31 ? span : 31), given);
+            if (!given[span]) break;
+            given += span + 1;
+        }
+        flow = made && *made ? FLOW_MAKE : FLOW_LOGIN;
+        snprintf(typed_name, sizeof(typed_name), "%s", fields[0]);
+        snprintf(typed_invite, sizeof(typed_invite), "%s", flow == FLOW_MAKE ? fields[1] : "");
+        fprintf(stderr, "memories-pc: lobby: test %s %s\n", flow == FLOW_MAKE ? "register" : "login", typed_name);
+        send_account(fields[flow == FLOW_MAKE ? 2 : 1], 1);
+        start_thread();
+        return;
+    }
     share_token();
+    Cloud_Start(my_name);
     fprintf(stderr, "memories-pc: lobby: connecting to %s as %s\n", host, my_name);
     start_thread();
 }
@@ -779,10 +952,9 @@ void Lobby_Open(void)
         return;
     }
     if (!token[0]) {
-        typed[0] = '\0';
-        grid_focus = 0;
-        show_grid(0);
+        show_start();
         return;
     }
+    Cloud_Start(my_name);
     show_list();
 }
