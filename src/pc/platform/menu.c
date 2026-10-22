@@ -78,6 +78,7 @@ static int ui = 1, touch_row;
 #define C_ACCENT 0x3b82f6u
 #define C_TEXT 0xe8e8ea
 #define C_TEXT_DIM 0x8b8d93
+#define C_GREEN 0x4ade80u /* a notice grid's MENU_NOTICE_GREEN (the lobby's players online) */
 #define C_TEXT_ON_ACCENT 0xffffffu
 #define C_DROP 0x27282cU
 #define C_DROP_EDGE 0x3f4147u
@@ -335,7 +336,9 @@ static int span_left, span_right, span_top = -1;
 
 static struct {
     int shown, count, focus, hover;
-    char title[128], text[1024], buttons[MENU_NOTICE_BUTTONS][48];
+    int columns; /* 0: one row of buttons; else a grid (Menu_ShowNoticeGrid) */
+    signed char style[MENU_NOTICE_GRID];
+    char title[128], text[1024], buttons[MENU_NOTICE_GRID][48];
     void (*chosen)(int button, int *quit);
     /* The text wrapped to the box: where each line starts and its length. */
     int line_start[NOTICE_LINES], line_length[NOTICE_LINES], lines, wrapped_ui, wrapped_width;
@@ -1362,9 +1365,24 @@ static int span_width(const char *text, int length)
     return text_width(part);
 }
 
+/* A grid's cell: as wide as the widest button. */
+static int notice_cell_width(void)
+{
+    int i, width = 0;
+    for (i = 0; i < notice.count; i++)
+        if (width < text_width(notice.buttons[i])) width = text_width(notice.buttons[i]);
+    return width + NOTICE_BUTTON_PAD;
+}
+
+static int notice_rows(void) { return notice.columns ? (notice.count + notice.columns - 1) / notice.columns : 1; }
+
 static int notice_buttons_width(void)
 {
     int i, width = 0;
+    if (notice.columns) {
+        int columns = notice.count < notice.columns ? notice.count : notice.columns;
+        return columns * notice_cell_width() + (columns - 1) * NOTICE_BUTTON_GAP;
+    }
     for (i = 0; i < notice.count; i++)
         width += text_width(notice.buttons[i]) + NOTICE_BUTTON_PAD * 2 + (i ? NOTICE_BUTTON_GAP : 0);
     return width;
@@ -1406,7 +1424,8 @@ static void notice_geometry(int *x, int *y, int *w, int *h)
     if (inner > canvas_w - NOTICE_PAD * 2 - 16 * ui) inner = canvas_w - NOTICE_PAD * 2 - 16 * ui;
     if (notice.wrapped_ui != ui || notice.wrapped_width != inner) wrap_notice(inner);
     *w = inner + NOTICE_PAD * 2;
-    *h = NOTICE_PAD + NOTICE_LINE + 6 * ui + notice.lines * NOTICE_LINE + NOTICE_PAD + NOTICE_BUTTON_H + NOTICE_PAD;
+    *h = NOTICE_PAD + NOTICE_LINE + 6 * ui + notice.lines * NOTICE_LINE + NOTICE_PAD + NOTICE_BUTTON_H + NOTICE_PAD +
+         (notice_rows() - 1) * (NOTICE_BUTTON_H + NOTICE_BUTTON_GAP);
     *x = (canvas_w - *w) / 2;
     *y = (canvas_h - *h) / 2;
     if (*y < MENU_H + 8 * ui) *y = MENU_H + 8 * ui;
@@ -1416,6 +1435,19 @@ static void notice_button(int index, int *bx, int *by, int *bw)
 {
     int x, y, w, h, i, at;
     notice_geometry(&x, &y, &w, &h);
+    if (notice.columns) {
+        /* A grid, centred; narrower cells when the window is. */
+        int rows = notice_rows(), cell = notice_cell_width(), width = notice_buttons_width();
+        int columns = notice.count < notice.columns ? notice.count : notice.columns;
+        if (width > w - NOTICE_PAD * 2) {
+            cell = (w - NOTICE_PAD * 2 - (columns - 1) * NOTICE_BUTTON_GAP) / columns;
+            width = columns * cell + (columns - 1) * NOTICE_BUTTON_GAP;
+        }
+        *bx = x + (w - width) / 2 + index % notice.columns * (cell + NOTICE_BUTTON_GAP);
+        *by = y + h - NOTICE_PAD - NOTICE_BUTTON_H - (rows - 1 - index / notice.columns) * (NOTICE_BUTTON_H + NOTICE_BUTTON_GAP);
+        *bw = cell;
+        return;
+    }
     at = x + w - NOTICE_PAD - notice_buttons_width();
     for (i = 0; i < index; i++) at += text_width(notice.buttons[i]) + NOTICE_BUTTON_PAD * 2 + NOTICE_BUTTON_GAP;
     *bx = at;
@@ -1428,7 +1460,8 @@ static int notice_button_at(int px, int py)
     int i, bx, by, bw;
     for (i = 0; i < notice.count; i++) {
         notice_button(i, &bx, &by, &bw);
-        if (px >= bx && px < bx + bw && py >= by && py < by + NOTICE_BUTTON_H) return i;
+        if (px >= bx && px < bx + bw && py >= by && py < by + NOTICE_BUTTON_H)
+            return notice.style[i] == MENU_NOTICE_DIM ? -1 : i;
     }
     return -1;
 }
@@ -1463,17 +1496,45 @@ static void draw_notice(void)
         notice_button(i, &bx, &by, &bw);
         fill(bx, by, bw, NOTICE_BUTTON_H, focus ? C_ACCENT : i == notice.hover ? C_TRACK : C_BAR_HOVER, 255);
         if (!focus) outline(bx, by, bw, NOTICE_BUTTON_H, C_DROP_EDGE);
-        draw_text(bx + NOTICE_BUTTON_PAD, by + NOTICE_BUTTON_H / 2, notice.buttons[i], focus ? C_TEXT_ON_ACCENT : C_TEXT);
+        if (notice.columns) {
+            uint32_t color = focus ? C_TEXT_ON_ACCENT : notice.style[i] == MENU_NOTICE_GREEN ? C_GREEN
+                           : notice.style[i] == MENU_NOTICE_DIM ? C_TEXT_DIM : C_TEXT;
+            draw_text(bx + (bw - text_width(notice.buttons[i])) / 2, by + NOTICE_BUTTON_H / 2, notice.buttons[i], color);
+        } else {
+            draw_text(bx + NOTICE_BUTTON_PAD, by + NOTICE_BUTTON_H / 2, notice.buttons[i], focus ? C_TEXT_ON_ACCENT : C_TEXT);
+        }
     }
 }
 
-void Menu_ShowNotice(const char *title, const char *text, const char *const *buttons, int count, int focus,
-                     void (*chosen)(int button, int *quit))
+/* The focus moved by `step` buttons (a grid's row is `columns`), round the
+ * ends, over the dimmed ones. */
+static void move_focus(int step)
+{
+    int i, at = notice.focus;
+    for (i = 0; i < notice.count; i++) {
+        at = ((at + step) % notice.count + notice.count) % notice.count;
+        if (notice.style[at] != MENU_NOTICE_DIM) {
+            notice.focus = at;
+            return;
+        }
+    }
+}
+
+static int focus_row(int down)
+{
+    if (!notice.columns || notice.count <= notice.columns) return down ? 1 : -1;
+    return down ? notice.columns : -notice.columns;
+}
+
+static void show_notice(const char *title, const char *text, const char *const *buttons, int count, int columns,
+                        const signed char *styles, int focus, void (*chosen)(int button, int *quit))
 {
     int i;
     if (count < 1) count = 1;
-    if (count > MENU_NOTICE_BUTTONS) count = MENU_NOTICE_BUTTONS;
+    if (count > (columns ? MENU_NOTICE_GRID : MENU_NOTICE_BUTTONS)) count = columns ? MENU_NOTICE_GRID : MENU_NOTICE_BUTTONS;
     close_menu();
+    notice.columns = columns > 0 ? columns : 0;
+    for (i = 0; i < count; i++) notice.style[i] = styles ? styles[i] : MENU_NOTICE_PLAIN;
     snprintf(notice.title, sizeof(notice.title), "%s", title ? title : "");
     snprintf(notice.text, sizeof(notice.text), "%s", text ? text : "");
     Menu_TextTrim(notice.title);
@@ -1484,12 +1545,25 @@ void Menu_ShowNotice(const char *title, const char *text, const char *const *but
     }
     notice.count = count;
     notice.focus = focus >= 0 && focus < count ? focus : count - 1;
+    if (notice.style[notice.focus] == MENU_NOTICE_DIM) move_focus(1);
     notice.hover = -1;
     notice.chosen = chosen;
     notice.wrapped_ui = 0;
     notice.shown = 1;
     changed = 1;
     LOG(LOG_MENU, "notice \"%s\" with %d buttons", notice.title, count);
+}
+
+void Menu_ShowNotice(const char *title, const char *text, const char *const *buttons, int count, int focus,
+                     void (*chosen)(int button, int *quit))
+{
+    show_notice(title, text, buttons, count, 0, NULL, focus, chosen);
+}
+
+void Menu_ShowNoticeGrid(const char *title, const char *text, const char *const *buttons, int count, int columns,
+                         const signed char *styles, int focus, void (*chosen)(int button, int *quit))
+{
+    show_notice(title, text, buttons, count, columns < 1 ? 1 : columns, styles, focus, chosen);
 }
 
 static void choose_notice(int button, int *quit);
@@ -1504,8 +1578,10 @@ int Menu_NoticePad(uint16_t pressed, int *quit)
     pressed = ButtonLayout_Apply(pressed, 0, Settings_Get(SET_JP_BUTTONS));
     if (pressed & BUTTON_LAYOUT_CROSS) choose_notice(notice.focus, quit);
     else if (pressed & BUTTON_LAYOUT_CIRCLE) choose_notice(notice.count - 1, quit);
-    else if (pressed & 0x0090) notice.focus = (notice.focus + notice.count - 1) % notice.count; /* Up, Left */
-    else if (pressed & 0x0060) notice.focus = (notice.focus + 1) % notice.count;               /* Right, Down */
+    else if (pressed & 0x0010) move_focus(focus_row(0)); /* Up */
+    else if (pressed & 0x0080) move_focus(-1);           /* Left */
+    else if (pressed & 0x0020) move_focus(1);            /* Right */
+    else if (pressed & 0x0040) move_focus(focus_row(1)); /* Down */
     else return 0;
     changed = 1;
     return 1;
@@ -1567,12 +1643,10 @@ static int notice_event(const MenuEvent *event, int *quit)
         return 1;
     case MENU_EVENT_KEY_DOWN:
         switch (event->key) {
-        case MENU_KEY_LEFT: case MENU_KEY_UP:
-            notice.focus = (notice.focus + notice.count - 1) % notice.count;
-            break;
-        case MENU_KEY_RIGHT: case MENU_KEY_DOWN: case MENU_KEY_TAB:
-            notice.focus = (notice.focus + 1) % notice.count;
-            break;
+        case MENU_KEY_LEFT: move_focus(-1); break;
+        case MENU_KEY_UP: move_focus(focus_row(0)); break;
+        case MENU_KEY_RIGHT: case MENU_KEY_TAB: move_focus(1); break;
+        case MENU_KEY_DOWN: move_focus(focus_row(1)); break;
         case MENU_KEY_ENTER: choose_notice(notice.focus, quit); break;
         case MENU_KEY_ESCAPE: choose_notice(notice.count - 1, quit); break;
         default: break;

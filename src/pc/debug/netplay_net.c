@@ -259,6 +259,12 @@ int NetplayNet_Send(const void *data, size_t size)
     return 0;
 }
 
+int NetplayNet_SendText(const char *text)
+{
+    if (!websocket) return -1;
+    return send_frame(1, (const unsigned char *)text, strlen(text));
+}
+
 int NetplayNet_Flush(void)
 {
     int failed;

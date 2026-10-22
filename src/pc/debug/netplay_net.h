@@ -19,6 +19,9 @@ int NetplayNet_Send(const void *data, size_t size);
 /* What Send kept, as one binary frame (each frame is a message the server
  * pays for); nothing to do on a plain connection. 0, or -1 when gone. */
 int NetplayNet_Flush(void);
+/* One text frame now (the lobby's JSON, pc/platform/lobby.h, which uses
+ * this socket in a run with no online duel). 0, or -1 when gone. */
+int NetplayNet_SendText(const char *text);
 /* Bytes that came in, waiting up to timeout_ms: the count, 0 when none came
  * in time, -1 when the connection is gone. */
 long NetplayNet_Receive(void *buffer, size_t size, int timeout_ms);
