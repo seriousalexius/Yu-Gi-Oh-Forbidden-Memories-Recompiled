@@ -33,6 +33,7 @@
 #include "pc/debug/monitor.h"
 #include "pc/debug/control.h"
 #include "pc/debug/recorder.h"
+#include "pc/debug/netplay.h"
 #include "pc/mods/mods.h"
 #ifdef _WIN32
 #include "pc/platform/win32.h"
@@ -96,6 +97,31 @@ static void run_tick(uint64_t game_now, uint64_t real_now)
     Platform_SetTickDue(counter_next_us);
 }
 
+/* An online duel (netplay.h): this player's pads, both ports as one, go
+ * through the mods and the Japanese buttons as pad 1 would; the bits the two
+ * games agree on fill pad 1 (player 1) and pad 2 (player 2), both
+ * connected. */
+static void run_vblank_online(const uint16_t source[2], const uint16_t fixed[2])
+{
+    uint16_t both[2];
+    int port;
+    unsigned bits = DeckMenu_HoldsPads() ? 0 : (unsigned)(source[0] | source[1]);
+    MemoriesModEvent input = {MEMORIES_EVENT_INPUT, MEMORIES_BEFORE, 0, (int)bits, 0, (int)bits, 0};
+    Mods_Dispatch(&input);
+    bits = (unsigned)(input.handled ? input.result : input.b) & 0xffffu;
+    if (Settings_Get(SET_JP_BUTTONS)) bits = ButtonLayout_Apply((uint16_t)bits, (uint16_t)(fixed[0] | fixed[1]), 1);
+    input.result = (int)bits; input.phase = MEMORIES_AFTER; Mods_Dispatch(&input);
+    Netplay_Pads((uint16_t)bits, both);
+    for (port = 0; port < 2 && pads_started; port++) {
+        if (pad_buffer[port]) {
+            pad_buffer[port][0] = 0x00;
+            pad_buffer[port][1] = 0x41;
+            pad_buffer[port][2] = (unsigned char)~both[port];
+            pad_buffer[port][3] = (unsigned char)~(both[port] >> 8);
+        }
+    }
+}
+
 static void run_vblank(void)
 {
     uint16_t source[2], fixed[2];
@@ -108,6 +134,11 @@ static void run_vblank(void)
         fixed[port] = (uint16_t)(Platform_PadFixedBits(port) | Control_Pad(port));
     }
     Recorder_Pads(source, fixed, &pad2);
+    if (Netplay_Active()) {
+        run_vblank_online(source, fixed);
+        if (vsync_callback) vsync_callback();
+        return;
+    }
     for (port = 0; port < 2 && pads_started; port++) {
         if (pad_buffer[port]) {
             /* Released while the deck slot screen reads the pad (deck_menu.h). */
@@ -183,6 +214,7 @@ int ResetCallback(void)
 {
     if (!started) {
         started = 1;
+        Netplay_Init(); /* MEMORIES_NETPLAY: before the timers, which take its virtual clock */
         Recorder_Init(); /* before the first VBlank */
         Mods_PadSource = mods_pad;
         if (Platform_StartTimers(on_tick, on_vblank) != 0) {
@@ -369,6 +401,7 @@ int Memories_VSync(int mode)
         }
         Memories_StatePoint(Memories_PresentedFrames());
         Recorder_Point(Memories_PresentedFrames()); /* MEMORIES_RECORD, MEMORIES_PLAY */
+        Netplay_Point(Memories_PresentedFrames()); /* MEMORIES_NETPLAY */
         Control_Point(); /* MEMORIES_CONTROL: the client's turn, at the same point */
     } else if (mode > 1) {
         while (Platform_VBlankCount() - last_vsync < (unsigned)mode) {

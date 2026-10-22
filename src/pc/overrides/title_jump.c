@@ -11,7 +11,11 @@
 #include "game/sound.h"
 #include "game/func_80024DC8.h"
 #include "pc/debug/cheats.h"
+#include "pc/debug/netplay.h"
+#include "pc/rng.h"
+#include "game/text_sjis_to_glyph_codes.h"
 #include <stdio.h>
+#include <string.h>
 
 extern u8 D_8009B268, D_8009B26C, D_8009B26D;
 extern int D_800E9DC0[];
@@ -23,6 +27,9 @@ void Psx_longjmp(int *env, int value);
 extern u8 D_8009B2EB, gDebugMenu_bPage, gFreeDuel_bReturnFlags, D_8009B368, D_8009B269;
 extern s8 gDebugMenu_bCursor;
 extern u16 gDuel_awPlayerDeck[];
+/* The two-player slots and their names (save_data.h): each slot's state,
+ * the SJIS name in it, and the glyph codes the duel draws the name from. */
+extern u8 D_801D1200[], D_801D2200[], D_801D160C[], D_801B122B[], D_801B1238[];
 
 /* The debug menu (mode 0) has run its first frame and runs no entry. */
 int TitleJump_DebugMenuIdle(void)
@@ -80,6 +87,23 @@ int TitleJump_EnterTarget(int target, int opponent, const char *deck)
         gFreeDuel_bReturnFlags = 0x80;
         func_80024DC8(-1, opponent, 0x6000, 0x6000);
         D_8009B368 = MAIN_MODE_FREE_DUEL;
+        D_8009B269 = MAIN_MODE_DEBUG;
+        return 0;
+    case JUMP_DUEL2P:
+        /* What the debug menu's 2P duel entry does once the memory card
+         * pair has loaded (debug_menu_two_player_entry.c and
+         * SaveData_UpdateDuelLoad), with the saves the two games swapped
+         * and the seed they share. */
+        if (!Netplay_Save(1) || !Netplay_Save(2)) return -1;
+        memcpy(D_801D1200, Netplay_Save(1), 0x680);
+        memcpy(D_801D2200, Netplay_Save(2), 0x680);
+        Text_SjisToGlyphCodes(D_801B122B, D_801D160C, 6);
+        Text_SjisToGlyphCodes(D_801B1238, D_801D160C + 0x1000, 6);
+        gRand_dwSeed = Netplay_Seed();
+        File_RequestMainMenuPackage();
+        File_WaitForTransfers();
+        D_8009B2EB = 0;
+        D_8009B26C = MAIN_MODE_TWO_PLAYER_DUEL_SETUP;
         D_8009B269 = MAIN_MODE_DEBUG;
         return 0;
     case JUMP_CREDITS:

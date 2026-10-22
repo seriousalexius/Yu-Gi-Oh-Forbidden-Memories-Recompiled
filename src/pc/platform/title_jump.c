@@ -42,6 +42,7 @@
 #include "pc/free_duel/duelists.h"
 #include "pc/debug/cheats.h"
 #include "pc/tower/tower.h"
+#include "pc/debug/netplay.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -112,7 +113,7 @@ static int jump_target = -1, jump_opponent, handed;
 static unsigned jump_count; /* jumps taken, for the control channel's `info` */
 static char jump_deck[256];
 static const char *const target_names[JUMP_COUNT] = {
-    "title", "debug", "duel", "free_duel", "build_deck", "library", "password", "map", "credits", "options"};
+    "title", "debug", "duel", "free_duel", "build_deck", "library", "password", "map", "credits", "options", "duel2p"};
 
 const char *TitleJump_TargetName(int target)
 {
@@ -147,6 +148,10 @@ int TitleJump_RequestTo(int target, int opponent, const char *deck, char *why, u
     }
     if (deck && *deck && !Cheats_DeckCount(deck)) {
         snprintf(why, why_size, "no card in the deck '%.40s' (ids and ranges, \"723-762\", \"1,2,3\")", deck);
+        return -1;
+    }
+    if (target == JUMP_DUEL2P && !Netplay_Save(2)) {
+        snprintf(why, why_size, "a two-player duel is started by an online session only");
         return -1;
     }
     if (target == JUMP_DUEL && !(deck && *deck) && !Cheats_SaveLoaded()) {
