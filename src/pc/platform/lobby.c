@@ -35,7 +35,7 @@
 #define NAME 13
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-static char outbox[8192], inbox[65536]; /* lines; under lock */
+static char outbox[65536], inbox[65536]; /* lines; under lock (a slot file in base64 is 11 KB) */
 static size_t outbox_length, inbox_length;
 static char shared_token[40];           /* under lock: what the thread says "entra" with */
 static int thread_running, paused, wake; /* paused and wake: atomic */
@@ -191,6 +191,8 @@ static void send_line(const char *line)
     }
     pthread_mutex_unlock(&lock);
 }
+
+void Lobby_Send(const char *line) { send_line(line); }
 
 /* --- the account and the players (main thread) ----------------------- */
 

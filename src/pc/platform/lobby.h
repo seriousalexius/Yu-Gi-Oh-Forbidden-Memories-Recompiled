@@ -24,5 +24,8 @@ void Lobby_Frame(void);
 /* Game > Online... and the title's "online" action: the account's letters
  * the first time, then the players. */
 void Lobby_Open(void);
+/* One JSON line to the server, sent by the thread once connected (the
+ * saves on the account, cloud.h). */
+void Lobby_Send(const char *line);
 
 #endif
