@@ -38,7 +38,7 @@ typedef struct {
 static int active, side, peer_gone, jump_asked, desync_seen, hide = 1, check_ram, websocket;
 static unsigned delay = 4, check_every = NETPLAY_CHECK_EVERY, desyncs;
 static unsigned waits;     /* VBlanks that waited for the other game's input */
-static uint64_t waited_ms; /* and how long in all: is the delay enough? */
+static uint64_t waited_ms, longest_wait_ms, active_since; /* is the delay enough? */
 static uint32_t seed, peer_build;
 static unsigned vblank_index, next_check;
 static unsigned char saves[2][SAVE_SIZE];
@@ -169,8 +169,11 @@ static void compare_checks(void)
             if (mine->index != theirs->index || mine->frame != theirs->frame) continue;
             if (mine->hash != theirs->hash) desync(mine, theirs->hash);
             else if (mine->index % (check_every * 10) < check_every)
-                fprintf(stderr, "memories-pc: online: in step at VBlank %u (waited at %u VBlanks, %llu ms in all)\n",
-                        (unsigned)mine->index, waits, (unsigned long long)waited_ms);
+                fprintf(stderr,
+                        "memories-pc: online: in step at VBlank %u after %llu ms (waited at %u VBlanks, %llu ms in all, "
+                        "%llu at most)\n",
+                        (unsigned)mine->index, (unsigned long long)(now_ms() - active_since), waits,
+                        (unsigned long long)waited_ms, (unsigned long long)longest_wait_ms);
             /* Matched: drop it from the other game's list. */
             peer_checks[i] = peer_checks[--peer_count];
             i--;
@@ -416,6 +419,7 @@ void Netplay_Init(void)
                     peer_facts);
     }
     active = 1;
+    active_since = now_ms();
     fprintf(stderr, "memories-pc: online: player %d of room %s (%s), input delay %u, seed %u, %s, checks of %s\n",
             side, room, websocket ? "WebSocket" : "relay", delay, (unsigned)seed,
             hide ? "the other's hand hidden" : "both hands shown", check_ram ? "all RAM" : "the duel");
@@ -552,7 +556,11 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
                 break;
             }
         }
-        if (started) waits++, waited_ms += now_ms() - entered;
+        if (started) {
+            uint64_t waited = now_ms() - entered;
+            waits++, waited_ms += waited;
+            if (waited > longest_wait_ms) longest_wait_ms = waited;
+        }
         if (remote_have[index % RING] && remote_index[index % RING] == index) {
             theirs = remote_bits[index % RING];
             remote_have[index % RING] = 0;
