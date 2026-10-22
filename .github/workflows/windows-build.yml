@@ -37,5 +37,6 @@ jobs:
             tmp/pc/win32/memories-pc.exe
             tmp/pc/win32/SDL3.dll
             tmp/pc/win32/buildid
+            tmp/pc/win32/symbols/
           if-no-files-found: error
           retention-days: 14
