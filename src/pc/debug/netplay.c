@@ -28,7 +28,7 @@
 #define SOUND_TO 0x001E1B44u
 
 /* The messages, each a type byte and a 16-bit little-endian length. */
-enum { MSG_HELLO = 'H', MSG_SAVE = 'S', MSG_INPUT = 'I', MSG_CHECK = 'K', MSG_BYE = 'B' };
+enum { MSG_HELLO = 'H', MSG_SAVE = 'S', MSG_INPUT = 'I', MSG_CHECK = 'K', MSG_BYE = 'B', MSG_RESIGN = 'R' };
 
 typedef struct {
     uint32_t index, frame;
@@ -52,6 +52,10 @@ static unsigned own_count, peer_count;
 static unsigned char inbox[16384];
 static size_t inbox_length;
 static int from_lobby; /* asked by online.cfg, which the lobby wrote (read_asked) */
+static char opponent[64]; /* its "contro=" line */
+static int over, test_back; /* the duel's result said (duel_over) */
+static unsigned test_resign;
+static uint64_t over_at;
 
 static uint64_t now_ms(void)
 {
@@ -73,6 +77,7 @@ static uint32_t get32(const unsigned char *at)
 
 static void lost(const char *why);
 static void lobby_failed_closed(int button, int *quit);
+static void duel_over(int won, const char *how);
 
 static void send_message(int type, const void *payload, size_t length)
 {
@@ -196,6 +201,11 @@ static void lost(const char *why)
     peer_gone = 1;
     NetplayNet_Close();
     fprintf(stderr, "memories-pc: online: %s; the other player's pad stays idle\n", why);
+    if (over) return;
+    if (active) {
+        duel_over(1, "disconnect"); /* the one who stays wins */
+        return;
+    }
     if (from_lobby) {
         /* From the lobby: a restart is the way back to the game as it was. */
         static const char *const buttons[] = {"Torna al gioco", "Resta qui"};
@@ -244,6 +254,10 @@ static void handle(int type, const unsigned char *payload, size_t length)
         break;
     case MSG_BYE:
         lost("the other player left");
+        break;
+    case MSG_RESIGN:
+        if (!over) fprintf(stderr, "memories-pc: online: the other player resigns\n");
+        duel_over(1, "resign");
         break;
     default:
         break;
@@ -302,11 +316,13 @@ static void read_asked(void)
         line[strcspn(line, "\r\n")] = '\0';
         if (!strncmp(line, "netplay=", 8)) snprintf(asked_config, sizeof(asked_config), "%s", line + 8);
         else if (!strncmp(line, "save=", 5)) snprintf(asked_save, sizeof(asked_save), "%s", line + 5);
+        else if (!strncmp(line, "contro=", 7)) snprintf(opponent, sizeof(opponent), "%s", line + 7);
     }
     fclose(file);
     remove(path);
     from_lobby = asked_config[0] != '\0';
     fprintf(stderr, "memories-pc: online: from online.cfg: %s, save %s\n", asked_config, asked_save);
+    if (opponent[0]) fprintf(stderr, "memories-pc: online: opponent %s\n", opponent);
 }
 
 /* The duel from the lobby did not start: the game goes on, with the game's
@@ -325,6 +341,119 @@ static void lobby_failed(void)
                     "Il duello online non e' partito (l'altro giocatore non e' arrivato o manca internet).\n"
                     "Riavvia per tornare al gioco normale.",
                     buttons, 2, 0, lobby_failed_closed);
+}
+
+/* The duel's line in lobby.txt (pc/platform/lobby.c), which the lobby tells
+ * the server on its next start: "in_corso=<name>" while the duel runs,
+ * which a game that never got to the end (closed, crashed) counts as lost,
+ * then "risultato=vinto,<name>" or "risultato=perso,<name>" in its place.
+ * The account's lines and results not yet told stay. Duels from the lobby
+ * only. */
+static void note_result(const char *line)
+{
+    char path[1024], kept[4096], row[256];
+    size_t used = 0;
+    FILE *file;
+    if (!from_lobby || Paths_User(path, sizeof(path), "lobby.txt") || !(file = fopen(path, "rb"))) return;
+    kept[0] = '\0';
+    while (fgets(row, sizeof(row), file)) {
+        row[strcspn(row, "\r\n")] = '\0';
+        if (!row[0] || !strncmp(row, "in_corso=", 9) || used + strlen(row) + 2 > sizeof(kept)) continue;
+        used += (size_t)snprintf(kept + used, sizeof(kept) - used, "%s\n", row);
+    }
+    fclose(file);
+    if (!(file = fopen(path, "wb"))) {
+        fprintf(stderr, "memories-pc: online: cannot write lobby.txt\n");
+        return;
+    }
+    fprintf(file, "%s%s\n", kept, line);
+    fclose(file);
+}
+
+static void back_to_game(void)
+{
+    fprintf(stderr, "memories-pc: online: back to the game\n");
+    fflush(stderr);
+    if (Platform_RestartGame() < 0) fprintf(stderr, "memories-pc: online: the game did not restart\n");
+}
+
+static void over_closed(int button, int *quit)
+{
+    (void)quit;
+    if (from_lobby && button == 0) back_to_game();
+}
+
+/* The result, once: how is lp, exodia, deck, resign or disconnect. The
+ * lockstep goes on behind the notice; from the lobby its button restarts
+ * the game, which comes back as it was (online.cfg is gone). */
+static void duel_over(int won, const char *how)
+{
+    static const char *const back[] = {"Torna al gioco"}, *const ok[] = {"OK"};
+    char text[400], line[96];
+    const char *said = !strcmp(how, "exodia") ? "Exodia" : !strcmp(how, "deck") ? "mazzo finito"
+                     : !strcmp(how, "resign") ? (won ? "si e' arreso" : "ti sei arreso")
+                     : !strcmp(how, "disconnect") ? "si e' disconnesso" : "punti vita a zero";
+    if (over) return;
+    over = 1;
+    over_at = now_ms();
+    fprintf(stderr, "memories-pc: online: duel over: you %s (%s)\n", won ? "won" : "lost", how);
+    snprintf(line, sizeof(line), "risultato=%s,%s", won ? "vinto" : "perso", opponent);
+    note_result(line);
+    snprintf(text, sizeof(text), "%s %s%s (%s)%s", won ? "Hai vinto contro" : "Hai perso contro",
+             opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
+             from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
+    Menu_ShowNotice("Online", text, from_lobby ? back : ok, 1, 0, over_closed);
+}
+
+/* This player gives up: the other game hears it, and both say the result. */
+static void resign(void)
+{
+    if (!active || over) return;
+    fprintf(stderr, "memories-pc: online: I resign\n");
+    send_message(MSG_RESIGN, NULL, 0);
+    flush();
+    duel_over(0, "resign");
+}
+
+static void resign_chosen(int button, int *quit)
+{
+    (void)quit;
+    if (button == 0) resign();
+}
+
+int Netplay_AskResign(void)
+{
+    static const char *const buttons[] = {"Arrenditi", "Continua"};
+    if (!active || over) return 0;
+    /* Continua is focused and last: Enter, Esc and Circle keep playing. */
+    Menu_ShowNotice("Online", "Vuoi arrenderti? Conta come sconfitta.", buttons, 2, 1, resign_chosen);
+    return 1;
+}
+
+/* The end of a two-player duel (main mode 3, a negative gDuel_bOpponentID),
+ * from what both games hold the same: Exodia's phase (14, whose player is
+ * the one in turn, D_8009B1D5), else the result phase (12, then 13) with
+ * gDuel_bWinnerSide and the winner's rank adjustment (D_800E9FF0[side], the
+ * first byte: 40 Exodia, -40 the other's deck ran out, else life points). */
+static void check_end(void)
+{
+    int phase = *(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF, winner;
+    const char *how = "lp";
+    if ((*(volatile uint8_t *)(uintptr_t)0x8009B26Cu & 31) != 3 || *(volatile int8_t *)(uintptr_t)0x8009B361u >= 0)
+        return;
+    if (phase == 14) {
+        winner = *(volatile uint8_t *)(uintptr_t)0x8009B1D5u & 1;
+        how = "exodia";
+    } else if (phase == 12 || phase == 13) {
+        int8_t adjustment;
+        winner = *(volatile uint8_t *)(uintptr_t)0x8009B165u & 1;
+        adjustment = *(volatile int8_t *)(uintptr_t)(0x800E9FF0u + (uint32_t)winner * 0x20u);
+        if (adjustment == 40) how = "exodia";
+        else if (adjustment == -40) how = "deck";
+    } else {
+        return;
+    }
+    duel_over(winner == side - 1, how);
 }
 
 /* The relay's answer, a line: "WAIT" while alone in the room, then
@@ -419,6 +548,8 @@ static void start(void)
     check_ram = !hide;
     if (getenv("MEMORIES_NETPLAY_CHECK_EVERY")) check_every = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_CHECK_EVERY"), NULL, 10);
     if (check_every < 1) check_every = 1;
+    if (getenv("MEMORIES_NETPLAY_TEST_RESIGN")) test_resign = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_TEST_RESIGN"), NULL, 10);
+    test_back = getenv("MEMORIES_NETPLAY_TEST_BACK") && !strcmp(getenv("MEMORIES_NETPLAY_TEST_BACK"), "1");
     /* At least 2: the input goes out in pairs of VBlanks (Netplay_Pads). */
     if (delay < 2) delay = 2;
     if (delay >= RING / 4) delay = RING / 4 - 1;
@@ -483,6 +614,11 @@ static void start(void)
     }
     active = 1;
     active_since = now_ms();
+    {
+        char line[96];
+        snprintf(line, sizeof(line), "in_corso=%s", opponent);
+        note_result(line);
+    }
     fprintf(stderr, "memories-pc: online: player %d of room %s (%s), input delay %u, seed %u, %s, checks of %s\n",
             side, room, websocket ? "WebSocket" : "relay", delay, (unsigned)seed,
             hide ? "the other's hand hidden" : "both hands shown", check_ram ? "all RAM" : "the duel");
@@ -649,6 +785,14 @@ void Netplay_Point(unsigned frame)
         jump_asked = 1;
         if (TitleJump_RequestTo(JUMP_DUEL2P, 0, NULL, why, sizeof(why)))
             fprintf(stderr, "memories-pc: online: no jump to the duel: %s\n", why);
+    }
+    if (!over) {
+        check_end();
+        if (!over && test_resign && vblank_index >= test_resign) resign();
+    } else if (test_back && from_lobby && now_ms() - over_at > 2000) {
+        test_back = 0;
+        Menu_CloseNotice();
+        back_to_game();
     }
     if (vblank_index >= next_check) {
         Check *check;

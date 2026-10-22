@@ -23,6 +23,7 @@ uint32_t ControlsRuntime_TakeHost(void)
 uint32_t ControlsRuntime_HostHeld(void) { return held; }
 int ControlsRuntime_KeyDown(int key) { return shift && key == CTRL_KEY_RIGHT_SHIFT; }
 int Settings_Get(SettingId id) { return settings[id]; }
+int Netplay_AskResign(void) { return 0; } /* no online duel here */
 void Settings_Set(SettingId id, int value) { settings[id] = value; }
 int Settings_Save(void) { return ++saved; }
 int Settings_Min(SettingId id) { return id == SET_MASTER_VOLUME ? 0 : 0; }

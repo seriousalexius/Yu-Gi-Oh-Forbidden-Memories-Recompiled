@@ -196,10 +196,15 @@ static void send_line(const char *line)
 
 typedef struct {
     char name[NAME];
-    int online;
+    int online, won, lost;
 } Player;
 
+#define RESULTS 8
+
 static char my_name[NAME], token[40];
+static char results[RESULTS][NAME + 1]; /* lobby.txt's duels not told yet: 'v' or 'p', then the other's name */
+static int result_count;
+static char accepted[NAME];             /* the player whose challenge this one accepted */
 static Player players[PLAYERS];
 static int player_count, connected, in_lobby;
 static char challenged[NAME];   /* the player this one challenged, waiting for an answer */
@@ -220,11 +225,20 @@ static void read_account(void)
     char path[1024], line[128];
     FILE *file;
     my_name[0] = token[0] = '\0';
+    result_count = 0;
     if (account_path(path, sizeof(path)) || !(file = fopen(path, "rb"))) return;
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\r\n")] = '\0';
         if (!strncmp(line, "nome=", 5)) snprintf(my_name, sizeof(my_name), "%s", line + 5);
         else if (!strncmp(line, "gettone=", 8)) snprintf(token, sizeof(token), "%s", line + 8);
+        /* The online duels' results (pc/debug/netplay.c); a duel still
+         * "in_corso" never got to its end here: lost. */
+        else if (result_count < RESULTS && !strncmp(line, "in_corso=", 9))
+            snprintf(results[result_count++], NAME + 1, "p%s", line + 9);
+        else if (result_count < RESULTS && !strncmp(line, "risultato=vinto,", 16))
+            snprintf(results[result_count++], NAME + 1, "v%s", line + 16);
+        else if (result_count < RESULTS && !strncmp(line, "risultato=perso,", 16))
+            snprintf(results[result_count++], NAME + 1, "p%s", line + 16);
     }
     fclose(file);
     if (!my_name[0]) token[0] = '\0';
@@ -274,6 +288,25 @@ static void send_to(const char *type, const char *name, const char *rest)
     clean(who, sizeof(who), name);
     snprintf(line, sizeof(line), "{\"t\":\"%s\",\"a\":\"%s\"%s}", type, who, rest);
     send_line(line);
+}
+
+/* Once in the lobby: each duel's result to the server, which counts this
+ * account's wins and losses, then out of lobby.txt. */
+static void tell_results(void)
+{
+    char line[160], who[NAME];
+    int i;
+    if (!result_count) return;
+    for (i = 0; i < result_count; i++) {
+        int won = results[i][0] == 'v';
+        clean(who, sizeof(who), results[i] + 1);
+        snprintf(line, sizeof(line), "{\"t\":\"risultato\",\"contro\":\"%s\",\"esito\":\"%s\"}", who,
+                 won ? "vinto" : "perso");
+        send_line(line);
+        fprintf(stderr, "memories-pc: lobby: result sent: %s against %s\n", won ? "won" : "lost", results[i] + 1);
+    }
+    result_count = 0;
+    write_account();
 }
 
 static void join(void)
@@ -430,10 +463,11 @@ static void list_chosen(int button, int *quit)
 
 static void show_list(void)
 {
+    static char labels[PLAYERS][40];
     const char *names[PLAYERS + 1];
     signed char styles[PLAYERS + 1];
     char text[256];
-    int i, online = 0;
+    int i, online = 0, columns = 3;
     if (!in_lobby) {
         static const char *const cancel[] = {"Chiudi"};
         screen = SCREEN_JOINING;
@@ -443,7 +477,14 @@ static void show_list(void)
     }
     for (i = 0; i < player_count; i++) {
         int me = !strcmp(players[i].name, my_name);
-        names[i] = players[i].name;
+        /* The wins (V) and losses (S) the server counts, once there are some;
+         * two columns when a cell would grow too wide. */
+        if (players[i].won || players[i].lost)
+            snprintf(labels[i], sizeof(labels[i]), "%s %dV %dS", players[i].name, players[i].won, players[i].lost);
+        else
+            snprintf(labels[i], sizeof(labels[i]), "%s", players[i].name);
+        if (strlen(labels[i]) > 15) columns = 2;
+        names[i] = labels[i];
         styles[i] = players[i].online && !me ? MENU_NOTICE_GREEN : MENU_NOTICE_DIM;
         online += players[i].online;
     }
@@ -452,13 +493,14 @@ static void show_list(void)
     snprintf(text, sizeof(text), "Sei %s. Online: %d di %d.\nVerde = online: scegline uno per sfidarlo.", my_name,
              online, player_count);
     screen = SCREEN_LIST;
-    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 1, 3, styles,
+    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 1, columns, styles,
                         grid_focus < player_count ? grid_focus : player_count, list_chosen);
 }
 
 /* "via": the duel's room. online.cfg for pc/debug/netplay.c, then a
- * restart into it. The save: the game's slot, else the first. */
-static void go(const char *room, int side)
+ * restart into it. The save: the game's slot, else the first; "contro=",
+ * the other player, for the result. */
+static void go(const char *room, int side, const char *rival)
 {
     char path[1024], save[1024];
     FILE *file;
@@ -472,6 +514,7 @@ static void go(const char *room, int side)
     }
     if (port == 80) fprintf(file, "netplay=ws://%s/%s/%d\nsave=%s\n", host, room, side, save);
     else fprintf(file, "netplay=ws://%s:%u/%s/%d\nsave=%s\n", host, port, room, side, save);
+    if (*rival) fprintf(file, "contro=%s\n", rival);
     fclose(file);
     fprintf(stderr, "memories-pc: lobby: wrote online.cfg (slot %d), restarting\n", slot + 1);
     fflush(stderr);
@@ -486,6 +529,7 @@ static void incoming_chosen(int button, int *quit)
     screen = SCREEN_NONE;
     if (!challenger[0]) return;
     send_to("risposta", challenger, button == 0 ? ",\"si\":true" : ",\"si\":false");
+    if (button == 0) snprintf(accepted, sizeof(accepted), "%s", challenger);
     fprintf(stderr, "memories-pc: lobby: %s the challenge from %s\n", button == 0 ? "accepted" : "refused",
             challenger);
     if (button == 0) {
@@ -532,6 +576,8 @@ static void read_list(const JsonValue *list)
         if (!name) continue;
         snprintf(players[player_count].name, NAME, "%s", name);
         players[player_count].online = Json_Bool(Json_Member(player, "online"), 0);
+        players[player_count].won = (int)Json_Number(Json_Member(player, "vinte"), 0);
+        players[player_count].lost = (int)Json_Number(Json_Member(player, "perse"), 0);
         player_count++;
     }
 }
@@ -582,6 +628,7 @@ static void handle(const char *line)
         read_list(Json_Member(root, "giocatori"));
         in_lobby = 1;
         if (first) fprintf(stderr, "memories-pc: lobby: connected as %s (%d players)\n", my_name, player_count);
+        if (first) tell_results();
         if ((screen == SCREEN_LIST || screen == SCREEN_JOINING) && Menu_NoticeShown()) show_list();
         if (test_challenge[0] && player_online(test_challenge) && !challenged[0]) {
             challenge(test_challenge);
@@ -610,8 +657,10 @@ static void handle(const char *line)
         const char *at;
         for (at = room; *at; at++)
             if (!isalnum((unsigned char)*at)) good = 0;
-        challenged[0] = challenger[0] = '\0';
-        if (good) go(room, side);
+        char rival[NAME];
+        snprintf(rival, sizeof(rival), "%s", challenged[0] ? challenged : accepted);
+        challenged[0] = challenger[0] = accepted[0] = '\0';
+        if (good) go(room, side, rival);
     } else if (!strcmp(type, "errore")) {
         const char *why = Json_String(Json_Member(root, "motivo"), "");
         fprintf(stderr, "memories-pc: lobby: the server says no: %s\n", why);
@@ -694,9 +743,11 @@ void Lobby_Start(void)
     /* Scripted runs are tests: online only when told. */
     if (!(on && !strcmp(on, "1")) && (getenv("MEMORIES_SDL_SCRIPT") || getenv("MEMORIES_INPUT"))) return;
     read_host();
-    if (wanted) snprintf(test_challenge, sizeof(test_challenge), "%s", wanted);
     test_accept = getenv("MEMORIES_LOBBY_ACCEPT") && !strcmp(getenv("MEMORIES_LOBBY_ACCEPT"), "1");
     read_account();
+    /* The test's challenge once: not again when back from its duel (a
+     * result to tell), which the restart's environment cannot say. */
+    if (wanted && !result_count) snprintf(test_challenge, sizeof(test_challenge), "%s", wanted);
     if (!token[0]) return; /* no account: nothing until Online... */
     share_token();
     fprintf(stderr, "memories-pc: lobby: connecting to %s as %s\n", host, my_name);
@@ -706,6 +757,7 @@ void Lobby_Start(void)
 void Lobby_Open(void)
 {
     if (Netplay_Asked()) {
+        if (Netplay_AskResign()) return; /* the duel runs: Game > Online... is the way to resign by touch */
         info("Sei in un duello online: la lobby torna quando riavvii il gioco.");
         return;
     }

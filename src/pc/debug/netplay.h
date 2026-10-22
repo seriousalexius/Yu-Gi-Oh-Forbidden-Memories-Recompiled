@@ -35,7 +35,19 @@
  * MEMORIES_NETPLAY_DELAY the VBlanks of input delay (4 by default).
  * Without MEMORIES_NETPLAY, online.cfg in the user folder ("netplay=" and
  * "save=" lines), which the lobby writes before it restarts the game
- * (pc/platform/lobby.h), asks the same; it is removed as soon as read.
+ * (pc/platform/lobby.h), asks the same; it is removed as soon as read. Its
+ * "contro=" line names the other player.
+ *
+ * The end of the duel is read from the duel's own state at the same safe
+ * point in both games (the result phase, the winning side and why), so both
+ * say it at once; a resignation (Esc, a phone's Back, Game > Online...) goes
+ * to the other game as a message and changes nothing in guest RAM. Either
+ * way a notice tells the result and, for a duel from the lobby, leads back
+ * to the game with a restart; lobby.txt keeps the result for the lobby to
+ * tell the server ("in_corso=" while the duel runs: a game that never got
+ * to the end lost it). MEMORIES_NETPLAY_TEST_RESIGN=<VBlank> resigns
+ * without asking at that lockstep VBlank and MEMORIES_NETPLAY_TEST_BACK=1
+ * presses "Torna al gioco" about 2 s after the result shows (tests).
  * Unset, everything here costs one test. */
 #include <stdint.h>
 #include "pc/platform/menu.h"
@@ -65,6 +77,9 @@ uint32_t Netplay_Seed(void);
 int Netplay_Side(void);
 /* The other player's hand is drawn as backs (MEMORIES_NETPLAY_HIDE). */
 int Netplay_HidesOtherHand(void);
+/* Esc, a phone's Back, Game > Online...: while an online duel runs, asks
+ * whether to resign and returns 1; else 0 (the key does what it did). */
+int Netplay_AskResign(void);
 /* hud.c: while the other player chooses a guardian star, a panel over the
  * dialog, which would name the stars of the card they put down; while they
  * hold a card up with Triangle, one over the picture, whose text would tell
