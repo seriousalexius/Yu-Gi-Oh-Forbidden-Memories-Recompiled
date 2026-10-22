@@ -391,6 +391,12 @@ int Netplay_Active(void)
     return active;
 }
 
+int Netplay_Asked(void)
+{
+    const char *config = getenv("MEMORIES_NETPLAY");
+    return config && *config;
+}
+
 int Netplay_Side(void)
 {
     return active ? side : 0;

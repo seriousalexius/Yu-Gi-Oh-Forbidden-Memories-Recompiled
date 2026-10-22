@@ -44,6 +44,11 @@
 void Netplay_Init(void);
 /* The lockstep runs (from Netplay_Init on, for the whole run). */
 int Netplay_Active(void);
+/* An online duel is asked for (MEMORIES_NETPLAY), known before the mods
+ * load: the title keeps the game's own screen and menus (title_config.c),
+ * since a mod's title or menu buttons made the two games part company for a
+ * moment on the way to the duel, and the jump skips the title anyway. */
+int Netplay_Asked(void);
 /* run_vblank: this player's bits for this VBlank in, both players' out
  * (both[0] pad 1, both[1] pad 2). Waits for the other game's bits. */
 void Netplay_Pads(uint16_t local, uint16_t both[2]);

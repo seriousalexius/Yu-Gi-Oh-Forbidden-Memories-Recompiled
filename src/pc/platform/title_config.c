@@ -9,6 +9,7 @@
 #include "pc/mods/mods.h"
 #include "paths.h"
 #include "pc/tower/tower.h"
+#include "pc/debug/netplay.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -600,6 +601,7 @@ static void tower_button(const char *mod)
 void TitleConfig_Read(const char *mod, const char *directory, const JsonValue *manifest)
 {
     const JsonValue *title = Json_Member(manifest, "title"), *menu = Json_Member(manifest, "menu");
+    if (Netplay_Asked()) return; /* online: the game's own title (pc/debug/netplay.h) */
     tower_button(mod);
     if (title && Json_TypeOf(title) != JSON_OBJECT)
         Mods_Note(mod, "\"title\" is an object (notes/modding.md, \"The title screen\")");
