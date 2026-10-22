@@ -37,6 +37,8 @@ typedef struct {
 
 static int active, side, peer_gone, jump_asked, desync_seen, hide = 1, check_ram, websocket;
 static unsigned delay = 4, check_every = NETPLAY_CHECK_EVERY, desyncs;
+static unsigned waits;     /* VBlanks that waited for the other game's input */
+static uint64_t waited_ms; /* and how long in all: is the delay enough? */
 static uint32_t seed, peer_build;
 static unsigned vblank_index, next_check;
 static unsigned char saves[2][SAVE_SIZE];
@@ -167,7 +169,8 @@ static void compare_checks(void)
             if (mine->index != theirs->index || mine->frame != theirs->frame) continue;
             if (mine->hash != theirs->hash) desync(mine, theirs->hash);
             else if (mine->index % (check_every * 10) < check_every)
-                fprintf(stderr, "memories-pc: online: in step at VBlank %u\n", (unsigned)mine->index);
+                fprintf(stderr, "memories-pc: online: in step at VBlank %u (waited at %u VBlanks, %llu ms in all)\n",
+                        (unsigned)mine->index, waits, (unsigned long long)waited_ms);
             /* Matched: drop it from the other game's list. */
             peer_checks[i] = peer_checks[--peer_count];
             i--;
@@ -523,7 +526,7 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
     if (ahead % 2) flush();
     mine = index < delay ? 0 : local_bits[index % RING];
     if (index >= delay && !peer_gone) {
-        uint64_t started = 0;
+        uint64_t started = 0, entered = now_ms();
         int warned = 0;
         while (!(remote_have[index % RING] && remote_index[index % RING] == index)) {
             uint64_t now;
@@ -549,6 +552,7 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
                 break;
             }
         }
+        if (started) waits++, waited_ms += now_ms() - entered;
         if (remote_have[index % RING] && remote_index[index % RING] == index) {
             theirs = remote_bits[index % RING];
             remote_have[index % RING] = 0;
