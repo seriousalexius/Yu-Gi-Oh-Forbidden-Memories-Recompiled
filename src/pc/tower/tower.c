@@ -113,8 +113,7 @@ int Tower_CardDrops(int wanted)
 
 int Tower_CheatsOff(void)
 {
-    const TowerConfig *tower = Tower_Config();
-    return tower && !tower->cheats && Tower_Active();
+    return 1;   /* fork: the rules are the same for every player, cheats are always off */
 }
 
 int Tower_Guard(int what, int tell, char *why, size_t size)
@@ -124,6 +123,18 @@ int Tower_Guard(int what, int tell, char *why, size_t size)
                                          "Not in this duel"};
     const TowerConfig *tower = Tower_Config();
     const char *text;
+    /* fork: no save states and no cheats anywhere, so every player plays by
+     * the same rules (the game's own save and the mods' autosave stay). */
+    if (what != TOWER_GUARD_JUMP) {
+        text = what == TOWER_GUARD_CHEAT ? "In questa versione i trucchi non ci sono: le regole sono uguali per tutti."
+                                         : "In questa versione gli stati rapidi non ci sono: le regole sono uguali per "
+                                           "tutti. Il salvataggio del gioco e l'autosalvataggio funzionano come sempre.";
+        if (why && size) snprintf(why, size, "%s", text);
+        LOG(LOG_MODS, "locked rules: refused (%s)", titles[what]);
+        if (tell) Menu_ShowNotice(what == TOWER_GUARD_CHEAT ? "Niente trucchi" : "Niente stati rapidi", text, ok, 1, 0,
+                                  NULL);
+        return 1;
+    }
     if (!tower || !Tower_Active()) return 0;
     if (what == TOWER_GUARD_SAVE_STATE || what == TOWER_GUARD_LOAD_STATE) {
         if (tower->save_states) return 0;

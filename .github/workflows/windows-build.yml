@@ -1,0 +1,41 @@
+# The fork's 32-bit Windows game (the release's "windows" build), to try the
+# fork's own changes on Alessio's PC before they reach the APK
+# (scripts/exe-fork.py on his PC downloads it beside the installed game).
+name: Windows (fork)
+
+on:
+  push:
+    branches: [android]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Cache Windows dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            tmp/pc/llvm-mingw
+            tmp/pc/win32-deps
+          key: fork-windows-${{ hashFiles('tools/pc/build_win32_deps.py', 'tools/pc/fetch_tools.py') }}
+      - name: Build the game
+        run: python tools/pc/build_game32.py --target windows --backend sdl --release --build tmp/pc/win32
+      - name: Upload the game
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-game
+          path: |
+            tmp/pc/win32/memories-pc.exe
+            tmp/pc/win32/SDL3.dll
+            tmp/pc/win32/buildid
+          if-no-files-found: error
+          retention-days: 14

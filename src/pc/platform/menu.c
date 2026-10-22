@@ -898,9 +898,33 @@ static void choose_language(int language)
     Menu_ShowNotice("Language", text, buttons, 3, 0, language_chosen);
 }
 
+/* fork: the rows of rules every player keeps the same come out of the bar
+ * (save states, Cheats, Debug > Jump to, Card drops, Duel rank's Off); the
+ * game refuses them anyway (Tower_Guard, settings.c). */
+static int locked_rule(const Item *item)
+{
+    return (item->kind == ITEM_ACTION && (item->id == ACT_SAVE_STATE || item->id == ACT_LOAD_STATE)) ||
+           (item->kind == ITEM_RADIO && item->id == RADIO_STATE_SLOT) ||
+           (item->kind == ITEM_SUBMENU && (item->value == SUB_CHEATS || item->value == SUB_JUMP)) ||
+           item->setting == SET_CARD_DROPS || (item->setting == SET_RANK_METER && item->value == 0);
+}
+
+static void remove_locked_rules(void)
+{
+    int menu, from, to;
+    for (menu = 0; menu < MENU_COUNT + SUB_COUNT; menu++) {
+        Menu *m = menu < MENU_COUNT ? &menus[menu] : &submenus[menu - MENU_COUNT];
+        for (from = to = 0; from < m->count; from++)
+            if (!locked_rule(&m->items[from])) m->items[to++] = m->items[from];
+        if (to < m->count && to > 0) m->items[0].flags &= ~ITEM_GROUP_BREAK;
+        m->count = to;
+    }
+}
+
 void Menu_Init(void)
 {
     int i;
+    remove_locked_rules();
     for (i = 0; i < menus[MENU_HELP].count; i++)
         if (menus[MENU_HELP].items[i].id == ACT_VERSION) menus[MENU_HELP].items[i].label = Update_VersionLabel();
     load_font();
