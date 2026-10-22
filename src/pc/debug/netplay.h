@@ -18,9 +18,17 @@
  * two-player slots, as the memory card pair load does, seeds the random
  * numbers with the relay's seed and enters the two-player duel setup.
  *
- * Every NETPLAY_CHECK_EVERY VBlanks each game hashes guest RAM (but the
- * sound driver's area, which follows the real-time mixer) at the same safe
- * point and sends it: a mismatch is a desync, logged once, with a RAM dump.
+ * Each game sees its own player's hand and the other's as card backs
+ * (Cheats_CardViewMode, which only the picture reads), whatever the 2P
+ * setup's CARD INDICATE says; MEMORIES_NETPLAY_HIDE=0 shows both, as the
+ * hot-seat duel does.
+ *
+ * Every NETPLAY_CHECK_EVERY VBlanks each game hashes what the duel's rules
+ * run on (the cards, the decks, the sides, the seed, the turn and phase) at
+ * the same safe point and sends it: a mismatch is a desync, logged once,
+ * with a RAM dump. With both hands shown the pictures are the same too, and
+ * the hash takes all of guest RAM but the sound driver's area (which
+ * follows the real-time mixer), the strictest check.
  *
  * MEMORIES_NETPLAY=host:port/room/side (side 1 or 2) turns it on,
  * MEMORIES_NETPLAY_SAVE=<slot file> is this player's save and
@@ -46,5 +54,7 @@ const unsigned char *Netplay_Save(int player);
 uint32_t Netplay_Seed(void);
 /* 1 or 2: the player this game is; 0 offline. */
 int Netplay_Side(void);
+/* The other player's hand is drawn as backs (MEMORIES_NETPLAY_HIDE). */
+int Netplay_HidesOtherHand(void);
 
 #endif

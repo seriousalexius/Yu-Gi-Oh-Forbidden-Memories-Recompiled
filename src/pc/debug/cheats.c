@@ -9,6 +9,7 @@
 #include "game/duel_side_state.h"
 #include "game/main_modes.h"
 #include "pc/tower/tower.h"
+#include "pc/debug/netplay.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -121,6 +122,9 @@ extern signed char gDuel_bOpponentID;
  * Two-player duels (a negative opponent) keep the value their setup chose. */
 s8 Cheats_CardViewMode(const DuelSideState *side)
 {
+    /* An online duel (netplay.h): this player's cards open, the other's as
+     * backs. Only the picture differs between the two games. */
+    if (gDuel_bOpponentID < 0 && Netplay_HidesOtherHand()) return side == &D_800E9FF0[Netplay_Side() - 1] ? 0 : -1;
     if (side->card_view_mode < 0 && side == &D_800E9FF0[1] && gDuel_bOpponentID >= 0 &&
         Settings_Get(SET_CHEAT_SHOW_HAND) && !Tower_CheatsOff()) {
         return 0;

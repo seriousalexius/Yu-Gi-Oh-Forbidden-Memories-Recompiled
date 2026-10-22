@@ -34,7 +34,7 @@ typedef struct {
     uint64_t hash;
 } Check;
 
-static int active, side, peer_gone, jump_asked, desync_seen;
+static int active, side, peer_gone, jump_asked, desync_seen, hide = 1, check_ram;
 static unsigned delay = 4;
 static uint32_t seed, peer_build;
 static unsigned vblank_index, next_check;
@@ -78,7 +78,44 @@ static void send_message(int type, const void *payload, size_t length)
     if (NetplayNet_Send(head, sizeof(head)) || (length && NetplayNet_Send(payload, length))) lost("the connection is gone");
 }
 
-/* Guest RAM, word by word (FNV-1a over 32-bit words), but the sound area. */
+static uint64_t mix(uint64_t hash, uint32_t address, size_t size)
+{
+    const unsigned char *at = (const unsigned char *)(uintptr_t)address;
+    while (size--) {
+        hash ^= *at++;
+        hash *= 0x100000001b3ull;
+    }
+    return hash;
+}
+
+/* What the duel's rules run on, the same in both games even when each draws
+ * the other's hand as backs (Cheats_CardViewMode): the cards' records (from
+ * their ids, the display pointers before them left out, and without the
+ * display marker the hand's view sets, duel_card_layout.h), the decks, the
+ * two sides (life points...), the random seed, the turn, the duel's phase
+ * and the main mode. */
+static uint64_t duel_hash(void)
+{
+    uint64_t hash = 0xcbf29ce484222325ull;
+    unsigned record;
+    for (record = 0; record < 30; record++) {
+        uint32_t at = 0x801A7AD8u + record * 0x1C;
+        unsigned char flags_high = *(const unsigned char *)(uintptr_t)(at + 0x17) & (unsigned char)~0x20;
+        hash = mix(hash, at + 0x08, 0x0F);
+        hash ^= flags_high, hash *= 0x100000001b3ull;
+        hash = mix(hash, at + 0x18, 4);
+    }
+    hash = mix(hash, 0x801A7E20u, 0x801A8000u - 0x801A7E20u); /* gDuel_aDeckCardRecords */
+    hash = mix(hash, 0x800E9FF0u, 0x40);                       /* D_800E9FF0[2] */
+    hash = mix(hash, 0x800FE6F8u, 4);                          /* gRand_dwSeed */
+    hash = mix(hash, 0x8009B1D5u, 1);                          /* the turn */
+    hash = mix(hash, 0x8009B23Au, 2);                          /* gDuel_wSceneStateFlags */
+    return mix(hash, 0x8009B26Cu, 1);                          /* the main mode */
+}
+
+/* Guest RAM, word by word (FNV-1a over 32-bit words), but the sound area:
+ * only while both games draw the same picture (MEMORIES_NETPLAY_HIDE=0),
+ * which the display lists in RAM follow. */
 static uint64_t ram_hash(void)
 {
     const uint32_t *ram = (const uint32_t *)(uintptr_t)MEMORIES_GUEST_RAM;
@@ -223,6 +260,7 @@ static int wait_for_pair(void)
     while (now_ms() - started < 600000u) {
         long got = NetplayNet_Receive(line + length, 1, 100);
         if (got < 0) return -1;
+        Platform_ControlIdle();
         Platform_PumpEvents();
         if (Platform_ShouldQuit()) return -1;
         if (!got) continue;
@@ -281,6 +319,8 @@ void Netplay_Init(void)
         return;
     }
     if (wanted_delay && *wanted_delay) delay = (unsigned)strtoul(wanted_delay, NULL, 10);
+    if (getenv("MEMORIES_NETPLAY_HIDE")) hide = strcmp(getenv("MEMORIES_NETPLAY_HIDE"), "0") != 0;
+    check_ram = !hide;
     if (delay < 1) delay = 1;
     if (delay >= RING / 4) delay = RING / 4 - 1;
     if (read_save(getenv("MEMORIES_NETPLAY_SAVE"))) return;
@@ -323,6 +363,7 @@ void Netplay_Init(void)
             NetplayNet_Close();
             return;
         }
+        Platform_ControlIdle();
         Platform_PumpEvents();
     }
     if (peer_build != Memories_StateBuildId())
@@ -336,8 +377,9 @@ void Netplay_Init(void)
                     peer_facts);
     }
     active = 1;
-    fprintf(stderr, "memories-pc: online: player %d of room %s, input delay %u, seed %u\n", side, room, delay,
-            (unsigned)seed);
+    fprintf(stderr, "memories-pc: online: player %d of room %s, input delay %u, seed %u, %s, checks of %s\n", side,
+            room, delay, (unsigned)seed, hide ? "the other's hand hidden" : "both hands shown",
+            check_ram ? "all RAM" : "the duel");
 }
 
 int Netplay_Active(void)
@@ -348,6 +390,11 @@ int Netplay_Active(void)
 int Netplay_Side(void)
 {
     return active ? side : 0;
+}
+
+int Netplay_HidesOtherHand(void)
+{
+    return active && hide;
 }
 
 uint32_t Netplay_Seed(void)
@@ -377,6 +424,10 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
             uint64_t now;
             if (receive(2) < 0) break;
             if (remote_have[index % RING] && remote_index[index % RING] == index) break;
+            /* Waiting on purpose: a present while waiting services the
+             * clock, and the virtual clock would take a wait of a second
+             * for a game that spins and step itself (platform_common.c). */
+            Platform_ControlIdle();
             Platform_PumpEvents();
             if (Platform_ShouldQuit()) break;
             now = now_ms();
@@ -416,7 +467,7 @@ void Netplay_Point(unsigned frame)
         check = &own_checks[own_count++];
         check->index = vblank_index;
         check->frame = frame;
-        check->hash = ram_hash();
+        check->hash = check_ram ? ram_hash() : duel_hash();
         put32(message, check->index);
         put32(message + 4, check->frame);
         put32(message + 8, (uint32_t)check->hash);
