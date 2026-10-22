@@ -401,40 +401,51 @@ int Netplay_HidesOtherHand(void)
     return active && hide;
 }
 
-/* The other player choosing a guardian star: in their turn (D_8009B1D5) of
- * a two-player duel (main mode 3, a negative gDuel_bOpponentID), the duel's
- * guardian star phase (8 in gDuel_wSceneStateFlags). The dialog names the
- * two stars of a card that may be going down face down. */
+/* What the other player looks at in their turn (D_8009B1D5) of a
+ * two-player duel (main mode 3, a negative gDuel_bOpponentID): COVER_STAR
+ * while they choose a guardian star (phase 8 of gDuel_wSceneStateFlags; the
+ * dialog names the two stars of a card that may go down face down),
+ * COVER_VIEWER while they hold a card up with Triangle (gDuel_bEffectState
+ * 2, DUEL_EFFECT_STATE_CARD_VIEWER: the picture is a back, but the text
+ * beside it gives the name, the stars and the description). */
+enum { COVER_NONE, COVER_STAR, COVER_VIEWER };
+
 static int covering(void)
 {
-    if (!active || !hide || (*(volatile uint8_t *)(uintptr_t)0x8009B26Cu & 31) != 3) return 0;
-    if (*(volatile int8_t *)(uintptr_t)0x8009B361u >= 0) return 0;
-    if (*(volatile uint8_t *)(uintptr_t)0x8009B1D5u == side - 1) return 0;
-    return (*(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF) == 8;
+    if (!active || !hide || (*(volatile uint8_t *)(uintptr_t)0x8009B26Cu & 31) != 3) return COVER_NONE;
+    if (*(volatile int8_t *)(uintptr_t)0x8009B361u >= 0) return COVER_NONE;
+    if (*(volatile uint8_t *)(uintptr_t)0x8009B1D5u == side - 1) return COVER_NONE;
+    if ((*(volatile uint8_t *)(uintptr_t)0x8009B254u & 0x0F) == 2) return COVER_VIEWER;
+    return (*(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF) == 8 ? COVER_STAR : COVER_NONE;
 }
 
 unsigned Netplay_DrawSignature(void)
 {
-    int x, y, w, h;
-    if (!covering()) return 0;
+    int x, y, w, h, what = covering();
+    if (!what) return 0;
     FusionHelper_GetViewport(&x, &y, &w, &h);
-    return ((unsigned)x * 31u + (unsigned)y) * 31u + (unsigned)w * 7u + (unsigned)h + 1u;
+    return (((unsigned)x * 31u + (unsigned)y) * 31u + (unsigned)w * 7u + (unsigned)h) * 3u + (unsigned)what;
 }
 
 void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
 {
-    static const char text[] = "L'avversario sceglie la stella guardiana";
-    int vx, vy, vw, vh, wide, left, top, right, bottom, row, column, scale, width;
+    int vx, vy, vw, vh, wide, left, top, right, bottom, row, column, scale, width, what = covering();
+    const char *text = what == COVER_STAR ? "L'avversario sceglie la stella guardiana" : "L'avversario guarda una carta";
     *x = *y = *w = *h = 0;
-    if (!covering()) return;
+    if (!what) return;
     FusionHelper_GetViewport(&vx, &vy, &vw, &vh);
     if (vw <= 0 || vh <= 0) return;
-    /* The dialog's box, in the game's 320x240 (centred when widescreen). */
+    /* The dialog's box, in the game's 320x240 (centred when widescreen), or
+     * the whole picture for the card viewer. */
     wide = Platform_Widescreen() ? 426 : 320;
-    left = vx + vw / 2 + (24 - 160) * vw / wide;
-    right = vx + vw / 2 + (296 - 160) * vw / wide;
-    top = vy + 102 * vh / 240;
-    bottom = vy + 174 * vh / 240;
+    if (what == COVER_STAR) {
+        left = vx + vw / 2 + (24 - 160) * vw / wide;
+        right = vx + vw / 2 + (296 - 160) * vw / wide;
+        top = vy + 102 * vh / 240;
+        bottom = vy + 174 * vh / 240;
+    } else {
+        left = vx, right = vx + vw, top = vy, bottom = vy + vh;
+    }
     if (left < 0) left = 0;
     if (top < 0) top = 0;
     if (right > canvas->width) right = canvas->width;

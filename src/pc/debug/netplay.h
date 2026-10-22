@@ -58,7 +58,9 @@ int Netplay_Side(void);
 /* The other player's hand is drawn as backs (MEMORIES_NETPLAY_HIDE). */
 int Netplay_HidesOtherHand(void);
 /* hud.c: while the other player chooses a guardian star, a panel over the
- * dialog, which would name the stars of the card they put down. */
+ * dialog, which would name the stars of the card they put down; while they
+ * hold a card up with Triangle, one over the picture, whose text would tell
+ * the card. */
 unsigned Netplay_DrawSignature(void);
 void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h);
 
