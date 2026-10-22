@@ -33,6 +33,9 @@
  * MEMORIES_NETPLAY=host:port/room/side (side 1 or 2) turns it on,
  * MEMORIES_NETPLAY_SAVE=<slot file> is this player's save and
  * MEMORIES_NETPLAY_DELAY the VBlanks of input delay (4 by default).
+ * Without MEMORIES_NETPLAY, online.cfg in the user folder ("netplay=" and
+ * "save=" lines), which the lobby writes before it restarts the game
+ * (pc/platform/lobby.h), asks the same; it is removed as soon as read.
  * Unset, everything here costs one test. */
 #include <stdint.h>
 #include "pc/platform/menu.h"

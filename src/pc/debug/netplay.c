@@ -51,6 +51,7 @@ static Check own_checks[CHECKS], peer_checks[CHECKS];
 static unsigned own_count, peer_count;
 static unsigned char inbox[16384];
 static size_t inbox_length;
+static int from_lobby; /* asked by online.cfg, which the lobby wrote (read_asked) */
 
 static uint64_t now_ms(void)
 {
@@ -71,6 +72,7 @@ static uint32_t get32(const unsigned char *at)
 }
 
 static void lost(const char *why);
+static void lobby_failed_closed(int button, int *quit);
 
 static void send_message(int type, const void *payload, size_t length)
 {
@@ -194,6 +196,13 @@ static void lost(const char *why)
     peer_gone = 1;
     NetplayNet_Close();
     fprintf(stderr, "memories-pc: online: %s; the other player's pad stays idle\n", why);
+    if (from_lobby) {
+        /* From the lobby: a restart is the way back to the game as it was. */
+        static const char *const buttons[] = {"Torna al gioco", "Resta qui"};
+        Menu_ShowNotice("Online", "L'altro giocatore si e' disconnesso.\nTorna al gioco normale (il gioco si riavvia)?",
+                        buttons, 2, 0, lobby_failed_closed);
+        return;
+    }
     Menu_ShowNotice("Online", "L'altro giocatore si e' disconnesso.", ok, 1, 0, notice_closed);
 }
 
@@ -271,7 +280,7 @@ static int receive(int timeout_ms)
  * and "save=...". The file is read once and removed at once, so the next
  * start is a normal one. */
 static char asked_config[512], asked_save[1024];
-static int asked_read, from_lobby;
+static int asked_read;
 
 static void read_asked(void)
 {
