@@ -19,7 +19,8 @@
  * MEMORIES_LOBBY_HOST is host[:port] instead of the Cloudflare server. For
  * tests, MEMORIES_LOBBY_CHALLENGE=<name> challenges that player as soon as
  * they are online, and MEMORIES_LOBBY_ACCEPT=1 accepts a challenge. With no
- * account, MEMORIES_LOBBY_TEST_REGISTER=NAME:INVITE:PASSWORD makes one and
+ * account, MEMORIES_LOBBY_TEST_REGISTER=NAME:INVITE:PASSWORD makes one (with
+ * NAME:INVITE alone, one with no password, as before the passwords) and
  * MEMORIES_LOBBY_TEST_LOGIN=NAME:PASSWORD logs in at the start;
  * MEMORIES_LOBBY_TEST_PASSWORD=P answers the question of an account with no
  * password by itself. */

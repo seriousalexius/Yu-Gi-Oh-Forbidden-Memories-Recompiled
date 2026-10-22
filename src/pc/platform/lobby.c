@@ -358,8 +358,10 @@ static void send_account(const char *password, int quiet)
     char line[192], name[NAME], code[sizeof(typed_invite)], secret[sizeof(typed)];
     clean(name, sizeof(name), typed_name);
     clean(code, sizeof(code), typed_invite);
-    clean(secret, sizeof(secret), password);
-    if (flow == FLOW_MAKE)
+    clean(secret, sizeof(secret), password ? password : "");
+    if (flow == FLOW_MAKE && !password) /* the test's account with no password, as made before the passwords */
+        snprintf(line, sizeof(line), "{\"t\":\"registra\",\"nome\":\"%s\",\"invito\":\"%s\"}", name, code);
+    else if (flow == FLOW_MAKE)
         snprintf(line, sizeof(line), "{\"t\":\"registra\",\"nome\":\"%s\",\"invito\":\"%s\",\"password\":\"%s\"}", name,
                  code, secret);
     else if (flow == FLOW_LOGIN)
@@ -919,7 +921,7 @@ void Lobby_Start(void)
         snprintf(typed_name, sizeof(typed_name), "%s", fields[0]);
         snprintf(typed_invite, sizeof(typed_invite), "%s", flow == FLOW_MAKE ? fields[1] : "");
         fprintf(stderr, "memories-pc: lobby: test %s %s\n", flow == FLOW_MAKE ? "register" : "login", typed_name);
-        send_account(fields[flow == FLOW_MAKE ? 2 : 1], 1);
+        send_account(flow == FLOW_MAKE && count < 3 ? NULL : fields[flow == FLOW_MAKE ? 2 : 1], 1);
         start_thread();
         return;
     }
