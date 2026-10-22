@@ -28,6 +28,7 @@
 #include "pc/free_duel/duelists.h"
 #include "pc/cards/fusion_helper.h"
 #include "update_check.h"
+#include "lobby.h"
 #include "pc/debug/log.h"
 #include "pc/debug/monitor.h"
 #include "pc/debug/crash_test.h"
@@ -2868,6 +2869,7 @@ void HERE(Platform_PumpEvents)(void)
     if (!window) return;
     pump();
     Update_Frame();
+    Lobby_Frame();
     if (Menu_TakeChanged()) menu_dirty = 1;
     if (foreground_repaint_until && real_now_us() < foreground_repaint_until) menu_dirty = 1;
     else foreground_repaint_until = 0;
@@ -3044,6 +3046,7 @@ void HERE(Platform_Frame)(unsigned frame)
     Duelists_Frame();
     Tower_Frame();
     Update_Frame();
+    Lobby_Frame();
     if (Menu_TakeChanged()) menu_dirty = 1;
     if (window) {
         run_event_script(frame);

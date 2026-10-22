@@ -9,6 +9,7 @@
 #include "pc/free_duel/duelists.h"
 #include "pc/cards/fusion_helper.h"
 #include "update_check.h"
+#include "lobby.h"
 #include "pc/debug/log.h"
 #include "pc/debug/monitor.h"
 #include "pc/debug/hud.h"
@@ -873,6 +874,7 @@ void Platform_Frame(unsigned frame)
     Duelists_Frame();
     Tower_Frame();
     Update_Frame(); /* a notice shows with the next frame's menu */
+    Lobby_Frame();
     Menu_TakeChanged();
     wheel_now = wheel_frames > 0 && wheel_frames-- ? wheel_bits : 0;
     scripted_bits = Platform_ScriptedBits(frame);

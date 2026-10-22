@@ -206,12 +206,12 @@ static void read_image(const char *mod, const char *directory, const char *where
     if (image->height < 0 || image->height > 240) image->height = 0;
 }
 
-static const char *const action_names[] = {"back", "notice", "quit", "debug_menu", "event", "none", "tower"};
+static const char *const action_names[] = {"back", "notice", "quit", "debug_menu", "event", "none", "tower", "online"};
 
 const char *TitleConfig_ActionName(int action)
 {
     if (action >= 0 && action < TITLE_ENTRIES) return TitleConfig_EntryNames[action];
-    if (action >= TITLE_ACTION_BACK && action <= TITLE_ACTION_TOWER) return action_names[action - TITLE_ACTION_BACK];
+    if (action >= TITLE_ACTION_BACK && action <= TITLE_ACTION_ONLINE) return action_names[action - TITLE_ACTION_BACK];
     return "its own";
 }
 
@@ -259,8 +259,8 @@ static void read_item(const char *mod, const char *directory, const JsonValue *p
         const char *name = Json_String(value, "");
         int action = action_index(name);
         if (action == -2)
-            Mods_Note(mod, "%s: %s: no action \"%s\" (an entry's name, back, notice, quit, debug_menu, event, none "
-                           "or tower)",
+            Mods_Note(mod, "%s: %s: no action \"%s\" (an entry's name, back, notice, quit, debug_menu, event, none, "
+                           "tower or online)",
                       reading, item->name, name);
         else item->action = action;
     }

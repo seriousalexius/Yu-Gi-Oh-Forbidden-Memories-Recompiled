@@ -31,7 +31,8 @@ enum {
     TITLE_ACTION_DEBUG_MENU, /* the game's own debug menu */
     TITLE_ACTION_EVENT,      /* only a code mod's MEMORIES_EVENT_MENU */
     TITLE_ACTION_NONE,       /* nothing: a buzz */
-    TITLE_ACTION_TOWER       /* the tower a mod's "tower" made (pc/tower/tower.h); the second menu's */
+    TITLE_ACTION_TOWER,      /* the tower a mod's "tower" made (pc/tower/tower.h); the second menu's */
+    TITLE_ACTION_ONLINE      /* the lobby of online players (lobby.h) */
 };
 extern const char *const TitleConfig_LayerNames[TITLE_LAYERS];
 extern const char *const TitleConfig_EntryNames[TITLE_ENTRIES];

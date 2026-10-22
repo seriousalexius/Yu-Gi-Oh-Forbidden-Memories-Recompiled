@@ -29,6 +29,7 @@
 #include "title_menu.h"
 #include "title_config.h"
 #include "title_images.h"
+#include "lobby.h"
 #include "menu.h"
 #include "platform.h"
 #include "pc/guest/state.h"
@@ -280,6 +281,9 @@ static int choose(int menu, int item)
         Menu_ShowNotice("Quit", "Quit the game?", quit, 2, 1, quit_chosen);
     } else if (action == TITLE_ACTION_DEBUG_MENU) {
         leave(menu, DEBUG_SELECTION);
+    } else if (action == TITLE_ACTION_ONLINE) {
+        SD_SEPlay(SE_CHOOSE, 0xFF, 0);
+        Lobby_Open();
     } else {
         if (action == TITLE_ACTION_EVENT)
             fprintf(stderr, "memories-pc: menu: no code mod took %s's event\n", it->name);

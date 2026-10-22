@@ -265,14 +265,68 @@ static int receive(int timeout_ms)
     return 0;
 }
 
+/* Where the duel is asked: MEMORIES_NETPLAY (and _SAVE) first, which the
+ * tests use; else online.cfg in the user folder, which the lobby writes
+ * before it restarts the game (pc/platform/lobby.c): lines "netplay=..."
+ * and "save=...". The file is read once and removed at once, so the next
+ * start is a normal one. */
+static char asked_config[512], asked_save[1024];
+static int asked_read, from_lobby;
+
+static void read_asked(void)
+{
+    const char *config = getenv("MEMORIES_NETPLAY");
+    char path[1024], line[1100];
+    FILE *file;
+    if (asked_read) return;
+    asked_read = 1;
+    if (config && *config) {
+        const char *save = getenv("MEMORIES_NETPLAY_SAVE");
+        snprintf(asked_config, sizeof(asked_config), "%s", config);
+        snprintf(asked_save, sizeof(asked_save), "%s", save ? save : "");
+        return;
+    }
+    if (Paths_User(path, sizeof(path), "online.cfg")) return;
+    file = fopen(path, "rb");
+    if (!file) return;
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\r\n")] = '\0';
+        if (!strncmp(line, "netplay=", 8)) snprintf(asked_config, sizeof(asked_config), "%s", line + 8);
+        else if (!strncmp(line, "save=", 5)) snprintf(asked_save, sizeof(asked_save), "%s", line + 5);
+    }
+    fclose(file);
+    remove(path);
+    from_lobby = asked_config[0] != '\0';
+    fprintf(stderr, "memories-pc: online: from online.cfg: %s, save %s\n", asked_config, asked_save);
+}
+
+/* The duel from the lobby did not start: the game goes on, with the game's
+ * own title (the mods' comes back on a restart). */
+static void lobby_failed_closed(int button, int *quit)
+{
+    (void)quit;
+    if (button == 0) Platform_RestartGame();
+}
+
+static void lobby_failed(void)
+{
+    static const char *const buttons[] = {"Riavvia", "Resta qui"};
+    if (!from_lobby) return;
+    Menu_ShowNotice("Online",
+                    "Il duello online non e' partito (l'altro giocatore non e' arrivato o manca internet).\n"
+                    "Riavvia per tornare al gioco normale.",
+                    buttons, 2, 0, lobby_failed_closed);
+}
+
 /* The relay's answer, a line: "WAIT" while alone in the room, then
- * "GO <seed>" once both are in. What follows it is the other game's. */
+ * "GO <seed>" once both are in. What follows it is the other game's. From
+ * the lobby the other is already on the way: a shorter wait. */
 static int wait_for_pair(void)
 {
     char line[128];
     size_t length = 0;
     uint64_t started = now_ms();
-    while (now_ms() - started < 600000u) {
+    while (now_ms() - started < (from_lobby ? 90000u : 600000u)) {
         long got = NetplayNet_Receive(line + length, 1, 100);
         if (got < 0) return -1;
         Platform_ControlIdle();
@@ -320,15 +374,15 @@ static int read_save(const char *path)
     return -1;
 }
 
-void Netplay_Init(void)
+static void start(void)
 {
-    const char *config = getenv("MEMORIES_NETPLAY"), *wanted_delay = getenv("MEMORIES_NETPLAY_DELAY");
+    const char *config = asked_config, *wanted_delay = getenv("MEMORIES_NETPLAY_DELAY");
     char host[256], room[64];
     unsigned port = 0;
     unsigned char hello[12 + 1024];
     size_t facts_length;
     uint64_t started;
-    if (!config || !*config) return;
+    if (!*config) return;
     if (!strncmp(config, "ws://", 5)) {
         /* ws://host[:port]/room/side: the server (server/worker.js), which
          * adds about 60 ms each way, hence a longer delay. */
@@ -359,7 +413,7 @@ void Netplay_Init(void)
     /* At least 2: the input goes out in pairs of VBlanks (Netplay_Pads). */
     if (delay < 2) delay = 2;
     if (delay >= RING / 4) delay = RING / 4 - 1;
-    if (read_save(getenv("MEMORIES_NETPLAY_SAVE"))) return;
+    if (read_save(asked_save)) return;
     if (websocket) {
         /* The room is in the path: no "YFM-NET" line. */
         char path[128];
@@ -425,6 +479,14 @@ void Netplay_Init(void)
             hide ? "the other's hand hidden" : "both hands shown", check_ram ? "all RAM" : "the duel");
 }
 
+void Netplay_Init(void)
+{
+    read_asked();
+    if (!asked_config[0]) return;
+    start();
+    if (!active) lobby_failed();
+}
+
 int Netplay_Active(void)
 {
     return active;
@@ -432,8 +494,8 @@ int Netplay_Active(void)
 
 int Netplay_Asked(void)
 {
-    const char *config = getenv("MEMORIES_NETPLAY");
-    return config && *config;
+    read_asked();
+    return asked_config[0] != '\0';
 }
 
 int Netplay_Side(void)
