@@ -1089,8 +1089,11 @@ static void emit(unsigned target, uint16_t bits)
 /* The duel's animations, where nobody chooses (the draw, the battle, the
  * field turning at the turn's end, the results): flat out in both games.
  * The choices, the phases the turn timer counts, at 100%, so that the
- * cursor moves as it always has. The same in both games, which are at the
- * same state at the same VBlank. */
+ * cursor moves as it always has. The fusions and the card going down
+ * (phases 6 and 7): fast but not flat out, FUSION_RATE (Alessio's), so a
+ * fusion can still be followed; animation_now() says 2 there. The same in
+ * both games, which are at the same state at the same VBlank. */
+#define FUSION_RATE 250
 static int animation_now(void)
 {
     int phase, sub;
@@ -1099,9 +1102,11 @@ static int animation_now(void)
     sub = *(volatile uint8_t *)(uintptr_t)0x8009B174u & 0xF;
     if (phase_log && (unsigned)(phase << 4 | sub) != phase_key) {
         phase_key = (unsigned)(phase << 4 | sub);
-        fprintf(stderr, "memories-pc: online: phase %d.%d at VBlank %u\n", phase, sub, vblank_index);
+        fprintf(stderr, "memories-pc: online: phase %d.%d at VBlank %u, %llu ms\n", phase, sub, vblank_index,
+                (unsigned long long)(now_ms() - active_since));
     }
-    if (phase == 4 || phase == 6 || phase == 7 || phase == 8) return 0;
+    if (phase == 6 || phase == 7) return 2;
+    if (phase == 4 || phase == 8) return 0;
     if (phase == 5) return sub >= 0xA;
     return 1;
 }
@@ -1132,7 +1137,7 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
     /* Flat out in the animations, and on until the gap has shrunk back
      * (choosing at 100% with the long gap would feel slow); paused stays
      * paused. Game speed and the turbo come back after the duel. */
-    rate = animation || last_target > index + gap_slow ? -1 : 100;
+    rate = animation == 2 ? FUSION_RATE : animation || last_target > index + gap_slow ? -1 : 100;
     if (Platform_ClockRate() != 0 && Platform_ClockRate() != rate) Platform_SetClockRate(rate);
     mine = index < delay ? 0 : local_bits[index % RING];
     if (index >= delay && !peer_gone) {
