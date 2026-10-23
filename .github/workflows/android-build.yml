@@ -1,0 +1,80 @@
+# The fork's Android APK: the game of this branch (upstream plus the fork's
+# own changes), built as pc-release.yml's android job builds it, signed with
+# a debug key (scripts/rifai-apk.py on Alessio's PC signs it again with his
+# key and puts his mods in). Uploaded with the tables a code mod is
+# translated with, so the PC can check that mods built with the installed
+# SDK still fit this game.
+name: Android (fork)
+
+on:
+  push:
+    branches: [android]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      ANDROID_NDK_VERSION: 29.0.14206865
+      ANDROID_BUILD_TOOLS: 35.0.0
+      ANDROID_PLATFORM: android-35
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK and NDK
+        run: |
+          sudo apt-get update && sudo apt-get install --yes --no-install-recommends cmake ninja-build zlib1g-dev libzstd-dev libxml2-dev
+          sdkmanager="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if ! "$sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" "build-tools;$ANDROID_BUILD_TOOLS" "platforms;$ANDROID_PLATFORM" > "$RUNNER_TEMP/sdkmanager.log" 2>&1; then
+            cat "$RUNNER_TEMP/sdkmanager.log"
+            exit 1
+          fi
+          test -d "$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Cache Android dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            tmp/pc/android-deps/arm64-v8a
+            tmp/pc/android-deps/java
+          key: fork-android-${{ env.ANDROID_NDK_VERSION }}-${{ hashFiles('tools/pc/build_android_deps.py', 'tools/pc/build_linux_sysroot.py', 'tools/pc/build_win32_deps.py', 'tools/pc/fetch_tools.py') }}
+      - name: Cache LLVM for the guest pass
+        uses: actions/cache@v4
+        with:
+          path: tmp/pc/llvm-linux
+          key: fork-llvm-linux-${{ hashFiles('tools/pc/linux_toolchain.json') }}
+      # The version of the release this branch descends from, so the APK's
+      # versionCode is that release's: it installs over an APK made from it.
+      - name: Version
+        run: |
+          git fetch --tags --force https://github.com/Unchiga/Yu-Gi-Oh-Forbidden-Memories-Recompiled.git
+          version=$(git describe --tags --abbrev=0 --match 'v[0-9]*')
+          echo "MEMORIES_VERSION=$version" >> "$GITHUB_ENV"
+          echo "### $version + $(git rev-parse --short=10 HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build the APK
+        run: python tools/pc/build_game32.py --target android-arm64-v8a --backend sdl --release --build tmp/pc/android-arm64-v8a
+      - name: Upload the APK and the mod tables
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: |
+            tmp/pc/android-arm64-v8a/*.apk
+            tmp/pc/android-arm64-v8a/buildid
+            tmp/pc/android-arm64-v8a/sdk/exports.aarch64-translated.txt
+            tmp/pc/android-arm64-v8a/sdk/mod_translation.json
+            tmp/pc/android-arm64-v8a/sdk/mod_signatures.json
+          if-no-files-found: error
+          retention-days: 14

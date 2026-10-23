@@ -24,7 +24,9 @@ void TitleJump_Execute(void);
  * `deck` (MEMORIES_DEBUG_DECK's syntax) as the Free Duel screen arms one. */
 enum {
     JUMP_TITLE, JUMP_DEBUG_MENU, JUMP_DUEL, JUMP_FREE_DUEL, JUMP_BUILD_DECK, JUMP_LIBRARY, JUMP_PASSWORD,
-    JUMP_MAP, JUMP_CREDITS, JUMP_OPTIONS, JUMP_COUNT
+    JUMP_MAP, JUMP_CREDITS, JUMP_OPTIONS,
+    JUMP_DUEL2P, /* an online duel's start (pc/debug/netplay.h): its two saves, then the 2P duel setup */
+    JUMP_COUNT
 };
 const char *TitleJump_TargetName(int target); /* "title", "debug", "duel"... */
 int TitleJump_TargetByName(const char *name); /* -1 for none */

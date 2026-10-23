@@ -61,6 +61,15 @@ typedef int (*SaveSlotCheck)(unsigned char *state);
 typedef void (*SaveSlotRecordReader)(const unsigned char *state, int *wins, int *losses);
 void SaveSlots_SetRecordReader(SaveSlotRecordReader reader);
 
+/* Called after each slot file written (any of the writes below), with the
+ * whole file as it is now on the disk: the saves on the online account
+ * (pc/platform/cloud.h). None by default. */
+typedef void (*SaveSlotWriteListener)(int slot, const unsigned char *image);
+void SaveSlots_SetWriteListener(SaveSlotWriteListener listener);
+/* Replace a slot's file with these exact bytes (a save from the account),
+ * the same safe way as the writes below. 0 on success. */
+int SaveSlots_WriteImage(int slot, const unsigned char image[SAVE_SLOT_FILE_SIZE]);
+
 /* Slots are numbered from 0 here; the menu shows them from 1. */
 int SaveSlots_Path(int slot, char *out, size_t size);
 void SaveSlots_Scan(SaveSlotInfo out[SAVE_SLOT_COUNT], SaveSlotCheck check);

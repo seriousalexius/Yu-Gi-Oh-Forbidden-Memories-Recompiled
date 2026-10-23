@@ -28,6 +28,7 @@
 #include "pc/free_duel/duelists.h"
 #include "pc/cards/fusion_helper.h"
 #include "update_check.h"
+#include "lobby.h"
 #include "pc/debug/log.h"
 #include "pc/debug/monitor.h"
 #include "pc/debug/crash_test.h"
@@ -150,6 +151,7 @@ static int menu_reveal_frames;
 /* 4 puts the 320x240 picture on screen at 1280x960. */
 static int scale = 4, pending_scale, quit, state_slot = 1;
 static struct { int x, y, w, h; } shown_menu; /* the menu's bounds as last painted */
+static uint32_t *overlay_sent; /* what the overlay's texture holds (upload_changes) */
 static volatile uint16_t scripted_bits2, scripted_bits, mouse_bits;
 static uint16_t wheel_bits;
 static int wheel_frames;
@@ -633,10 +635,12 @@ static uint64_t real_now_us(void)
  * and present and gl_picture.c's replay: the events and the menu (pump),
  * the picture into the window's texture (the OpenGL picture's copy, or the
  * software picture's upload), and the swap, which waits while the GPU is
- * behind, or for the display with vsync on. Untimed while the channel is
- * off. */
-enum { PHASE_EVENTS, PHASE_COPY, PHASE_SWAP, PHASES };
-static struct { uint64_t total[PHASES]; unsigned max[PHASES], frames; } phases;
+ * behind, or for the display with vsync on; and the overlay (menu, HUD,
+ * mods, touch pad) drawn again and uploaded when it changed, and the
+ * renderer's queued draws flushed before the swap. Untimed while the
+ * channel is off. */
+enum { PHASE_EVENTS, PHASE_COPY, PHASE_SWAP, PHASE_COMPOSE, PHASE_UPLOAD, PHASE_FLUSH, PHASES };
+static struct { uint64_t total[PHASES], pixels; unsigned max[PHASES], frames, composes; } phases;
 
 static uint64_t phase_start(void) { return Log_Enabled(LOG_FRAMES) ? real_now_us() : 0; }
 
@@ -670,6 +674,13 @@ static void phases_shown(void)
         (unsigned)(phases.total[PHASE_EVENTS] / 120), (unsigned)(phases.total[PHASE_COPY] / 120),
         (unsigned)(phases.total[PHASE_SWAP] / 120), phases.max[PHASE_EVENTS], phases.max[PHASE_COPY],
         phases.max[PHASE_SWAP], images, image_us, image_max);
+    LOG(LOG_FRAMES, "overlay %dx%d: composed %u times, draw %u us, upload %u us (max %u, %u), %u kpixels a time; "
+        "flush %u us per shown frame (max %u)",
+        layout.win_w, layout.win_h, phases.composes,
+        (unsigned)(phases.composes ? phases.total[PHASE_COMPOSE] / phases.composes : 0),
+        (unsigned)(phases.composes ? phases.total[PHASE_UPLOAD] / phases.composes : 0), phases.max[PHASE_COMPOSE],
+        phases.max[PHASE_UPLOAD], (unsigned)(phases.composes ? phases.pixels / phases.composes / 1000 : 0),
+        (unsigned)(phases.total[PHASE_FLUSH] / 120), phases.max[PHASE_FLUSH]);
     memset(&phases, 0, sizeof(phases));
 }
 
@@ -1371,6 +1382,7 @@ static void relayout(void)
             SDL_SetTextureScaleMode(overlay, SDL_SCALEMODE_LINEAR);
         }
         overlay_pixels = realloc(overlay_pixels, (size_t)window_w * (size_t)window_h * 4);
+        overlay_sent = realloc(overlay_sent, (size_t)window_w * (size_t)window_h * 4);
         memset(overlay_pixels, 0, (size_t)window_w * (size_t)window_h * 4);
         canvas.pixels = overlay_pixels;
         canvas.stride = window_w;
@@ -1385,6 +1397,7 @@ static void relayout(void)
         } else {
             SDL_UpdateTexture(overlay, NULL, overlay_pixels, window_w * 4);
         }
+        if (overlay_sent) memcpy(overlay_sent, overlay_pixels, (size_t)window_w * (size_t)window_h * 4);
     }
 }
 
@@ -1747,6 +1760,11 @@ static void show(void)
     apply_swap_interval();
     {
         uint64_t started = phase_start();
+        if (started) {
+            SDL_FlushRenderer(renderer);
+            phase_end(PHASE_FLUSH, started);
+            started = phase_start();
+        }
         SDL_RenderPresent(renderer);
         phase_end(PHASE_SWAP, started);
     }
@@ -1754,13 +1772,75 @@ static void show(void)
     phases_shown();
 }
 
-/* Repaint the menu where it was and where it is, and upload that much of
- * the overlay. */
+/* Upload a rectangle of the overlay, noting that its texture now holds it. */
+static uint64_t send_rows(int left, int top, int right, int bottom)
+{
+    size_t stride = (size_t)layout.win_w;
+    int row;
+    upload_overlay(left, top, right - left, bottom - top);
+    for (row = top; row < bottom; row++)
+        memcpy(overlay_sent + (size_t)row * stride + left, overlay_pixels + (size_t)row * stride + left,
+               (size_t)(right - left) * 4);
+    return (uint64_t)(right - left) * (uint64_t)(bottom - top);
+}
+
+/* Upload what changed of the overlay between x0, y0 and x1, y1, against
+ * overlay_sent (what its texture holds): a repaint is of the whole pad and
+ * HUD, which on a phone in landscape spans the screen, but a press changes
+ * one button and the HUD's numbers a few rows. Uploading all of it took
+ * longer than a frame there. Bands of rows that changed and touch each
+ * other go up as one rectangle. Returns the pixels uploaded. */
+static uint64_t upload_changes(int x0, int y0, int x1, int y1)
+{
+    enum { BAND = 32 };
+    int top, row, left = 0, right = 0, from = 0, to = 0; /* a rectangle to send while to > from */
+    size_t stride = (size_t)layout.win_w;
+    uint64_t pixels = 0;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > layout.win_w) x1 = layout.win_w;
+    if (y1 > layout.win_h) y1 = layout.win_h;
+    if (x1 <= x0 || y1 <= y0) return 0;
+    if (!overlay_sent) {
+        upload_overlay(x0, y0, x1 - x0, y1 - y0);
+        return (uint64_t)(x1 - x0) * (uint64_t)(y1 - y0);
+    }
+    for (top = y0; top < y1; top += BAND) {
+        int bottom = top + BAND < y1 ? top + BAND : y1, a = x1, b = x0;
+        for (row = top; row < bottom; row++) {
+            const uint32_t *now = overlay_pixels + (size_t)row * stride, *was = overlay_sent + (size_t)row * stride;
+            int first = x0, last = x1;
+            if (!memcmp(now + x0, was + x0, (size_t)(x1 - x0) * 4)) continue;
+            while (now[first] == was[first]) first++;
+            while (now[last - 1] == was[last - 1]) last--;
+            if (first < a) a = first;
+            if (last > b) b = last;
+        }
+        if (a >= b) continue;
+        if (to > from && to == top) { /* goes on from the band above */
+            if (a < left) left = a;
+            if (b > right) right = b;
+            to = bottom;
+            continue;
+        }
+        if (to > from) pixels += send_rows(left, from, right, to);
+        left = a;
+        right = b;
+        from = top;
+        to = bottom;
+    }
+    if (to > from) pixels += send_rows(left, from, right, to);
+    return pixels;
+}
+
+/* Repaint the menu where it was and where it is, and upload what changed
+ * of that much of the overlay. */
 static unsigned compose_count; /* MEMORIES_TRACE=window: compositions per 120 frames */
 
 static void compose_menu(void)
 {
     int x, y, w, h, x0, y0, x1, y1, row;
+    uint64_t started = phase_start(), pixels;
     menu_dirty = 0;
     compose_count++;
     for (row = shown_menu.y; row < shown_menu.y + shown_menu.h && row < layout.win_h; row++) {
@@ -1775,7 +1855,14 @@ static void compose_menu(void)
     shown_menu.y = y;
     shown_menu.w = w;
     shown_menu.h = h;
-    upload_overlay(x0, y0, x1 - x0, y1 - y0);
+    phase_end(PHASE_COMPOSE, started);
+    started = phase_start();
+    pixels = upload_changes(x0, y0, x1, y1);
+    phase_end(PHASE_UPLOAD, started);
+    if (started) {
+        phases.composes++;
+        phases.pixels += pixels;
+    }
 }
 
 /* The menu changed under a still picture: repaint it and show the window. */
@@ -2881,6 +2968,7 @@ void HERE(Platform_PumpEvents)(void)
     if (!window) return;
     pump();
     Update_Frame();
+    Lobby_Frame();
     if (Menu_TakeChanged()) menu_dirty = 1;
     if (foreground_repaint_until && real_now_us() < foreground_repaint_until) menu_dirty = 1;
     else foreground_repaint_until = 0;
@@ -3057,6 +3145,7 @@ void HERE(Platform_Frame)(unsigned frame)
     Duelists_Frame();
     Tower_Frame();
     Update_Frame();
+    Lobby_Frame();
     if (Menu_TakeChanged()) menu_dirty = 1;
     if (window) {
         run_event_script(frame);

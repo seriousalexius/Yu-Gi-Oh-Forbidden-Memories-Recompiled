@@ -4,6 +4,7 @@
 #include "pc/platform/quit_prompt.h"
 #include "pc/platform/menu.h"
 #include "pc/platform/settings.h"
+#include "pc/debug/netplay.h"
 
 static void chosen(int button, int *quit)
 {
@@ -31,6 +32,7 @@ static void chosen_back(int button, int *quit)
 void QuitPrompt_Back(int *quit)
 {
     static const char *const buttons[] = {"Quit", "Menu", "Keep playing"};
+    if (Netplay_AskResign()) return; /* an online duel: Back asks whether to resign */
     if (!Settings_Get(SET_CONFIRM_QUIT)) {
         *quit = 1;
         return;

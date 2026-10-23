@@ -199,6 +199,16 @@ void Menu_SetPresentPass(int on);
 #define MENU_NOTICE_BUTTONS 4
 void Menu_ShowNotice(const char *title, const char *text, const char *const *buttons, int count, int focus,
                      void (*chosen)(int button, int *quit));
+/* A notice whose buttons wrap into rows of `columns`, each as wide as the
+ * widest, text centred: up to MENU_NOTICE_GRID of them (the lobby's letters
+ * and players, lobby.h). `styles` (NULL: all plain) gives each button's
+ * MENU_NOTICE_PLAIN, MENU_NOTICE_GREEN (green text) or MENU_NOTICE_DIM
+ * (grey, never focused nor chosen; the last button must not be). Up and
+ * Down move a row. */
+#define MENU_NOTICE_GRID 48
+enum { MENU_NOTICE_PLAIN, MENU_NOTICE_GREEN, MENU_NOTICE_DIM };
+void Menu_ShowNoticeGrid(const char *title, const char *text, const char *const *buttons, int count, int columns,
+                         const signed char *styles, int focus, void (*chosen)(int button, int *quit));
 void Menu_CloseNotice(void);
 int Menu_NoticeShown(void);
 /* A controller's newly pressed pad buttons (PS1 bits) for the notice shown:

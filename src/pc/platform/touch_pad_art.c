@@ -4,6 +4,7 @@
 #include "pc/cards/disc_art.h"
 #include "pc/text/overlay_text.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* Main_RunBootSequence's package (font_art.c has its layout): 48 sectors of
@@ -42,6 +43,17 @@ static struct {
     DiscArt button[TOUCH_BUTTONS], letter[sizeof(select_text) - 1], menu_letter[sizeof(menu_text) - 1];
 } art;
 
+/* A picture as draw() last scaled it to a size and an opacity: scaling every
+ * button again each time the pad is repainted (a press, a release) took
+ * longer than a frame on a phone. One for each picture let go and held. */
+typedef struct {
+    const DiscArt *picture;
+    int w, h, mirror;
+    unsigned opacity;
+    uint32_t *pixels; /* the colour, and the alpha it is blended with on top */
+} Scaled;
+static Scaled scaled[2][TOUCH_BUTTONS + sizeof(select_text) + sizeof(menu_text)];
+
 static int read_art(void)
 {
     int i;
@@ -74,6 +86,10 @@ void TouchPadArt_Reset(void)
     for (i = 0; i < TOUCH_BUTTONS; i++) DiscArt_Free(&art.button[i]);
     for (i = 0; select_text[i]; i++) DiscArt_Free(&art.letter[i]);
     for (i = 0; menu_text[i]; i++) DiscArt_Free(&art.menu_letter[i]);
+    for (i = 0; i < (int)(sizeof(scaled) / sizeof(scaled[0][0])); i++) {
+        free(scaled[0][i].pixels);
+        memset(&scaled[0][i], 0, sizeof(Scaled));
+    }
     art.state = 0;
 }
 
@@ -105,34 +121,52 @@ static void span(int i, int n, int s, int *first, int *last)
     if (*last < *first) *last = *first;
 }
 
-/* DiscArt_Draw with an opacity (0-255), and turned round left to right. */
-static void draw(MenuCanvas *canvas, const DiscArt *picture, int x, int y, int w, int h, unsigned opacity, int mirror)
+/* DiscArt_Draw with an opacity (0-255), and turned round left to right,
+ * scaled into `cache` unless it already holds it at this size. */
+static void draw(MenuCanvas *canvas, Scaled *cache, const DiscArt *picture, int x, int y, int w, int h,
+                 unsigned opacity, int mirror)
 {
     int i, j;
     if (!picture->pixels || w <= 0 || h <= 0) return;
-    for (j = 0; j < h; j++) {
-        int top, bottom;
-        if (y + j < 0 || y + j >= canvas->height) continue;
-        span(j, h, picture->height, &top, &bottom);
-        for (i = 0; i < w; i++) {
-            int left, right, sx, sy;
-            unsigned r = 0, g = 0, b = 0, opaque = 0, total = 0;
-            if (x + i < 0 || x + i >= canvas->width) continue;
-            span(mirror ? w - 1 - i : i, w, picture->width, &left, &right);
-            for (sy = top; sy <= bottom; sy++) {
-                for (sx = left; sx <= right; sx++) {
-                    uint32_t texel = picture->pixels[sy * picture->width + sx];
-                    total++;
-                    if (!(texel >> 24)) continue;
-                    opaque++;
-                    r += texel >> 16 & 255;
-                    g += texel >> 8 & 255;
-                    b += texel & 255;
+    if (cache->picture != picture || cache->w != w || cache->h != h || cache->mirror != mirror ||
+        cache->opacity != opacity) {
+        uint32_t *pixels = realloc(cache->pixels, (size_t)w * (size_t)h * 4);
+        if (!pixels) return;
+        cache->pixels = pixels;
+        cache->picture = picture;
+        cache->w = w;
+        cache->h = h;
+        cache->mirror = mirror;
+        cache->opacity = opacity;
+        for (j = 0; j < h; j++) {
+            int top, bottom;
+            span(j, h, picture->height, &top, &bottom);
+            for (i = 0; i < w; i++) {
+                int left, right, sx, sy;
+                unsigned r = 0, g = 0, b = 0, opaque = 0, total = 0;
+                span(mirror ? w - 1 - i : i, w, picture->width, &left, &right);
+                for (sy = top; sy <= bottom; sy++) {
+                    for (sx = left; sx <= right; sx++) {
+                        uint32_t texel = picture->pixels[sy * picture->width + sx];
+                        total++;
+                        if (!(texel >> 24)) continue;
+                        opaque++;
+                        r += texel >> 16 & 255;
+                        g += texel >> 8 & 255;
+                        b += texel & 255;
+                    }
                 }
+                pixels[j * w + i] = !opaque ? 0
+                                            : (opaque * opacity / total) << 24 | (r / opaque) << 16 |
+                                                  (g / opaque) << 8 | b / opaque;
             }
-            if (!opaque) continue;
-            OverlayText_Blend(canvas, x + i, y + j, (r / opaque) << 16 | (g / opaque) << 8 | b / opaque,
-                              opaque * opacity / total);
+        }
+    }
+    for (j = 0; j < h; j++) {
+        const uint32_t *row = cache->pixels + (size_t)j * (size_t)w;
+        if (y + j < 0 || y + j >= canvas->height) continue;
+        for (i = 0; i < w; i++) {
+            if (row[i] >> 24) OverlayText_Blend(canvas, x + i, y + j, row[i] & 0xFFFFFF, row[i] >> 24);
         }
     }
 }
@@ -162,10 +196,12 @@ void TouchPadArt_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
             const DiscArt *word = i == TOUCH_SELECT ? art.letter : art.menu_letter;
             int n = (int)(i == TOUCH_SELECT ? sizeof(select_text) : sizeof(menu_text)) - 1, k, letter_w = bw / n;
             for (k = 0; k < n; k++)
-                draw(canvas, &word[k], bx + k * letter_w + inset / 2, by + inset / 2, letter_w - inset,
-                     bh - inset, opacity, 0);
+                draw(canvas,
+                     &scaled[down][TOUCH_BUTTONS + (i == TOUCH_SELECT ? 0 : sizeof(select_text)) + (size_t)k],
+                     &word[k], bx + k * letter_w + inset / 2, by + inset / 2, letter_w - inset, bh - inset, opacity,
+                     0);
         } else {
-            draw(canvas, &art.button[i], bx + inset, by + inset * bh / bw, bw - 2 * inset, bh - 2 * inset * bh / bw,
+            draw(canvas, &scaled[down][i], &art.button[i], bx + inset, by + inset * bh / bw, bw - 2 * inset, bh - 2 * inset * bh / bw,
                  opacity, i == TOUCH_LEFT);
         }
     }

@@ -17,9 +17,12 @@
 #include "value_setup.h"
 #ifdef MEMORIES_PC
 #include "../../pc/cards/tables.h"
+#include "../../pc/debug/netplay.h"
 /* The LP choice's top and step: 8000 by 500, or a mod's "limits"
-   (tables.h). */
-#define VALUE_SETUP_MAX Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_MAX, DUEL_STARTING_LIFE_POINTS)
+   (tables.h); online, up to NETPLAY_LIFE_POINTS. */
+#define VALUE_SETUP_MAX                                                                                                \
+    (Netplay_Active() ? NETPLAY_LIFE_POINTS                                                                            \
+                      : Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_MAX, DUEL_STARTING_LIFE_POINTS))
 #define VALUE_SETUP_STEP Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_STEP, DUEL_LIFE_POINT_SELECTION_STEP)
 #else
 #define VALUE_SETUP_MAX DUEL_STARTING_LIFE_POINTS
@@ -182,7 +185,14 @@ s32 MainMenu_UpdateValueSetup(void)
     }
 
     if (busyA == 0 && busyB == 0) {
+#ifdef MEMORIES_PC
+        /* Online (pc/debug/netplay.h) Cancel would leave for the debug
+           menu; both games ignore it alike, the pads being the same. */
+        if (!Netplay_Active() &&
+            ((gInput_wPad1Pressed[0] & PAD_BUTTON_CANCEL) || (gInput_wPad1Pressed[1] & PAD_BUTTON_CANCEL))) {
+#else
         if ((gInput_wPad1Pressed[0] & PAD_BUTTON_CANCEL) || (gInput_wPad1Pressed[1] & PAD_BUTTON_CANCEL)) {
+#endif
             SD_SEPlay(8, 0xFF, 0);
             return -1;
         }

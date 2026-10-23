@@ -19,6 +19,7 @@
 #include "build_deck_update_pane_transition.h"
 #ifdef MEMORIES_PC
 #include "pc/cards/cards.h"
+#include "pc/cards/deck_rules.h"
 #include "pc/cards/tables.h"
 #endif
 
@@ -123,6 +124,14 @@ void BuildDeck_UpdateChestPaneInput(BuildDeckTransitionState *state)
         c = state->deck_card_quantities[r] < c;
     }
 
+#ifdef MEMORIES_PC
+    /* fork: Blue-eyes Ultimate Dragon never, a 3000-attack monster once (deck_rules.h). */
+    if (r != 0 && c != 0 && state->chest_card_quantities[r] != 0 &&
+        !DeckRules_CanAdd(r, state->deck_card_quantities[r])) {
+        SD_SEPlayFull(9);
+        return;
+    }
+#endif
     if (r != 0 && c != 0) {
         if (state->deck_total < DECK_SIZE &&
             state->chest_card_quantities[r] != 0 &&

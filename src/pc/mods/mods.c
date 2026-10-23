@@ -1524,6 +1524,13 @@ static int read_manifest(Mod *mod, const char *directory, const char *origin)
     return 1;
 }
 
+/* fork: the mods that make the rules every player keeps the same, always on
+ * (Alessio's draft of the drops, and every card obtainable). */
+static int locked_on(const char *id)
+{
+    return !strcmp(id, "draft-drops") || !strcmp(id, "drop-missing-cards");
+}
+
 static int by_id(const char *id)
 {
     int i;
@@ -1989,6 +1996,7 @@ void Mods_Load(void)
         if (setting_key(key, sizeof(key), mods[i].id, NULL)) want = Settings_GetNamed(key, want);
         want = environment_choice(mods[i].id, want) != 0;
         if (all && (!strcmp(all, "0") || !strcmp(all, "off"))) want = 0;
+        if (locked_on(mods[i].id)) want = 1;
         mods[i].enabled = want;
         enabled[i] = want;
     }
@@ -2119,7 +2127,7 @@ void Mods_SetEnabled(int mod, int enabled)
 {
     char key[256];
     if (!at(mod)) return;
-    enabled = enabled != 0;
+    enabled = enabled != 0 || locked_on(mods[mod].id);
     /* Unchanged, nothing is written: the choice stored stays, even when an
      * environment variable overrides it for this run. */
     if (mods[mod].enabled == enabled) return;

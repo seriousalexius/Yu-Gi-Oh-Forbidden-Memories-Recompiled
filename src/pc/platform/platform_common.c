@@ -14,6 +14,7 @@
 #include "pc/debug/crash_test.h"
 #include "pc/sdk/display.h"
 #include "pc/debug/profile.h"
+#include "pc/debug/netplay.h"
 #include "pc/compat/signal.h"
 #include "pc/audio/spu.h"
 #include "controls_runtime.h"
@@ -255,7 +256,8 @@ int Platform_StartTimers(void (*tick)(uint64_t, uint64_t), void (*vblank)(void))
                          getenv("MEMORIES_DUMP_FRAME") != NULL;
     {
         const char *asked = getenv("MEMORIES_DETERMINISTIC");
-        deterministic_asked = asked && *asked && strcmp(asked, "0") != 0;
+        /* An online duel's two games run in lockstep (pc/debug/netplay.h). */
+        deterministic_asked = (asked && *asked && strcmp(asked, "0") != 0) || Netplay_Active();
         deterministic_paced = deterministic_asked && getenv("MEMORIES_HEADLESS") == NULL;
     }
     last_vsync_real = now_us();
@@ -603,7 +605,8 @@ static void pace(void)
 #endif
     uint64_t now;
     if (!deterministic_paced || controlled) return;
-    while (rate == 0 && !step_pending && !Platform_ShouldQuit()) {
+    /* Online the other game waits for this one: no pause. */
+    while (rate == 0 && !Netplay_Active() && !step_pending && !Platform_ShouldQuit()) {
         deterministic_last_wait = now_us(); /* waiting, not spinning (advance) */
         Platform_PumpEvents();
 #ifdef _WIN32
@@ -614,7 +617,7 @@ static void pace(void)
 #endif
     }
     step_pending = 0;
-    if (rate <= 0) {
+    if (rate < 0 || (rate == 0 && !Netplay_Active())) {
         pace_next = 0;
         return;
     }
@@ -629,7 +632,7 @@ static void pace(void)
 #endif
         now = now_us();
     }
-    pace_next += (uint64_t)vblank_period * 100u / (unsigned)rate;
+    pace_next += (uint64_t)vblank_period * 100u / (unsigned)(rate > 0 ? rate : 100);
 }
 
 void Platform_PollTime(void)

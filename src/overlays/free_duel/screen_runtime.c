@@ -25,6 +25,7 @@
 #ifdef MEMORIES_PC
 #include "pc/free_duel/duelists.h"
 #include "pc/free_duel/page_box.h"
+#include "pc/cards/deck_rules.h"
 #include "pc/cards/tables.h"
 #include "pc/text/language.h"
 
@@ -762,6 +763,13 @@ void FreeDuel_UpdateScreen(void)
             }
             entry++;
         }
+#ifdef MEMORIES_PC
+        /* fork: a deck out of the rules does not duel; the notice says why (deck_rules.h). */
+        if (!DeckRules_DeckOk(gDuel_awPlayerDeck)) {
+            SD_SEPlayFull(9);
+            return;
+        }
+#endif
         SD_SEPlayFull(0x30);
         gFreeDuel_bReturnFlags = 0x80;
         func_80024DC8(

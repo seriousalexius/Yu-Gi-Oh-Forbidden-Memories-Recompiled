@@ -207,7 +207,11 @@ long Tables_Limit(const char *name);
  *   TABLES_VALUE_CARD_DROPS      the cards every won duel deals, 1 to
  *                                CARD_DROPS_MAX, over the player's Game >
  *                                Card drops (0: no mod says; the player's
- *                                choice, drops.h CardDrops_Count) */
+ *                                choice, drops.h CardDrops_Count)
+ *   TABLES_VALUE_PASSWORD_COPIES the Password screen sells a card again while
+ *                                the player owns fewer copies than this,
+ *                                chest and deck together (0: each password
+ *                                once a save, as the disc's; shop.c) */
 enum {
     TABLES_VALUE_DECK_COPIES,
     TABLES_VALUE_SWORDS_TURNS,
@@ -220,6 +224,7 @@ enum {
     TABLES_VALUE_PRIZE,
     TABLES_VALUE_NEW_GAME_STARCHIPS = TABLES_VALUE_PRIZE + 5,
     TABLES_VALUE_CARD_DROPS,
+    TABLES_VALUE_PASSWORD_COPIES,
     TABLES_VALUE_COUNT
 };
 /* The most the game shows or keeps for some of them. */

@@ -32,6 +32,7 @@
 #include "pc/debug/cheats.h"
 #include "pc/cards/pack_shop.h"
 #include "pc/cards/passwords.h"
+#include "pc/cards/tables.h"
 #endif
 #include "../../game/duel_effect_resource_setup.h"
 #include "../../game/text_box_lifecycle.h"
@@ -429,7 +430,10 @@ void Password_UpdateShopScreen(void)
             D_801D5608[0].pair.hi = D_8016D4DC;
             if (
 #ifdef MEMORIES_PC
+                /* With a mod's "password_copies" (tables.h) a password is
+                   not used up: the copies owned decide, below. */
                 D_8016D4DC <= CARD_COUNT &&
+                Tables_Value(TABLES_VALUE_PASSWORD_COPIES, 0) == 0 &&
 #endif
                 Campaign_TestStoryFlag(
                     D_8016D4DC + CAMPAIGN_FLAG_PASSWORD_USED_BASE) != 0) {
@@ -446,6 +450,8 @@ void Password_UpdateShopScreen(void)
                    fall short, so neither the price nor the password
                    goes on a copy the chest would not keep. */
                 || Duel_ChestFull(D_8016D4DC)
+                /* As many copies as a mod's "password_copies" allows. */
+                || Duel_PasswordCopiesFull(D_8016D4DC)
 #endif
             ) {
                 Password_CreateMessageBox(228, 0);

@@ -9,6 +9,7 @@
 #include "pc/mods/mods.h"
 #include "paths.h"
 #include "pc/tower/tower.h"
+#include "pc/debug/netplay.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -205,12 +206,12 @@ static void read_image(const char *mod, const char *directory, const char *where
     if (image->height < 0 || image->height > 240) image->height = 0;
 }
 
-static const char *const action_names[] = {"back", "notice", "quit", "debug_menu", "event", "none", "tower"};
+static const char *const action_names[] = {"back", "notice", "quit", "debug_menu", "event", "none", "tower", "online"};
 
 const char *TitleConfig_ActionName(int action)
 {
     if (action >= 0 && action < TITLE_ENTRIES) return TitleConfig_EntryNames[action];
-    if (action >= TITLE_ACTION_BACK && action <= TITLE_ACTION_TOWER) return action_names[action - TITLE_ACTION_BACK];
+    if (action >= TITLE_ACTION_BACK && action <= TITLE_ACTION_ONLINE) return action_names[action - TITLE_ACTION_BACK];
     return "its own";
 }
 
@@ -258,8 +259,8 @@ static void read_item(const char *mod, const char *directory, const JsonValue *p
         const char *name = Json_String(value, "");
         int action = action_index(name);
         if (action == -2)
-            Mods_Note(mod, "%s: %s: no action \"%s\" (an entry's name, back, notice, quit, debug_menu, event, none "
-                           "or tower)",
+            Mods_Note(mod, "%s: %s: no action \"%s\" (an entry's name, back, notice, quit, debug_menu, event, none, "
+                           "tower or online)",
                       reading, item->name, name);
         else item->action = action;
     }
@@ -600,6 +601,7 @@ static void tower_button(const char *mod)
 void TitleConfig_Read(const char *mod, const char *directory, const JsonValue *manifest)
 {
     const JsonValue *title = Json_Member(manifest, "title"), *menu = Json_Member(manifest, "menu");
+    if (Netplay_Asked()) return; /* online: the game's own title (pc/debug/netplay.h) */
     tower_button(mod);
     if (title && Json_TypeOf(title) != JSON_OBJECT)
         Mods_Note(mod, "\"title\" is an object (notes/modding.md, \"The title screen\")");

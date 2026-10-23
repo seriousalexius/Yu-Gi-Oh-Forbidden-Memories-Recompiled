@@ -635,4 +635,20 @@ s32 Duel_ChestFull(s32 card_id)
 {
     return Cards_Valid(card_id) && Tables_ChestFull(*Cards_ChestSlot(gDuel_awPlayerDeck, card_id));
 }
+
+/* A mod's "password_copies" (tables.h): the shop sells a card again while
+   the chest and the deck together hold fewer copies. */
+s32 Duel_PasswordCopiesFull(s32 card_id)
+{
+    long most = Tables_Value(TABLES_VALUE_PASSWORD_COPIES, 0);
+    SaveDataState *save = (SaveDataState *)gDuel_awPlayerDeck;
+    long owned;
+    int i;
+
+    if (most <= 0 || !Cards_Valid(card_id)) return 0;
+    owned = *Cards_ChestSlot(gDuel_awPlayerDeck, card_id);
+    for (i = 0; i < DECK_SIZE; i++)
+        owned += save->player_deck[i] == card_id;
+    return owned >= most;
+}
 #endif

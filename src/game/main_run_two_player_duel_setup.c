@@ -19,6 +19,7 @@
 #include "main_mode_state.h"
 #ifdef MEMORIES_PC
 #include "pc/cards/tables.h"
+#include "pc/debug/netplay.h"
 #endif
 
 /* Defined rather than declared: the assembler only resolves a small global
@@ -31,11 +32,23 @@ void Main_RunTwoPlayerDuelSetup(void)
 {
     s32 result;
 
+#ifdef MEMORIES_PC
+    /* Online both sides start at NETPLAY_LIFE_POINTS, which nobody chooses:
+       no setup screen, straight to the duel, as its Start would. */
+    if (Netplay_Active()) {
+        D_8009B236 = D_8009B234 = (u16)Netplay_LifePoints();
+        func_80024DC8(-1, -1, 0, 0);
+        D_8009B368 = 8;
+        return;
+    }
+#endif
     if ((D_8009B26C & 0x40) == 0) {
         D_8009B26C = D_8009B26C | 0x40;
 #ifdef MEMORIES_PC
-        /* Where the LP choice starts: 8000, or a mod's "limits" (tables.h). */
-        D_8009B236 = Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_START, DUEL_STARTING_LIFE_POINTS);
+        /* Where the LP choice starts: 8000, or a mod's "limits" (tables.h);
+           online, NETPLAY_LIFE_POINTS (netplay.h). */
+        D_8009B236 = Netplay_Active() ? NETPLAY_LIFE_POINTS
+                                      : Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_START, DUEL_STARTING_LIFE_POINTS);
         D_8009B234 = D_8009B236;
 #else
         D_8009B236 = DUEL_STARTING_LIFE_POINTS;

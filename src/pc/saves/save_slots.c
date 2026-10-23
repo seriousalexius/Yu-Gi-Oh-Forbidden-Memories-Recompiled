@@ -38,6 +38,8 @@ static unsigned read_u16(const unsigned char *p) { return p[0] | p[1] << 8; }
 
 static SaveSlotRecordReader record_reader;
 void SaveSlots_SetRecordReader(SaveSlotRecordReader reader) { record_reader = reader; }
+static SaveSlotWriteListener write_listener;
+void SaveSlots_SetWriteListener(SaveSlotWriteListener listener) { write_listener = listener; }
 static unsigned read_u32(const unsigned char *p) { return p[0] | p[1] << 8 | p[2] << 16 | (unsigned)p[3] << 24; }
 
 int SaveSlots_Path(int slot, char *out, size_t size)
@@ -219,8 +221,11 @@ static int store(int slot, const unsigned char image[SAVE_SLOT_FILE_SIZE])
         return -1;
     }
     Paths_WriteDone(path);
+    if (write_listener) write_listener(slot, image);
     return 0;
 }
+
+int SaveSlots_WriteImage(int slot, const unsigned char image[SAVE_SLOT_FILE_SIZE]) { return store(slot, image); }
 
 /* A token no other save is likely to have: the time, the clock and a count,
  * mixed. Never 0, which means none. */

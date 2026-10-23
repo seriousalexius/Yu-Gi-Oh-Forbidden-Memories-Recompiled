@@ -8,6 +8,8 @@
 static int confirm = 1, notices, opened;
 static void (*notice_chosen)(int button, int *quit);
 
+int Netplay_AskResign(void) { return 0; } /* no online duel here */
+
 int Settings_Get(SettingId id)
 {
     assert(id == SET_CONFIRM_QUIT);

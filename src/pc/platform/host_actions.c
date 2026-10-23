@@ -8,6 +8,7 @@
 #include "settings.h"
 #include "pc/audio/spu.h"
 #include "pc/debug/log.h"
+#include "pc/debug/netplay.h"
 #include "pc/guest/state.h"
 #include "pc/saves/deck_menu.h"
 
@@ -26,7 +27,9 @@ void HostActions_StepVolume(int up)
 static void press(int action, int *quit)
 {
     switch (action) {
-    case CTRL_HOST_EXIT: QuitPrompt_Request(quit); break; /* asks first, as File > Exit */
+    case CTRL_HOST_EXIT: /* asks first, as File > Exit; in an online duel whether to resign */
+        if (!Netplay_AskResign()) QuitPrompt_Request(quit);
+        break;
     case CTRL_HOST_FULLSCREEN:
         if (Platform_HasWindowModes()) {
             int on = Settings_Get(SET_FULLSCREEN) || Settings_Get(SET_BORDERLESS);

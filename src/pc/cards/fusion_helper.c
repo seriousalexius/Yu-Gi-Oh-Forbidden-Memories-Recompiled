@@ -12,6 +12,7 @@
 #include "pc/text/overlay_text.h"
 #include "game/duel_card.h"
 #include "game/duel_hand.h"
+#include "pc/debug/netplay.h"
 #include "game/duel_scene_state.h"
 #include "game/duel_card_checks.h"
 #include "game/duel_scene_card_placement.h"
@@ -94,6 +95,8 @@ static void update(void)
         (gDuel_wSceneStateFlags & DUEL_SCENE_PHASE_MASK) != 4 ||
         (D_8009B174 & 15) != 1 || side > 1 || D_8009B360[side] >= 0 || gDuel_bEffectState ||
         gDuel_wCardEffectFlags || gDuel_bQuitDialogState) return;
+    /* Online, the other player's hand is theirs alone (netplay.h). */
+    if (Netplay_HidesOtherHand() && side != Netplay_Side() - 1) return;
     for (slot = 0; slot < FUSION_HAND; slot++) {
         const DuelHandSlot *pick = &D_800EA030[slot];
         const DisplayObject *object = (const DisplayObject *)pick->object;

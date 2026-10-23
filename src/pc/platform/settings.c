@@ -33,7 +33,7 @@ static const SettingInfo info[SET_COUNT] = {
     /* Game > Language (src/pc/text/language.h): 0 English (US), 1 English (Europe), 2 French, 3 German,
      * 4 Italian, 5 Spanish, from the player's PAL disc; at the next launch. */
     [SET_LANGUAGE] = {"language", NULL, "MEMORIES_LANGUAGE", NULL, 0, 0, 5},
-    [SET_CARD_DROPS] = {"card_drops", NULL, "MEMORIES_CARD_DROPS", NULL, 1, 1, 99},
+    [SET_CARD_DROPS] = {"card_drops", NULL, "MEMORIES_CARD_DROPS", NULL, 1, 1, 1},   /* fork: locked rules */
     /* 1: the Library lays out every card never seen as a seen one, while it
      * is open; nothing is given or saved (Cards_LibraryPlaceholder, cards.h). */
     [SET_LIBRARY_ALL_CARDS] = {"library_all_cards", NULL, "MEMORIES_LIBRARY_ALL_CARDS", NULL, 0, 0, 1},
@@ -44,15 +44,15 @@ static const SettingInfo info[SET_COUNT] = {
     [SET_UPDATE_PRERELEASES] = {"update_prereleases", NULL, "MEMORIES_UPDATE_PRERELEASES", NULL, 0, 0, 1},
     /* View > Duel rank (src/pc/cards/rank_meter.h): 0 off, 1 the rank,
      * 2 the rank and the score. */
-    [SET_RANK_METER] = {"rank_meter", NULL, "MEMORIES_RANK_METER", NULL, 0, 0, 2},
+    [SET_RANK_METER] = {"rank_meter", NULL, "MEMORIES_RANK_METER", NULL, 2, 1, 2},   /* fork: always on */
     /* Game > Cheats (src/pc/debug/cheats.h): the life points both sides
      * start a duel against the CPU with; 8000 is the console's. Up to the
      * 16 bits a side's LP is kept in, for a mod whose "limits" go past 9999. */
-    [SET_CHEAT_LIFE_POINTS] = {"cheat_life_points", NULL, "MEMORIES_CHEAT_LIFE_POINTS", NULL, 8000, 1, 32767},
+    [SET_CHEAT_LIFE_POINTS] = {"cheat_life_points", NULL, "MEMORIES_CHEAT_LIFE_POINTS", NULL, 8000, 8000, 8000},
     /* 1: the CPU's hand drawn face up, as the player's is. */
-    [SET_CHEAT_SHOW_HAND] = {"cheat_show_hand", NULL, "MEMORIES_CHEAT_SHOW_HAND", NULL, 0, 0, 1},
+    [SET_CHEAT_SHOW_HAND] = {"cheat_show_hand", NULL, "MEMORIES_CHEAT_SHOW_HAND", NULL, 0, 0, 0},
     /* 1: the Password screen's purchases leave the StarChips alone. */
-    [SET_CHEAT_FREE_SPENDING] = {"cheat_free_spending", NULL, "MEMORIES_CHEAT_FREE_SPENDING", NULL, 0, 0, 1},
+    [SET_CHEAT_FREE_SPENDING] = {"cheat_free_spending", NULL, "MEMORIES_CHEAT_FREE_SPENDING", NULL, 0, 0, 0},
     /* View > Card passwords: the card's eight-digit password in the card
      * viewer (src/pc/cards/passwords.h). */
     [SET_CARD_PASSWORDS] = {"card_passwords", NULL, "MEMORIES_CARD_PASSWORDS", NULL, 0, 0, 1},
