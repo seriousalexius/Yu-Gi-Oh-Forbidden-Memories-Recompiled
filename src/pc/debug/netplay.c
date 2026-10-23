@@ -8,6 +8,7 @@
 #include "pc/guest/state.h"
 #include "pc/memory_map.h"
 #include "pc/mods/events.h"
+#include "pc/platform/bet.h"
 #include "pc/platform/menu.h"
 #include "pc/platform/paths.h"
 #include "pc/platform/platform.h"
@@ -426,7 +427,7 @@ static void over_closed(int button, int *quit)
 static void duel_over(int won, const char *how)
 {
     static const char *const back[] = {"Torna al gioco"}, *const ok[] = {"OK"};
-    char text[400], line[96];
+    char text[700], line[96], wager[300];
     const char *said = !strcmp(how, "exodia") ? "Exodia" : !strcmp(how, "deck") ? "mazzo finito"
                      : !strcmp(how, "resign") ? (won ? "si e' arreso" : "ti sei arreso")
                      : !strcmp(how, "disconnect") ? "si e' disconnesso" : "punti vita a zero";
@@ -448,13 +449,17 @@ static void duel_over(int won, const char *how)
         snprintf(line + at, sizeof(line) - at, ";%d;%d", DeckRules_Legendary(decks[0]), DeckRules_Legendary(decks[1]));
     }
     note_result(line);
+    /* fork: the bet's stakes, which the next start puts in the save (bet.h) */
+    if (from_lobby) Bet_Describe(won, wager, sizeof(wager));
+    else wager[0] = '\0';
     if (arena_mode)
-        snprintf(text, sizeof(text), "%s la serie d'arena contro %s%s (%s; serie %d-%d)%s",
+        snprintf(text, sizeof(text), "%s la serie d'arena contro %s%s (%s; serie %d-%d)%s%s",
                  won ? "Hai vinto" : "Hai perso", opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
-                 arena.wins[0], arena.wins[1], from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
+                 arena.wins[0], arena.wins[1], wager,
+                 from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
     else
-        snprintf(text, sizeof(text), "%s %s%s (%s)%s", won ? "Hai vinto contro" : "Hai perso contro",
-                 opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
+        snprintf(text, sizeof(text), "%s %s%s (%s)%s%s", won ? "Hai vinto contro" : "Hai perso contro",
+                 opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said, wager,
                  from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
     Menu_ShowNotice("Online", text, from_lobby ? back : ok, 1, 0, over_closed);
 }
