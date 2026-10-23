@@ -538,17 +538,19 @@ static void wait_chosen(int button, int *quit)
     show_list();
 }
 
-static void challenge(const char *name)
+/* mode: "1v1" or "arena" (the arena's draft, then a best of three). */
+static void challenge(const char *name, const char *mode)
 {
     static const char *const cancel[] = {"Annulla"};
-    char text[256];
+    char text[256], extra[48];
     snprintf(challenged, sizeof(challenged), "%s", name);
-    send_to("sfida", name, ",\"modo\":\"1v1\"");
-    fprintf(stderr, "memories-pc: lobby: challenge to %s (1v1)\n", name);
+    snprintf(extra, sizeof(extra), ",\"modo\":\"%s\"", mode);
+    send_to("sfida", name, extra);
+    fprintf(stderr, "memories-pc: lobby: challenge to %s (%s)\n", name, mode);
     snprintf(text, sizeof(text),
-             "Hai sfidato %s (1v1). Aspetto la risposta...\n\n"
+             "Hai sfidato %s (%s). Aspetto la risposta...\n\n"
              "Se accetta, il gioco si riavvia nel duello online: i progressi NON SALVATI si perdono.",
-             name);
+             name, mode);
     screen = SCREEN_WAIT;
     Menu_ShowNotice("Online - sfida", text, cancel, 1, 0, wait_chosen);
 }
@@ -557,14 +559,15 @@ static void player_chosen(int button, int *quit)
 {
     (void)quit;
     screen = SCREEN_NONE;
-    if (button == 0) challenge(picked);
+    if (button == 0) challenge(picked, "1v1");
+    else if (button == 1) challenge(picked, "arena");
     else show_list();
 }
 
 static void list_chosen(int button, int *quit)
 {
-    static const char *const buttons[] = {"Sfida 1v1", "Arena (presto)", "Indietro"};
-    static const signed char styles[] = {MENU_NOTICE_PLAIN, MENU_NOTICE_DIM, MENU_NOTICE_PLAIN};
+    static const char *const buttons[] = {"Sfida 1v1", "Arena", "Indietro"};
+    static const signed char styles[] = {MENU_NOTICE_PLAIN, MENU_NOTICE_PLAIN, MENU_NOTICE_PLAIN};
     char text[128];
     (void)quit;
     screen = SCREEN_NONE;
@@ -622,7 +625,7 @@ static void show_list(void)
 /* "via": the duel's room. online.cfg for pc/debug/netplay.c, then a
  * restart into it. The save: the game's slot, else the first; "contro=",
  * the other player, for the result. */
-static void go(const char *room, int side, const char *rival)
+static void go(const char *room, int side, const char *rival, const char *mode)
 {
     char path[1024], save[1024];
     FILE *file;
@@ -637,6 +640,7 @@ static void go(const char *room, int side, const char *rival)
     if (port == 80) fprintf(file, "netplay=ws://%s/%s/%d\nsave=%s\n", host, room, side, save);
     else fprintf(file, "netplay=ws://%s:%u/%s/%d\nsave=%s\n", host, port, room, side, save);
     if (*rival) fprintf(file, "contro=%s\n", rival);
+    if (!strcmp(mode, "arena")) fprintf(file, "modo=arena\n");
     fclose(file);
     fprintf(stderr, "memories-pc: lobby: wrote online.cfg (slot %d), restarting\n", slot + 1);
     fflush(stderr);
@@ -666,7 +670,7 @@ static void incoming(const char *from, const char *mode)
 {
     static const char *const buttons[] = {"Si", "No"};
     char text[400];
-    if (challenged[0] || challenger[0] || strcmp(mode, "1v1") != 0) {
+    if (challenged[0] || challenger[0] || (strcmp(mode, "1v1") != 0 && strcmp(mode, "arena") != 0)) {
         /* Busy with another challenge, or a kind this game does not know. */
         send_to("risposta", from, ",\"si\":false");
         fprintf(stderr, "memories-pc: lobby: challenge from %s (%s) refused: busy\n", from, mode);
@@ -765,7 +769,8 @@ static void handle(const char *line)
         if (first) Cloud_Joined();
         if ((screen == SCREEN_LIST || screen == SCREEN_JOINING) && Menu_NoticeShown()) show_list();
         if (test_challenge[0] && player_online(test_challenge) && !challenged[0]) {
-            challenge(test_challenge);
+            const char *mode = getenv("MEMORIES_LOBBY_MODE");
+            challenge(test_challenge, mode && !strcmp(mode, "arena") ? "arena" : "1v1");
             test_challenge[0] = '\0';
         }
     } else if (!strcmp(type, "sfida")) {
@@ -794,7 +799,7 @@ static void handle(const char *line)
         char rival[NAME];
         snprintf(rival, sizeof(rival), "%s", challenged[0] ? challenged : accepted);
         challenged[0] = challenger[0] = accepted[0] = '\0';
-        if (good) go(room, side, rival);
+        if (good) go(room, side, rival, Json_String(Json_Member(root, "modo"), "1v1"));
     } else if (!strcmp(type, "errore")) {
         const char *why = Json_String(Json_Member(root, "motivo"), "");
         fprintf(stderr, "memories-pc: lobby: the server says no: %s\n", why);
