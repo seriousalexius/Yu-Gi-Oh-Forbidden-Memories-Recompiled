@@ -10,6 +10,7 @@
 #include "cloud.h"
 #include "lobby.h"
 #include "menu.h"
+#include "news.h"
 #include "paths.h"
 #include "platform.h"
 #include "pc/compat/signal.h"
@@ -741,6 +742,8 @@ static void handle(const char *line)
     if (!document) return;
     if (Cloud_Handle(type, root)) {
         /* the saves' (cloud.c) */
+    } else if (!strcmp(type, "versione")) {
+        News_Version(root); /* fork: the update notice (news.h) */
     } else if (!strcmp(type, "_up")) {
         connected = 1;
     } else if (!strcmp(type, "_down") || !strcmp(type, "_none")) {
@@ -888,6 +891,7 @@ void Lobby_Frame(void)
         (!Menu_NoticeShown() || screen == SCREEN_LIST || screen == SCREEN_JOINING))
         ask_for_password();
     Cloud_Frame();
+    News_Frame();
 }
 
 /* --- start ----------------------------------------------------------- */
