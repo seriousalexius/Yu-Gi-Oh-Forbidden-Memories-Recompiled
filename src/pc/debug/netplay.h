@@ -59,6 +59,9 @@
  * MEMORIES_NETPLAY_TEST_LP gives the tests another, 1 for a one-hit duel). */
 #define NETPLAY_LIFE_POINTS 12000
 unsigned Netplay_LifePoints(void);
+/* The side that plays first (D_8009B1D5 at the duel's start): player 1,
+ * but in the arena's best of three the duels take turns (duel 2: player 2). */
+int Netplay_FirstSide(void);
 
 /* ResetCallback, before the timers start: connect, wait for the other
  * player, swap the saves. Blocks; on failure the game runs offline. */

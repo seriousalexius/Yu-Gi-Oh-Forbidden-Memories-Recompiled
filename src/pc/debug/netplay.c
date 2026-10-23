@@ -8,6 +8,7 @@
 #include "pc/guest/state.h"
 #include "pc/memory_map.h"
 #include "pc/mods/events.h"
+#include "pc/platform/bet.h"
 #include "pc/platform/menu.h"
 #include "pc/platform/paths.h"
 #include "pc/platform/platform.h"
@@ -426,7 +427,7 @@ static void over_closed(int button, int *quit)
 static void duel_over(int won, const char *how)
 {
     static const char *const back[] = {"Torna al gioco"}, *const ok[] = {"OK"};
-    char text[400], line[96];
+    char text[700], line[96], wager[300];
     const char *said = !strcmp(how, "exodia") ? "Exodia" : !strcmp(how, "deck") ? "mazzo finito"
                      : !strcmp(how, "resign") ? (won ? "si e' arreso" : "ti sei arreso")
                      : !strcmp(how, "disconnect") ? "si e' disconnesso" : "punti vita a zero";
@@ -448,13 +449,17 @@ static void duel_over(int won, const char *how)
         snprintf(line + at, sizeof(line) - at, ";%d;%d", DeckRules_Legendary(decks[0]), DeckRules_Legendary(decks[1]));
     }
     note_result(line);
+    /* fork: the bet's stakes, which the next start puts in the save (bet.h) */
+    if (from_lobby) Bet_Describe(won, wager, sizeof(wager));
+    else wager[0] = '\0';
     if (arena_mode)
-        snprintf(text, sizeof(text), "%s la serie d'arena contro %s%s (%s; serie %d-%d)%s",
+        snprintf(text, sizeof(text), "%s la serie d'arena contro %s%s (%s; serie %d-%d)%s%s",
                  won ? "Hai vinto" : "Hai perso", opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
-                 arena.wins[0], arena.wins[1], from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
+                 arena.wins[0], arena.wins[1], wager,
+                 from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
     else
-        snprintf(text, sizeof(text), "%s %s%s (%s)%s", won ? "Hai vinto contro" : "Hai perso contro",
-                 opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
+        snprintf(text, sizeof(text), "%s %s%s (%s)%s%s", won ? "Hai vinto contro" : "Hai perso contro",
+                 opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said, wager,
                  from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
     Menu_ShowNotice("Online", text, from_lobby ? back : ok, 1, 0, over_closed);
 }
@@ -1058,6 +1063,20 @@ unsigned Netplay_LifePoints(void)
     return value >= 1 && value <= NETPLAY_LIFE_POINTS ? value : NETPLAY_LIFE_POINTS;
 }
 
+int Netplay_FirstSide(void)
+{
+    if (!active)
+        return 0;
+    /* The arena: the duels of the series take turns. Otherwise a coin toss
+     * both games make alike, from the seed they share. */
+    if (arena_mode)
+        return arena.duel > 0 ? (arena.duel - 1) & 1 : 0;
+    const char *test = getenv("MEMORIES_NETPLAY_TEST_FIRST");
+    if (test && (*test == '1' || *test == '2'))
+        return *test - '1';
+    return (int)((seed * 0x9E3779B9u) >> 31);
+}
+
 uint32_t Netplay_Seed(void)
 {
     /* The arena: another seed for each duel of the series. */
@@ -1091,13 +1110,16 @@ static void emit(unsigned target, uint16_t bits)
  * The choices, the phases the turn timer counts, at 100%, so that the
  * cursor moves as it always has. The fusions and the card going down
  * (phases 6 and 7): fast but not flat out, FUSION_RATE (Alessio's), so a
- * fusion can still be followed; animation_now() says 2 there. The same in
- * both games, which are at the same state at the same VBlank. */
+ * fusion can still be followed; animation_now() says 2 there. Out of the
+ * duel (the start after the restart, the way into each duel) flat out too,
+ * but for the arena's draft and its notices between the duels, which the
+ * mod's own panels run at 100%. The same in both games, which are at the
+ * same state at the same VBlank. */
 #define FUSION_RATE 250
 static int animation_now(void)
 {
     int phase, sub;
-    if (!turn_duel()) return 0;
+    if (!turn_duel()) return active && !over && !(arena_mode && !arena_in_duel);
     phase = *(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF;
     sub = *(volatile uint8_t *)(uintptr_t)0x8009B174u & 0xF;
     if (phase_log && (unsigned)(phase << 4 | sub) != phase_key) {

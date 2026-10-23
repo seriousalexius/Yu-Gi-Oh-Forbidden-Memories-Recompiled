@@ -7,6 +7,7 @@
  * notices, is the main thread's. */
 #define _GNU_SOURCE
 #include "pc/compat/fs.h"
+#include "bet.h"
 #include "cloud.h"
 #include "lobby.h"
 #include "menu.h"
@@ -223,7 +224,7 @@ static int test_accept;
 
 enum { SCREEN_NONE, SCREEN_NAME, SCREEN_INVITE, SCREEN_JOINING, SCREEN_LIST, SCREEN_PLAYER, SCREEN_WAIT,
        SCREEN_INCOMING, SCREEN_INFO, SCREEN_START, SCREEN_PASSWORD, SCREEN_ASK_PASSWORD, SCREEN_SAVES,
-       SCREEN_ACCOUNT, SCREEN_LOGOUT, SCREEN_DECK };
+       SCREEN_ACCOUNT, SCREEN_LOGOUT, SCREEN_DECK, SCREEN_BET };
 static int screen;
 static char typed[16], typed_name[NAME], typed_invite[16], picked[NAME];
 static int grid_focus;
@@ -357,10 +358,16 @@ static void info(const char *text)
     Menu_ShowNotice("Online", text, ok, 1, 0, info_closed);
 }
 
-/* The letter grid: A-Z, 0-9, then a space (the name) or a dash (the
- * invite code, the password), Canc, OK and Annulla. */
-#define LETTERS 36
-enum { KEY_EXTRA = LETTERS, KEY_DELETE, KEY_OK, KEY_CANCEL, KEYS };
+
+/* The letter grid, QWERTY in four rows of ten: the digits, the letters
+ * with Canc (<) after L, then after M a space for the name or a dash for
+ * the invite code and the password (_), OK (>) and Annulla (!). */
+#define GRID_DELETE '<'
+#define GRID_EXTRA '_'
+#define GRID_OK '>'
+#define GRID_CANCEL '!'
+static const char grid_layout[] = "1234567890QWERTYUIOPASDFGHJKL<ZXCVBNM_>!";
+enum { KEYS = sizeof(grid_layout) - 1 };
 enum { GRID_NAME, GRID_INVITE, GRID_PASSWORD };
 #define PASSWORD_MIN 4
 
@@ -395,18 +402,18 @@ static void grid_chosen(int button, int *quit)
 {
     int mode = screen == SCREEN_INVITE ? GRID_INVITE : screen == SCREEN_PASSWORD ? GRID_PASSWORD : GRID_NAME;
     size_t length = strlen(typed), limit = mode == GRID_NAME ? NAME - 1 : sizeof(typed) - 1;
+    char key = button >= 0 && button < KEYS ? grid_layout[button] : GRID_CANCEL;
     (void)quit;
     grid_focus = button;
-    if (button < LETTERS || button == KEY_EXTRA) {
-        char letter = button < 26 ? (char)('A' + button) : button < LETTERS ? (char)('0' + button - 26)
-                                                       : mode == GRID_NAME ? ' ' : '-';
+    if (key != GRID_DELETE && key != GRID_OK && key != GRID_CANCEL) {
+        char letter = key != GRID_EXTRA ? key : mode == GRID_NAME ? ' ' : '-';
         if (length < limit && !(letter == ' ' && (!length || typed[length - 1] == ' '))) {
             typed[length] = letter;
             typed[length + 1] = '\0';
         }
-    } else if (button == KEY_DELETE) {
+    } else if (key == GRID_DELETE) {
         if (length) typed[length - 1] = '\0';
-    } else if (button == KEY_OK) {
+    } else if (key == GRID_OK) {
         while (length && typed[length - 1] == ' ') typed[--length] = '\0';
         if (length < (size_t)(mode == GRID_NAME ? 3 : mode == GRID_PASSWORD ? PASSWORD_MIN : 0)) {
             show_grid(mode);
@@ -432,18 +439,18 @@ static void grid_chosen(int button, int *quit)
 
 static void show_grid(int mode)
 {
-    static char letters[LETTERS][2];
+    static char letters[KEYS][2];
     const char *keys[KEYS];
     char text[256];
     int i;
-    for (i = 0; i < LETTERS; i++) {
-        letters[i][0] = i < 26 ? (char)('A' + i) : (char)('0' + i - 26);
-        keys[i] = letters[i];
+    for (i = 0; i < KEYS; i++) {
+        letters[i][0] = grid_layout[i];
+        keys[i] = grid_layout[i] == GRID_EXTRA  ? (mode == GRID_NAME ? "Spazio" : "-") :
+                  grid_layout[i] == GRID_DELETE ? "Canc" :
+                  grid_layout[i] == GRID_OK     ? "OK" :
+                  grid_layout[i] == GRID_CANCEL ? "Annulla" :
+                                                  letters[i];
     }
-    keys[KEY_EXTRA] = mode == GRID_NAME ? "Spazio" : "-";
-    keys[KEY_DELETE] = "Canc";
-    keys[KEY_OK] = "OK";
-    keys[KEY_CANCEL] = "Annulla";
     if (mode == GRID_INVITE)
         snprintf(text, sizeof(text), "Nome: %s\nScrivi il codice d'invito (te lo da' chi ti ha invitato):\n\n%s_",
                  typed_name, typed);
@@ -683,7 +690,7 @@ static void challenge(const char *name, const char *mode)
     static const char *const cancel[] = {"Annulla"};
     char text[256], extra[48];
     snprintf(challenged, sizeof(challenged), "%s", name);
-    snprintf(extra, sizeof(extra), ",\"modo\":\"%s\"", mode);
+    snprintf(extra, sizeof(extra), ",\"modo\":\"%s\",\"scommessa\":1", mode); /* fork: bet.h */
     send_to("sfida", name, extra);
     fprintf(stderr, "memories-pc: lobby: challenge to %s (%s)\n", name, mode);
     snprintf(text, sizeof(text),
@@ -815,7 +822,7 @@ static void incoming_chosen(int button, int *quit)
     (void)quit;
     screen = SCREEN_NONE;
     if (!challenger[0]) return;
-    send_to("risposta", challenger, button == 0 ? ",\"si\":true" : ",\"si\":false");
+    send_to("risposta", challenger, button == 0 ? ",\"si\":true,\"scommessa\":1" : ",\"si\":false");
     if (button == 0) snprintf(accepted, sizeof(accepted), "%s", challenger);
     fprintf(stderr, "memories-pc: lobby: %s the challenge from %s\n", button == 0 ? "accepted" : "refused",
             challenger);
@@ -831,7 +838,7 @@ static void incoming(const char *from, const char *mode)
 {
     static const char *const buttons[] = {"Si", "No"};
     char text[400];
-    if (challenged[0] || challenger[0] || (strcmp(mode, "1v1") != 0 && strcmp(mode, "arena") != 0)) {
+    if (challenged[0] || challenger[0] || Bet_Active() || (strcmp(mode, "1v1") != 0 && strcmp(mode, "arena") != 0)) {
         /* Busy with another challenge, or a kind this game does not know. */
         send_to("risposta", from, ",\"si\":false");
         fprintf(stderr, "memories-pc: lobby: challenge from %s (%s) refused: busy\n", from, mode);
@@ -861,6 +868,27 @@ static void incoming(const char *from, const char *mode)
              from, mode);
     screen = SCREEN_INCOMING;
     Menu_ShowNotice("Sfida online", text, buttons, 2, 1, incoming_chosen);
+}
+
+/* fork: the bet between the yes and the duel (bet.h); gone without a
+ * duel, the players again. */
+static void bet_back(void)
+{
+    challenged[0] = challenger[0] = accepted[0] = '\0';
+    screen = SCREEN_NONE;
+    show_list();
+}
+
+/* The last duel's result against `rival` in lobby.txt: 1 won, 0 lost (or
+ * never finished), -1 none (bet.h). */
+static int result_against(const char *rival)
+{
+    int i;
+    for (i = result_count - 1; i >= 0; i--) {
+        size_t length = strcspn(results[i] + 1, ";");
+        if (length == strlen(rival) && !strncmp(results[i] + 1, rival, length)) return results[i][0] == 'v';
+    }
+    return -1;
 }
 
 /* --- what came in ---------------------------------------------------- */
@@ -900,6 +928,8 @@ static void handle(const char *line)
     if (!document) return;
     if (Cloud_Handle(type, root)) {
         /* the saves' (cloud.c) */
+    } else if (Bet_Handle(type, root)) {
+        /* the bet's (bet.c) */
     } else if (!strcmp(type, "_up")) {
         connected = 1;
     } else if (!strcmp(type, "_down") || !strcmp(type, "_none")) {
@@ -908,7 +938,10 @@ static void handle(const char *line)
         if (was || connected) fprintf(stderr, "memories-pc: lobby: link lost\n");
         connected = in_lobby = 0;
         challenger[0] = '\0';
-        if (challenged[0] || ((screen == SCREEN_LIST || screen == SCREEN_PLAYER || screen == SCREEN_JOINING) &&
+        if (Bet_Active()) {
+            challenged[0] = accepted[0] = '\0';
+            Bet_Cancel("Connessione alla lobby persa: la sfida e' annullata.");
+        } else if (challenged[0] || ((screen == SCREEN_LIST || screen == SCREEN_PLAYER || screen == SCREEN_JOINING) &&
                               Menu_NoticeShown())) {
             challenged[0] = '\0';
             info(was ? "Connessione alla lobby persa. Riprovo da solo tra poco." :
@@ -948,8 +981,21 @@ static void handle(const char *line)
         }
     } else if (!strcmp(type, "sfida")) {
         incoming(from, Json_String(Json_Member(root, "modo"), "1v1"));
+    } else if (!strcmp(type, "scommessa")) {
+        /* both said yes: the bet first (bet.h), then "via" */
+        const char *room = Json_String(Json_Member(root, "stanza"), "");
+        char rival[NAME];
+        snprintf(rival, sizeof(rival), "%s",
+                 Json_String(Json_Member(root, "contro"), challenged[0] ? challenged : accepted));
+        screen = SCREEN_BET;
+        Bet_Open(room, (int)Json_Number(Json_Member(root, "lato"), 0), Json_String(Json_Member(root, "modo"), "1v1"),
+                 rival, test_accept || getenv("MEMORIES_LOBBY_CHALLENGE") != NULL, send_line, bet_back);
     } else if (!strcmp(type, "annullata")) {
-        if (!strcmp(challenger, from)) {
+        if (Bet_With(from)) {
+            challenged[0] = accepted[0] = '\0';
+            snprintf(text, sizeof(text), "%s ha annullato la sfida.", from);
+            Bet_Cancel(text);
+        } else if (!strcmp(challenger, from)) {
             fprintf(stderr, "memories-pc: lobby: %s cancelled the challenge\n", from);
             challenger[0] = '\0';
             snprintf(text, sizeof(text), "%s ha annullato la sfida.", from);
@@ -975,6 +1021,8 @@ static void handle(const char *line)
         char rival[NAME];
         snprintf(rival, sizeof(rival), "%s", challenged[0] ? challenged : accepted);
         challenged[0] = challenger[0] = accepted[0] = '\0';
+        if (Bet_Active()) Bet_Go(root);
+        else Bet_Forget();
         if (good) go(room, side, rival, Json_String(Json_Member(root, "modo"), "1v1"));
     } else if (!strcmp(type, "errore")) {
         const char *why = Json_String(Json_Member(root, "motivo"), "");
@@ -1028,6 +1076,7 @@ void Lobby_Frame(void)
     char *line, *end;
     size_t length;
     News_Frame(); /* fork: the update notice, with or without an account (news.h) */
+    Bet_Frame();  /* fork: how the last bet went (bet.h) */
     if (!thread_running) return;
     pthread_mutex_lock(&lock);
     length = inbox_length;
@@ -1083,6 +1132,7 @@ void Lobby_Start(void)
     News_Start(host, port);
     test_accept = getenv("MEMORIES_LOBBY_ACCEPT") && !strcmp(getenv("MEMORIES_LOBBY_ACCEPT"), "1");
     read_account();
+    Bet_Settle(result_against); /* fork: the last duel's bet, into the save (bet.h) */
     /* The test's challenge once: not again when back from its duel (a
      * result to tell), which the restart's environment cannot say. */
     if (wanted && !result_count) snprintf(test_challenge, sizeof(test_challenge), "%s", wanted);

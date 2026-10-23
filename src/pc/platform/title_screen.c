@@ -15,6 +15,7 @@
 #include "title_menu.h"
 #include "title_jump.h"
 #include "pc/mods/mods.h"
+#include "pc/debug/netplay.h"
 #include "pc/saves/save_menu.h"
 #include "pc/saves/deck_menu.h"
 #include "pc/guest/state.h"
@@ -56,7 +57,8 @@ int TitleScreen_Song(void)
 int TitleScreen_SkipMovie(void)
 {
     int skip = TitleConfig_Load()->skip_movie; /* read on every entry: the title's update uses it */
-    return TitleJump_Pending() ? 1 : skip;   /* on its way to another screen (title_jump.h) */
+    /* On its way to another screen (title_jump.h), or online: no movie. */
+    return TitleJump_Pending() || Netplay_Active() ? 1 : skip;
 }
 
 /* 0xRRGGBB over the game's 128 = unchanged. */
