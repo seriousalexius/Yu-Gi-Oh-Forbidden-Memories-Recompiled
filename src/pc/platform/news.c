@@ -10,6 +10,9 @@
 #include "pc/debug/netplay_net.h"
 #include "pc/mods/json.h"
 #include <pthread.h>
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,12 +104,23 @@ static void read_answer(void)
             at = strlen(text);
             snprintf(text + at, sizeof(text) - at, "- %s\n", Json_String(Json_At(lines, i), ""));
         }
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+        /* fork: the iPhone updates in SideStore (its source on Drive), never from a web page. */
+        page[0] = '\0';
+        if (pending == NOTICE_NEWER) {
+            at = strlen(text);
+            snprintf(text + at, sizeof(text) - at,
+                     "\nPer aggiornare: apri SideStore, vai in My Apps e premi Update. Salvataggi e impostazioni "
+                     "restano.");
+        }
+#else
         if (pending == NOTICE_NEWER) {
             at = strlen(text);
             snprintf(text + at, sizeof(text) - at,
                      "\nScaricala e installala sopra questa: salvataggi e impostazioni restano.%s",
                      page[0] ? "" : "\nLa trovi dove hai preso il gioco.");
         }
+#endif
     }
     if (document) Json_Free(document);
 }
