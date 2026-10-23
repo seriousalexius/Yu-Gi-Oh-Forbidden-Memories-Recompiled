@@ -21,6 +21,9 @@
 #include "../../overlays/main_menu/ordering_tables.h"
 #include "../../game/sound.h"
 #include "../../game/graphics_frame.h"
+#ifdef MEMORIES_PC
+#include "../../pc/debug/netplay.h"
+#endif
 
 s32 MainMenu_UpdateFrontendMenu(void)
 {
@@ -167,6 +170,14 @@ s32 MainMenu_UpdateFrontendMenu(void)
         acc = (u16)ent6->field_34.h.field_36 + (u16)D_8009B0D8;
         ent6->field_34.h.field_36 = acc;
         if ((s16)acc >= 0xBB8) {
+#ifdef MEMORIES_PC
+            /* Online (pc/debug/netplay.h) the title never times out to the
+             * opening movie: the arena's draft runs over it, with no
+             * buttons to the game. */
+            if (Netplay_Active()) {
+                return -1;
+            }
+#endif
             return -2;
         }
         return -1;

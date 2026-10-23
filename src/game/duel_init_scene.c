@@ -5,6 +5,7 @@
 #ifdef MEMORIES_PC
 #include "pc/free_duel/duelists.h"
 #include "pc/cards/duel_ui.h"
+#include "pc/debug/netplay.h"
 #endif
 #include "duel_scene_state.h"
 #include "duel_shuffle_both_decks.h"
@@ -112,7 +113,11 @@ void Duel_InitScene(void)
             );
 #endif
         }
+#ifdef MEMORIES_PC
+        D_8009B1D5 = (u8)Netplay_FirstSide();
+#else
         D_8009B1D5 = 0;
+#endif
         gDuel_wSceneStateFlags = 1;
         Duel_ResetCardRecords();
         Duel_InitSelectionRecords();

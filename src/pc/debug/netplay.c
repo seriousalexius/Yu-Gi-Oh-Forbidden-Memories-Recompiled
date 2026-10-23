@@ -1063,6 +1063,11 @@ unsigned Netplay_LifePoints(void)
     return value >= 1 && value <= NETPLAY_LIFE_POINTS ? value : NETPLAY_LIFE_POINTS;
 }
 
+int Netplay_FirstSide(void)
+{
+    return active && arena_mode && arena.duel > 0 ? (arena.duel - 1) & 1 : 0;
+}
+
 uint32_t Netplay_Seed(void)
 {
     /* The arena: another seed for each duel of the series. */
@@ -1096,13 +1101,16 @@ static void emit(unsigned target, uint16_t bits)
  * The choices, the phases the turn timer counts, at 100%, so that the
  * cursor moves as it always has. The fusions and the card going down
  * (phases 6 and 7): fast but not flat out, FUSION_RATE (Alessio's), so a
- * fusion can still be followed; animation_now() says 2 there. The same in
- * both games, which are at the same state at the same VBlank. */
+ * fusion can still be followed; animation_now() says 2 there. Out of the
+ * duel (the start after the restart, the way into each duel) flat out too,
+ * but for the arena's draft and its notices between the duels, which the
+ * mod's own panels run at 100%. The same in both games, which are at the
+ * same state at the same VBlank. */
 #define FUSION_RATE 250
 static int animation_now(void)
 {
     int phase, sub;
-    if (!turn_duel()) return 0;
+    if (!turn_duel()) return active && !over && !(arena_mode && !arena_in_duel);
     phase = *(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF;
     sub = *(volatile uint8_t *)(uintptr_t)0x8009B174u & 0xF;
     if (phase_log && (unsigned)(phase << 4 | sub) != phase_key) {

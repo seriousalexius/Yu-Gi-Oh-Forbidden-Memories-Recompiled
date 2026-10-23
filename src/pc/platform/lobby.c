@@ -358,10 +358,16 @@ static void info(const char *text)
     Menu_ShowNotice("Online", text, ok, 1, 0, info_closed);
 }
 
-/* The letter grid: A-Z, 0-9, then a space (the name) or a dash (the
- * invite code, the password), Canc, OK and Annulla. */
-#define LETTERS 36
-enum { KEY_EXTRA = LETTERS, KEY_DELETE, KEY_OK, KEY_CANCEL, KEYS };
+
+/* The letter grid, QWERTY in four rows of ten: the digits, the letters
+ * with Canc (<) after L, then after M a space for the name or a dash for
+ * the invite code and the password (_), OK (>) and Annulla (!). */
+#define GRID_DELETE '<'
+#define GRID_EXTRA '_'
+#define GRID_OK '>'
+#define GRID_CANCEL '!'
+static const char grid_layout[] = "1234567890QWERTYUIOPASDFGHJKL<ZXCVBNM_>!";
+enum { KEYS = sizeof(grid_layout) - 1 };
 enum { GRID_NAME, GRID_INVITE, GRID_PASSWORD };
 #define PASSWORD_MIN 4
 
@@ -396,18 +402,18 @@ static void grid_chosen(int button, int *quit)
 {
     int mode = screen == SCREEN_INVITE ? GRID_INVITE : screen == SCREEN_PASSWORD ? GRID_PASSWORD : GRID_NAME;
     size_t length = strlen(typed), limit = mode == GRID_NAME ? NAME - 1 : sizeof(typed) - 1;
+    char key = button >= 0 && button < KEYS ? grid_layout[button] : GRID_CANCEL;
     (void)quit;
     grid_focus = button;
-    if (button < LETTERS || button == KEY_EXTRA) {
-        char letter = button < 26 ? (char)('A' + button) : button < LETTERS ? (char)('0' + button - 26)
-                                                       : mode == GRID_NAME ? ' ' : '-';
+    if (key != GRID_DELETE && key != GRID_OK && key != GRID_CANCEL) {
+        char letter = key != GRID_EXTRA ? key : mode == GRID_NAME ? ' ' : '-';
         if (length < limit && !(letter == ' ' && (!length || typed[length - 1] == ' '))) {
             typed[length] = letter;
             typed[length + 1] = '\0';
         }
-    } else if (button == KEY_DELETE) {
+    } else if (key == GRID_DELETE) {
         if (length) typed[length - 1] = '\0';
-    } else if (button == KEY_OK) {
+    } else if (key == GRID_OK) {
         while (length && typed[length - 1] == ' ') typed[--length] = '\0';
         if (length < (size_t)(mode == GRID_NAME ? 3 : mode == GRID_PASSWORD ? PASSWORD_MIN : 0)) {
             show_grid(mode);
@@ -433,18 +439,18 @@ static void grid_chosen(int button, int *quit)
 
 static void show_grid(int mode)
 {
-    static char letters[LETTERS][2];
+    static char letters[KEYS][2];
     const char *keys[KEYS];
     char text[256];
     int i;
-    for (i = 0; i < LETTERS; i++) {
-        letters[i][0] = i < 26 ? (char)('A' + i) : (char)('0' + i - 26);
-        keys[i] = letters[i];
+    for (i = 0; i < KEYS; i++) {
+        letters[i][0] = grid_layout[i];
+        keys[i] = grid_layout[i] == GRID_EXTRA  ? (mode == GRID_NAME ? "Spazio" : "-") :
+                  grid_layout[i] == GRID_DELETE ? "Canc" :
+                  grid_layout[i] == GRID_OK     ? "OK" :
+                  grid_layout[i] == GRID_CANCEL ? "Annulla" :
+                                                  letters[i];
     }
-    keys[KEY_EXTRA] = mode == GRID_NAME ? "Spazio" : "-";
-    keys[KEY_DELETE] = "Canc";
-    keys[KEY_OK] = "OK";
-    keys[KEY_CANCEL] = "Annulla";
     if (mode == GRID_INVITE)
         snprintf(text, sizeof(text), "Nome: %s\nScrivi il codice d'invito (te lo da' chi ti ha invitato):\n\n%s_",
                  typed_name, typed);

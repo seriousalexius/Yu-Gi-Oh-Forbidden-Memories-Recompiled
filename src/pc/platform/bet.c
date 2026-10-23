@@ -315,10 +315,10 @@ static void show_main(void)
     card_full(bet.theirs.card, theirs, sizeof(theirs));
     if (!strcmp(bet.theirs.choosing, "carta")) snprintf(status, sizeof(status), "sta scegliendo la carta...");
     else if (!strcmp(bet.theirs.choosing, "starchip")) snprintf(status, sizeof(status), "sta scegliendo gli starchip...");
-    else snprintf(status, sizeof(status), bet.theirs.ready ? "e' PRONTO" : "non e' ancora pronto");
+    else snprintf(status, sizeof(status), bet.theirs.ready ? "e' PRONTO." : "non e' ancora pronto.");
     snprintf(text, sizeof(text),
              "A sinistra la tua puntata, a destra quella di %s: chi vince prende tutte e due%s.\n"
-             "Tu: %s + %d starchip.\n%s: %s + %d starchip.\n%s %s.\n"
+             "Tu: %s + %d starchip.\n%s: %s + %d starchip.\n%s %s\n"
              "Niente da tutti e due = si gioca senza scommessa. Si parte quando siete pronti tutti e due.",
              bet.rival, !strcmp(bet.mode, "arena") ? " (vale per tutta la serie d'arena)" : "", mine,
              bet.mine.starchips, bet.rival, theirs, bet.theirs.starchips, bet.rival, status);
