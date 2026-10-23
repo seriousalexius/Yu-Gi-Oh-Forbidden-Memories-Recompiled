@@ -609,6 +609,115 @@ static void check_end(void)
     else if (arena_live) arena_count(winner == side - 1, how);
 }
 
+/* fork: the turn timer (Alessio's). A player in turn has TURN_SECONDS of
+ * the game waiting on them (the hand, the field, the guardian star: phases
+ * 4, 5 and 8 of gDuel_wSceneStateFlags, with no transition counting down in
+ * D_8009B162); the last TURN_SHOWN of them count down on screen. At zero the
+ * game plays the turn for them, as the shortest way through: unmark a lone
+ * marked card's partner, play a card (face down when the face-up one is
+ * refused), take the default zone and star, end the turn with Start. Both
+ * games count and press the same at the same VBlank, from the same state
+ * (the lockstep), so nothing but the inputs crosses. MEMORIES_NETPLAY_TURN
+ * (seconds) shortens it for the tests. */
+#define TURN_SECONDS 90
+#define TURN_SHOWN 30
+#define RAW_START 0x0008
+#define RAW_UP 0x0010
+#define RAW_RIGHT 0x0020
+#define RAW_CIRCLE 0x2000
+#define RAW_CROSS 0x4000
+static unsigned turn_vblanks = TURN_SECONDS * 60, turn_used;
+static int turn_side = -1, turn_auto, auto_flip, auto_toggle;
+static unsigned auto_step, auto_tries, auto_state;
+static uint16_t auto_button;
+
+static int turn_duel(void)
+{
+    return active && !over && (*(volatile uint8_t *)(uintptr_t)0x8009B26Cu & 31) == 3 &&
+           *(volatile int8_t *)(uintptr_t)0x8009B361u < 0;
+}
+
+/* The button the auto play presses now, from the duel's state; 0 to wait. */
+static uint16_t auto_choose(int acting)
+{
+    int phase = *(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF;
+    int sub = *(volatile uint8_t *)(uintptr_t)0x8009B174u & 0xF;
+    unsigned state = (unsigned)phase << 4 | (unsigned)sub;
+    auto_tries = state == auto_state ? auto_tries + 1 : 0;
+    auto_state = state;
+    if (*(volatile uint8_t *)(uintptr_t)0x8009B164u) return RAW_CIRCLE;                 /* the quit dialog: no */
+    if ((*(volatile uint8_t *)(uintptr_t)0x8009B254u & 0xF) == 2) return RAW_CIRCLE;    /* the card viewer */
+    if (phase == 4) {
+        if (sub == 1) {
+            /* one marked card alone cannot be played: mark a second (Up on
+             * an unmarked one), moving on when the cursor is on it */
+            int marked = *(volatile uint8_t *)(uintptr_t)(0x800E9F10u + (uint32_t)acting * 0x70u + 0x15u);
+            if (marked == 1) return (auto_toggle = !auto_toggle) ? RAW_UP : RAW_RIGHT;
+            return RAW_CROSS;
+        }
+        if (sub == 3) {
+            if (auto_flip) {
+                auto_flip = 0;
+                return RAW_RIGHT; /* face down: an equip with no monster cannot go face up */
+            }
+            return RAW_CROSS;
+        }
+        if (sub == 4 && auto_tries >= 3) {
+            auto_flip = 1;
+            return RAW_CIRCLE; /* the zone refused it: back, and face down */
+        }
+        return RAW_CROSS;
+    }
+    if (phase == 5) {
+        if (sub == 3) return RAW_START;
+        if (sub == 6 || sub == 7) return RAW_CIRCLE;
+        return 0;
+    }
+    if (phase >= 6 && phase <= 8) return RAW_CROSS;
+    return 0;
+}
+
+/* Each VBlank of a two-player duel: the side in turn's time, and its pad
+ * replaced by the auto play once the time is up. */
+static void turn_timer(uint16_t both[2])
+{
+    int acting, phase;
+    if (!turn_duel()) {
+        turn_side = -1;
+        return;
+    }
+    acting = *(volatile uint8_t *)(uintptr_t)0x8009B1D5u & 1;
+    phase = *(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF;
+    if (acting != turn_side) {
+        turn_side = acting;
+        turn_used = 0;
+        turn_auto = auto_flip = auto_toggle = 0;
+        auto_step = auto_tries = auto_state = 0;
+    }
+    if (!turn_auto) {
+        if ((phase == 4 || phase == 5 || phase == 8) && !*(volatile uint16_t *)(uintptr_t)0x8009B162u &&
+            !(phase == 5 && ((*(volatile uint8_t *)(uintptr_t)0x8009B174u & 0xF) >= 0xA)))
+            turn_used++;
+        if (turn_used < turn_vblanks) return;
+        turn_auto = 1;
+        fprintf(stderr, "memories-pc: online: turn timer: player %d's time is up, the turn plays itself\n", acting + 1);
+    }
+    /* A press every 16 VBlanks, held 4: the game reads presses as edges. */
+    if (auto_step % 16 == 0) auto_button = auto_choose(acting);
+    both[acting] = auto_step % 16 < 4 ? auto_button : 0;
+    auto_step++;
+}
+
+/* The countdown's seconds while it shows, else -1. */
+static int turn_left(void)
+{
+    unsigned left;
+    if (!turn_duel() || turn_side < 0) return -1;
+    if (turn_auto) return 0;
+    left = turn_vblanks - turn_used;
+    return left <= TURN_SHOWN * 60u ? (int)((left + 59) / 60) : -1;
+}
+
 /* The relay's answer, a line: "WAIT" while alone in the room, then
  * "GO <seed>" once both are in. What follows it is the other game's. From
  * the lobby the other is already on the way: a shorter wait. */
@@ -691,6 +800,8 @@ static void start(void)
     check_ram = !hide;
     if (getenv("MEMORIES_NETPLAY_CHECK_EVERY")) check_every = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_CHECK_EVERY"), NULL, 10);
     if (check_every < 1) check_every = 1;
+    if (getenv("MEMORIES_NETPLAY_TURN") && atoi(getenv("MEMORIES_NETPLAY_TURN")) > 0)
+        turn_vblanks = (unsigned)atoi(getenv("MEMORIES_NETPLAY_TURN")) * 60u;
     if (getenv("MEMORIES_NETPLAY_TEST_RESIGN")) test_resign = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_TEST_RESIGN"), NULL, 10);
     test_back = getenv("MEMORIES_NETPLAY_TEST_BACK") && !strcmp(getenv("MEMORIES_NETPLAY_TEST_BACK"), "1");
     /* At least 2: the input goes out in pairs of VBlanks (Netplay_Pads). */
@@ -826,13 +937,47 @@ static int covering(void)
 
 unsigned Netplay_DrawSignature(void)
 {
-    int x, y, w, h, what = covering();
-    if (!what) return 0;
+    int x, y, w, h, what = covering(), left = turn_left();
+    if (!what && left < 0) return 0;
     FusionHelper_GetViewport(&x, &y, &w, &h);
-    return (((unsigned)x * 31u + (unsigned)y) * 31u + (unsigned)w * 7u + (unsigned)h) * 3u + (unsigned)what;
+    return ((((unsigned)x * 31u + (unsigned)y) * 31u + (unsigned)w * 7u + (unsigned)h) * 3u + (unsigned)what) * 97u +
+           (unsigned)(left + 2) * 5u + (unsigned)Menu_Scale() + (unsigned)(turn_side == side - 1);
 }
 
-void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
+/* The turn timer's countdown, at the top of the picture: whose turn, the
+ * seconds left, or that the time is up. */
+static void draw_timer(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
+{
+    char text[96];
+    int vx, vy, vw, vh, scale = Menu_Scale() * 2, width, left = turn_left(), mine = turn_side == side - 1;
+    int box_x, box_y, box_w, box_h, row, column;
+    *x = *y = *w = *h = 0;
+    if (left < 0) return;
+    FusionHelper_GetViewport(&vx, &vy, &vw, &vh);
+    if (vw <= 0 || vh <= 0) return;
+    if (!left) snprintf(text, sizeof(text), "Tempo scaduto: il turno %s gioca da solo", mine ? "tuo" : "avversario");
+    else snprintf(text, sizeof(text), "%s: %d s", mine ? "Il tuo turno" : "Turno avversario", left);
+    width = Menu_TextWidthScaled(text, scale);
+    if (width > vw - 8 * scale) {
+        scale = Menu_Scale();
+        width = Menu_TextWidthScaled(text, scale);
+    }
+    box_w = width + 12 * scale, box_h = 16 * scale;
+    box_x = vx + (vw - box_w) / 2, box_y = vy + vh / 6;
+    if (box_x < 0) box_x = 0;
+    if (box_y < 0) box_y = 0;
+    if (box_x + box_w > canvas->width) box_w = canvas->width - box_x;
+    if (box_y + box_h > canvas->height) box_h = canvas->height - box_y;
+    if (box_w <= 0 || box_h <= 0) return;
+    for (row = box_y; row < box_y + box_h; row++)
+        for (column = box_x; column < box_x + box_w; column++)
+            canvas->pixels[row * canvas->stride + column] = 0xFF101830u;
+    Menu_DrawTextScaled(canvas, box_x + 6 * scale, box_y + box_h / 2, text,
+                        left && left > 10 ? 0xFFF0D070u : 0xFFFF8080u, scale);
+    *x = box_x, *y = box_y, *w = box_w, *h = box_h;
+}
+
+static void draw_cover(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
 {
     int vx, vy, vw, vh, wide, left, top, right, bottom, row, column, scale, width, what = covering();
     const char *text = what == COVER_STAR ? "L'avversario sceglie la stella guardiana" : "L'avversario guarda una carta";
@@ -863,6 +1008,24 @@ void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
     Menu_DrawTextScaled(canvas, left + (right - left - width) / 2, (top + bottom) / 2 - 6 * scale, text, 0xFFFFFFFFu,
                         scale);
     *x = left, *y = top, *w = right - left, *h = bottom - top;
+}
+
+void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
+{
+    int tx, ty, tw, th;
+    draw_cover(canvas, x, y, w, h);
+    draw_timer(canvas, &tx, &ty, &tw, &th);
+    if (!tw || !th) return;
+    if (!*w || !*h) {
+        *x = tx, *y = ty, *w = tw, *h = th;
+        return;
+    }
+    {
+        int x1 = *x + *w > tx + tw ? *x + *w : tx + tw, y1 = *y + *h > ty + th ? *y + *h : ty + th;
+        if (tx < *x) *x = tx;
+        if (ty < *y) *y = ty;
+        *w = x1 - *x, *h = y1 - *y;
+    }
 }
 
 uint32_t Netplay_Seed(void)
@@ -947,6 +1110,7 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
     }
     both[side - 1] = mine;
     both[2 - side] = theirs;
+    if (index >= delay) turn_timer(both);
 }
 
 void Netplay_Point(unsigned frame)
