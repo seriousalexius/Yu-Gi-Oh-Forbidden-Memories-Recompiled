@@ -209,6 +209,22 @@ void Menu_ShowNotice(const char *title, const char *text, const char *const *but
 enum { MENU_NOTICE_PLAIN, MENU_NOTICE_GREEN, MENU_NOTICE_DIM };
 void Menu_ShowNoticeGrid(const char *title, const char *text, const char *const *buttons, int count, int columns,
                          const signed char *styles, int focus, void (*chosen)(int button, int *quit));
+/* fork: a notice the caller draws itself (the bet before an online duel,
+ * bet.c). `draw` paints all of x, y, w, h of `canvas`: the part of the window
+ * overlays keep within (Menu_OverlayArea), below the bar. `event` gets the
+ * window's pointer and keys in window pixels, `pad` a controller's newly
+ * pressed buttons with Cross and Circle as Menu_NoticePad has them
+ * (BUTTON_LAYOUT_CROSS, _CIRCLE); each returns 1 when it must be drawn again.
+ * Otherwise it is a notice: Menu_NoticeShown, Menu_CloseNotice and a new
+ * notice in its place. */
+typedef struct MenuScreen {
+    void (*draw)(MenuCanvas *canvas, int x, int y, int w, int h);
+    int (*event)(const MenuEvent *event, int *quit);
+    int (*pad)(uint16_t pressed, int *quit);
+} MenuScreen;
+void Menu_ShowScreen(const MenuScreen *screen);
+/* The screen shown changed by itself (a message from the server): it is drawn again. */
+void Menu_ScreenChanged(void);
 void Menu_CloseNotice(void);
 int Menu_NoticeShown(void);
 /* A controller's newly pressed pad buttons (PS1 bits) for the notice shown:

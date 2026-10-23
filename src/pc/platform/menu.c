@@ -348,6 +348,7 @@ static struct {
     signed char style[MENU_NOTICE_GRID];
     char title[128], text[1024], buttons[MENU_NOTICE_GRID][48];
     void (*chosen)(int button, int *quit);
+    const MenuScreen *screen; /* fork: Menu_ShowScreen's, drawn by its caller */
     /* The text wrapped to the box: where each line starts and its length. */
     int line_start[NOTICE_LINES], line_length[NOTICE_LINES], lines, wrapped_ui, wrapped_width;
 } notice;
@@ -1197,6 +1198,11 @@ void Menu_Bounds(int *x, int *y, int *w, int *h)
     if (notice.shown && ready && canvas) {
         /* From the top, as the bar is: one rectangle holds both. */
         int nx, ny, nw, nh;
+        if (notice.screen) {
+            *w = canvas->width;
+            *h = canvas->height;
+            return;
+        }
         notice_geometry(&nx, &ny, &nw, &nh);
         if (*w < canvas->width) *w = canvas->width;
         if (*h < ny + nh + SHADOW) *h = ny + nh + SHADOW;
@@ -1491,6 +1497,13 @@ static int notice_button_at(int px, int py)
 static void draw_notice(void)
 {
     int x, y, w, h, i, top;
+    if (notice.screen) {
+        int left, right;
+        Menu_OverlayArea(canvas, &left, &right, &top);
+        if (canvas->alpha) clear_alpha_rect(left, top, right - left, canvas->height - top);
+        notice.screen->draw(canvas, left, top, right - left, canvas->height - top);
+        return;
+    }
     notice_geometry(&x, &y, &w, &h);
     if (canvas->alpha) clear_alpha_rect(x, y, w + SHADOW, h + SHADOW);
     for (i = SHADOW; i > 0; i--) {
@@ -1570,6 +1583,7 @@ static void show_notice(const char *title, const char *text, const char *const *
     if (notice.style[notice.focus] == MENU_NOTICE_DIM) move_focus(1);
     notice.hover = -1;
     notice.chosen = chosen;
+    notice.screen = NULL;
     notice.wrapped_ui = 0;
     notice.shown = 1;
     changed = 1;
@@ -1590,6 +1604,20 @@ void Menu_ShowNoticeGrid(const char *title, const char *text, const char *const 
 
 static void choose_notice(int button, int *quit);
 
+void Menu_ShowScreen(const MenuScreen *screen)
+{
+    close_menu();
+    notice.screen = screen;
+    notice.count = 0;
+    notice.shown = 1;
+    changed = 1;
+}
+
+void Menu_ScreenChanged(void)
+{
+    if (notice.shown && notice.screen) changed = 1;
+}
+
 int Menu_NoticeShown(void) { return ready && notice.shown; }
 
 int Menu_NoticePad(uint16_t pressed, int *quit)
@@ -1598,6 +1626,11 @@ int Menu_NoticePad(uint16_t pressed, int *quit)
     /* In the game's own layout: Cross confirms and Circle backs out, or the
      * other way round with View > Japanese buttons. */
     pressed = ButtonLayout_Apply(pressed, 0, Settings_Get(SET_JP_BUTTONS));
+    if (notice.screen) {
+        if (!notice.screen->pad(pressed, quit)) return 0;
+        changed = 1;
+        return 1;
+    }
     if (pressed & BUTTON_LAYOUT_CROSS) choose_notice(notice.focus, quit);
     else if (pressed & BUTTON_LAYOUT_CIRCLE) choose_notice(notice.count - 1, quit);
     else if (pressed & 0x0010) move_focus(focus_row(0)); /* Up */
@@ -1647,6 +1680,11 @@ static void choose_notice(int button, int *quit)
 /* The notice has the window's mouse and keyboard while it is up. */
 static int notice_event(const MenuEvent *event, int *quit)
 {
+    if (notice.screen) {
+        int again = notice.screen->event(event, quit);
+        return again || (event->type != MENU_EVENT_NONE && event->type != MENU_EVENT_MOTION &&
+                         event->type != MENU_EVENT_LEAVE);
+    }
     switch (event->type) {
     case MENU_EVENT_BUTTON_DOWN: {
         int button = event->button == 1 ? notice_button_at(event->x, event->y) : -1;
