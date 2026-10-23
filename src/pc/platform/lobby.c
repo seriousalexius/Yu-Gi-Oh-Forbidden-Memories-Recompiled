@@ -45,6 +45,10 @@ static size_t outbox_length, inbox_length;
 static char shared_token[40];           /* under lock: what the thread says "entra" with */
 static int thread_running, paused, wake; /* paused and wake: atomic */
 static int redial; /* atomic: a logout, the connection made again with no token */
+/* fork: this run's mark, so the server tells this game's new connection from
+ * another game on the same account (worker.js "entra": multi, sessione);
+ * made before the thread, never changed. */
+static char session[40];
 
 static char host[256];
 static unsigned port = 80;
@@ -117,7 +121,7 @@ static void *run(void *unused)
     (void)unused;
     for (;;) {
         uint64_t last_in, last_ping;
-        char mine[40], hello[96];
+        char mine[40], hello[160];
         if (__atomic_load_n(&paused, __ATOMIC_ACQUIRE)) {
             wait_retry(1000);
             continue;
@@ -135,7 +139,9 @@ static void *run(void *unused)
         pthread_mutex_unlock(&lock);
         last_in = last_ping = now_ms();
         if (mine[0]) {
-            snprintf(hello, sizeof(hello), "{\"t\":\"entra\",\"gettone\":\"%s\"}", mine);
+            /* The lobby only if no other game on the account has it (the saves either way). */
+            snprintf(hello, sizeof(hello), "{\"t\":\"entra\",\"gettone\":\"%s\",\"multi\":1,\"sessione\":\"%s\"}",
+                     mine, session);
             if (NetplayNet_SendText(hello)) goto lost;
         }
         while (!__atomic_load_n(&paused, __ATOMIC_ACQUIRE)) {
@@ -173,6 +179,7 @@ static int start_thread(void)
     sigset_t all, previous;
     int error;
     if (thread_running) return 0;
+    snprintf(session, sizeof(session), "%llx%llx", (unsigned long long)time(NULL), (unsigned long long)now_ms());
     /* The game's clock signal belongs to the main thread (platform_common.c). */
     sigfillset(&all);
     pthread_sigmask(SIG_BLOCK, &all, &previous);
@@ -217,6 +224,7 @@ static int result_count;
 static char accepted[NAME];             /* the player whose challenge this one accepted */
 static Player players[PLAYERS];
 static int player_count, connected, in_lobby;
+static int saves_only; /* fork: connected for the saves only, the lobby on another game of this account */
 static char challenged[NAME];   /* the player this one challenged, waiting for an answer */
 static char challenger[NAME];   /* the player whose challenge is on screen */
 static char test_challenge[NAME];
@@ -333,10 +341,12 @@ static void tell_results(void)
     write_account();
 }
 
+/* Into the lobby, even from another game on this account (which keeps the saves). */
 static void join(void)
 {
-    char line[96];
-    snprintf(line, sizeof(line), "{\"t\":\"entra\",\"gettone\":\"%s\"}", token);
+    char line[160];
+    snprintf(line, sizeof(line), "{\"t\":\"entra\",\"gettone\":\"%s\",\"multi\":1,\"sessione\":\"%s\",\"lobby\":1}",
+             token, session);
     send_line(line);
 }
 
@@ -936,7 +946,7 @@ static void handle(const char *line)
         int was = in_lobby;
         Cloud_Lost();
         if (was || connected) fprintf(stderr, "memories-pc: lobby: link lost\n");
-        connected = in_lobby = 0;
+        connected = in_lobby = saves_only = 0;
         challenger[0] = '\0';
         if (Bet_Active()) {
             challenged[0] = accepted[0] = '\0';
@@ -961,6 +971,31 @@ static void handle(const char *line)
         }
     } else if (!strcmp(type, "account")) {
         if (!Json_Bool(Json_Member(root, "password"), 1) && !password_asked) ask_password = 1;
+        if (Json_Bool(Json_Member(root, "solo"), 0)) {
+            /* fork: the lobby is another game's on this account; the saves here all the same */
+            saves_only = 1;
+            in_lobby = 0;
+            fprintf(stderr, "memories-pc: lobby: %s is in the lobby elsewhere: here the saves only\n", my_name);
+            tell_results();
+            Cloud_Joined();
+        }
+    } else if (!strcmp(type, "solo")) {
+        /* fork: another game on this account opened Online and took the lobby */
+        int was = in_lobby;
+        saves_only = 1;
+        in_lobby = 0;
+        challenger[0] = '\0';
+        fprintf(stderr, "memories-pc: lobby: the lobby went to another game of %s: here the saves only\n", my_name);
+        if (Bet_Active()) {
+            challenged[0] = accepted[0] = '\0';
+            Bet_Cancel("Il tuo account e' entrato nella lobby da un altro gioco: la sfida e' annullata.");
+        } else if (was && (challenged[0] || ((screen == SCREEN_LIST || screen == SCREEN_PLAYER ||
+                                             screen == SCREEN_JOINING || screen == SCREEN_WAIT) &&
+                                            Menu_NoticeShown()))) {
+            info("Il tuo account e' entrato nella lobby da un altro gioco aperto: qui restano i salvataggi (passano "
+                 "da soli). Riapri Online per giocare online da qui.");
+        }
+        challenged[0] = '\0';
     } else if (!strcmp(type, "password_ok")) {
         fprintf(stderr, "memories-pc: lobby: password set\n");
         if (screen == SCREEN_JOINING && Menu_NoticeShown())
@@ -970,6 +1005,7 @@ static void handle(const char *line)
         int first = !in_lobby;
         read_list(Json_Member(root, "giocatori"));
         in_lobby = 1;
+        saves_only = 0;
         if (first) fprintf(stderr, "memories-pc: lobby: connected as %s (%d players)\n", my_name, player_count);
         if (first) tell_results();
         if (first) Cloud_Joined();
@@ -1331,7 +1367,9 @@ void Lobby_Account(void)
     Cloud_Start(my_name);
     snprintf(text, sizeof(text), "Sei entrato come: %s\n%s\n\nPuoi tenerlo o uscire per entrare con un altro "
              "account.", my_name,
-             in_lobby ? "Collegato alla lobby." : connected ? "Mi sto collegando alla lobby..." :
+             in_lobby ? "Collegato alla lobby." :
+             saves_only ? "Salvataggi collegati (la lobby e' sull'altro gioco aperto con questo account)." :
+             connected ? "Mi sto collegando alla lobby..." :
                                                              "Non collegato alla lobby (manca internet?).");
     screen = SCREEN_ACCOUNT;
     Menu_ShowNotice("Account", text, buttons, 2, 0, account_chosen);
@@ -1350,6 +1388,7 @@ void Lobby_Open(void)
         return;
     }
     Cloud_Start(my_name);
+    if (saves_only && connected) join(); /* fork: the lobby back from the other game */
     deck_warned = 0;
     show_list();
 }
