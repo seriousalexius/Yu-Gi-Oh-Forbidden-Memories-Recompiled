@@ -23,9 +23,11 @@
  *
  * Everything is in mod-data/arena/arena.txt, written after every step
  * (key=value lines, the deck as card numbers): the game closed anywhere
- * comes back to the same screen; a duel the game was closed in counts for
- * nothing. The same file keeps the runs, the best record and each hero's
- * wins.
+ * comes back to the same screen; a duel left without its end (the game
+ * closed in it, or a reset) counts as lost. The same file keeps the runs,
+ * the best record and each hero's wins. The account (the fork's cloud.c)
+ * carries it between devices: a file changed from outside is read again
+ * (reread), so the run goes on where the other device left it.
  *
  * Tests only (not in mod.json): MEMORIES_MOD_ARENA_SEME (the random seed),
  * MEMORIES_MOD_ARENA_AUTO=1 (every screen takes its first choice by itself,
@@ -107,6 +109,7 @@ static struct {
 static int entry_refused;     /* Inizia without the starchips the entry asks: the intro says so */
 
 static int hide_results; /* the results screen covered: from its first frame to the result's record (rewards) */
+static int duel_over;    /* the armed duel's results screen was reached: 1 won, 2 lost */
 static void *original_runner, *original_shuffle, *original_run_duel, *original_init_sides, *original_rewards;
 static int active;            /* mode 13 is the arena's */
 static volatile int armed;    /* an arena duel is on (provided as "arena:duello") */
@@ -527,6 +530,24 @@ static int random_hero(unsigned *state, const int *not, int n_not)
 
 /* --- arena.txt ------------------------------------------------------------------- */
 
+/* arena.txt as this mod wrote or read it last (-1 none): another content is
+ * the account's copy from another device. */
+static char disk[4096];
+static long disk_size = -1;
+static int disk_wait;
+#define REREAD_FRAMES 60
+
+static long read_disk(char *out, size_t size)
+{
+    FILE *file = host->open_data(host, STATE_FILE, "rb");
+    long got = 0;
+    if (!file) return -1;
+    /* fgets, as the game lends no fread on Android */
+    while (got < (long)size - 1 && fgets(out + got, (int)(size - (size_t)got), file)) got += (long)strlen(out + got);
+    fclose(file);
+    return got;
+}
+
 #define PUT(...) (used += (size_t)snprintf(text + used, used < sizeof(text) ? sizeof(text) - used : 0, __VA_ARGS__))
 
 static void save_state(void)
@@ -555,6 +576,8 @@ static void save_state(void)
     }
     fwrite(text, 1, used, file);
     fclose(file);
+    memcpy(disk, text, used);
+    disk_size = (long)used;
 }
 
 static int numbers(const char *at, int *out, int max)
@@ -582,17 +605,22 @@ static unsigned unumber(const char *text)
 
 static void load_state(void)
 {
-    FILE *file = host->open_data(host, STATE_FILE, "r");
-    char line[1024];
+    static char text[sizeof(disk) + 1];
+    char *line, *end;
     int v[8];
     memset(&run, 0, sizeof(run));
     run.hero = -1;
-    if (!file) return;
-    while (fgets(line, sizeof(line), file)) {
-        char *value = strchr(line, '='), *nl;
-        if (!value) continue;
+    disk_size = read_disk(disk, sizeof(disk));
+    if (disk_size < 0) return;
+    memcpy(text, disk, (size_t)disk_size);
+    text[disk_size] = 0;
+    for (line = text; *line; line = end) {
+        char *value, *nl;
+        for (end = line; *end && *end != '\n'; end++) {}
+        if (*end) *end++ = 0;
+        if (!(value = strchr(line, '='))) continue;
         *value++ = 0;
-        for (nl = value; *nl && *nl != '\r' && *nl != '\n'; nl++) {}
+        for (nl = value; *nl && *nl != '\r'; nl++) {}
         *nl = 0;
         if (!strcmp(line, "fase")) run.phase = atoi(value);
         else if (!strcmp(line, "eroi")) numbers(value, run.offered, CHOICES);
@@ -617,7 +645,6 @@ static void load_state(void)
         else if (!strcmp(line, "vittorie_eroe")) numbers(value, run.hero_wins, HEROES_MAX);
         else if (!strcmp(line, "corse_eroe")) numbers(value, run.hero_runs, HEROES_MAX);
     }
-    fclose(file);
     /* A file that does not add up starts over (the statistics stay). */
     if (run.phase < PHASE_NONE || run.phase > PHASE_SUMMARY || (run.phase > PHASE_HERO && (run.hero < 0 ||
         run.hero >= hero_count)) || run.pick < 0 || run.pick > PICKS || (run.phase >= PHASE_READY &&
@@ -899,6 +926,7 @@ static void arm_duel(void)
     }
     memcpy(before_duel, gDuel_awPlayerDeck, SAVE_DATA_STATE_SIZE);
     armed = 1;
+    duel_over = 0;
     run.dueling = 1;
     save_state();
     start_duel = 1;
@@ -1110,6 +1138,7 @@ static void rewards(void)
     ((void (*)(void))original_rewards)();
     if (!armed) return;
     hide_results = 1;
+    if (!duel_over) duel_over = D_8009B362 == 0 ? 1 : 2;
     if ((gDuel_wSceneStateFlags & 0x8000) && !(gDuel_wSceneStateFlags & 0x4000)) {
         gDuel_wSceneStateFlags |= 0x4000;
         Fade_SetTargetLevel(0, 6);
@@ -1417,18 +1446,43 @@ static void online(void)
     }
 }
 
+/* Every second or so, off a duel: arena.txt changed from outside (the
+ * account's copy from another device) is the run from then on. */
+static void reread(void)
+{
+    static char now[sizeof(disk)];
+    long size;
+    if (armed || net_on || ++disk_wait < REREAD_FRAMES) return;
+    disk_wait = 0;
+    size = read_disk(now, sizeof(now));
+    if (size < 0 || (size == disk_size && !memcmp(now, disk, (size_t)size))) return;
+    host->log(host, "arena: arena.txt cambiato da fuori (account), corsa riletta");
+    load_state();
+    cursor = button = confirm = list_top = 0;
+    in_deck = deck_sel = deck_top = sheet = deck_view = 0;
+    entry_refused = 0;
+    rev++;
+}
+
 static void frame(void)
 {
     online();
-    /* Back on the title with a duel still armed (a reset): nothing counts. */
+    reread();
+    /* Back on the title with a duel still armed (a reset): lost, unless its
+     * results screen said won. */
     if ((D_8009B26C & 0x1F) == MAIN_MODE_MENU) {
         if (armed) {
             put_save_back("duello interrotto");
-            run.dueling = 0;
-            host->log(host, "arena: duello interrotto, non contato");
-            save_state();
+            host->log(host, "arena: duello interrotto, %s", duel_over == 1 ? "era gia' vinto" : "contato come perso");
+            record_result(duel_over == 1);
         }
         active = 0;
+    }
+    /* A duel the game was closed in (here, or on the device the account's
+     * run came from): lost. */
+    if (run.dueling && !armed && !net_on) {
+        host->log(host, "arena: il gioco si era chiuso durante un duello: contato come perso");
+        record_result(0);
     }
 }
 
@@ -2113,12 +2167,6 @@ int MemoriesModInit(const MemoriesModHost *from, MemoriesMod *mod)
     load_prizes();
     load_texts();
     load_state();
-    if (run.dueling) {
-        host->log(host, "arena: il gioco si era chiuso durante un duello: non contato (il mazzo del salvataggio non "
-                        "era stato toccato)");
-        run.dueling = 0;
-        save_state();
-    }
     return host->provide(host, "duello", (void *)&armed) &&
            host->subscribe(host, MEMORIES_EVENT_MENU, 0, menu) != 0 &&
            host->subscribe(host, MEMORIES_EVENT_SCENE, 0, scene) != 0 &&
