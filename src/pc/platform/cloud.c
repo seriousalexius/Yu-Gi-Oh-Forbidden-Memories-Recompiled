@@ -13,6 +13,7 @@
 #include "pc/saves/deck_menu.h"
 #include "pc/saves/save_menu.h"
 #include "pc/saves/save_slots.h"
+#include <dirent.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
