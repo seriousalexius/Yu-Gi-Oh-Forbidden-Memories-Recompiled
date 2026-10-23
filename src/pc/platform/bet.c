@@ -16,6 +16,7 @@
 #include "game/card_constants.h"
 #include "game/duel_card.h"
 #include "game/save_data.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +29,8 @@
 #define STARCHIPS_MAX 999999
 #define DECK_COPIES 3
 #define NAME 13
+
+u32 Text_LookupString(s32 bank, s32 id); /* src/game/text_lookup_string.c: a translation's, else the disc's */
 #define PAGE 18 /* cards a page of the collection shows, three to a row */
 
 typedef struct {
@@ -484,7 +487,7 @@ static void card_text(int id, char *out, size_t size)
 {
     const unsigned char *codes = Cards_DescriptionText(id);
     size_t n = 0;
-    if (!codes) codes = Text_Resolve(0xD100 + id, NULL);
+    if (!codes) codes = (const unsigned char *)(uintptr_t)Text_LookupString(0, 0xD100 + Cards_BaseId(id));
     while (codes && *codes != 0xFF && n + 5 < size) {
         int code = *codes++;
         uint32_t c;
