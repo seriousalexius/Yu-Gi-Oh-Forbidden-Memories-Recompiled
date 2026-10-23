@@ -40,7 +40,7 @@
 #define NAME 13
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-static char outbox[65536], inbox[65536]; /* lines; under lock (a slot file in base64 is 11 KB) */
+static char outbox[512 * 1024], inbox[512 * 1024]; /* lines; under lock (cloud.c's biggest file in base64 is 214 KB) */
 static size_t outbox_length, inbox_length;
 static char shared_token[40];           /* under lock: what the thread says "entra" with */
 static int thread_running, paused, wake; /* paused and wake: atomic */

@@ -16,6 +16,8 @@ void DeckMenu_Request(void);
 /* Esc while it is open closes it instead of the game. */
 int DeckMenu_Active(void);
 void DeckMenu_Close(void);
+/* The account (cloud.c) wrote a decks/ file: read again, not kept. */
+void DeckMenu_FileReplaced(void);
 /* Whether the game's pads read as released: while the screen is open, and
  * until the buttons that closed it are let go. */
 int DeckMenu_HoldsPads(void);
