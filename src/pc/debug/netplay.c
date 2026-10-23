@@ -30,6 +30,12 @@
  * the VBlank it is for. */
 #define GAP_FAST 48
 #define GAP_SLOW_MAX 12
+/* fork: the choices run at CHOICE_RATE (Alessio's, 23/10), not 100%: the
+ * gap while choosing is gap_slow times CHOICE_RATE / 100 VBlanks, the same
+ * time ahead as at 100%, and the turn timer counts VBLANKS_PER_S a second. */
+#define CHOICE_RATE 400
+#define CHOICE_GAP(gap) ((gap) * CHOICE_RATE / 100)
+#define VBLANKS_PER_S (60u * CHOICE_RATE / 100)
 #define FLUSH_MS 20 /* what is kept goes out at least this often */
 #define CHECKS 64
 #define WAIT_WARN_MS 5000
@@ -649,7 +655,7 @@ static void check_end(void)
 #define RAW_RIGHT 0x0020
 #define RAW_CIRCLE 0x2000
 #define RAW_CROSS 0x4000
-static unsigned turn_vblanks = TURN_SECONDS * 60, turn_used;
+static unsigned turn_vblanks = TURN_SECONDS * VBLANKS_PER_S, turn_used;
 static int turn_side = -1, turn_auto, auto_flip, auto_toggle;
 static unsigned auto_step, auto_tries, auto_state;
 static uint16_t auto_button;
@@ -738,7 +744,7 @@ static int turn_left(void)
     if (!turn_duel() || turn_side < 0) return -1;
     if (turn_auto) return 0;
     left = turn_vblanks - turn_used;
-    return left <= TURN_SHOWN * 60u ? (int)((left + 59) / 60) : -1;
+    return left <= TURN_SHOWN * VBLANKS_PER_S ? (int)((left + VBLANKS_PER_S - 1) / VBLANKS_PER_S) : -1;
 }
 
 /* The relay's answer, a line: "WAIT" while alone in the room, then
@@ -825,7 +831,7 @@ static void start(void)
     if (getenv("MEMORIES_NETPLAY_CHECK_EVERY")) check_every = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_CHECK_EVERY"), NULL, 10);
     if (check_every < 1) check_every = 1;
     if (getenv("MEMORIES_NETPLAY_TURN") && atoi(getenv("MEMORIES_NETPLAY_TURN")) > 0)
-        turn_vblanks = (unsigned)atoi(getenv("MEMORIES_NETPLAY_TURN")) * 60u;
+        turn_vblanks = (unsigned)atoi(getenv("MEMORIES_NETPLAY_TURN")) * VBLANKS_PER_S;
     if (getenv("MEMORIES_NETPLAY_TEST_RESIGN")) test_resign = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_TEST_RESIGN"), NULL, 10);
     test_back = getenv("MEMORIES_NETPLAY_TEST_BACK") && !strcmp(getenv("MEMORIES_NETPLAY_TEST_BACK"), "1");
     /* At least 2: the input goes out in pairs of VBlanks (Netplay_Pads). */
@@ -1107,8 +1113,7 @@ static void emit(unsigned target, uint16_t bits)
 
 /* The duel's animations, where nobody chooses (the draw, the battle, the
  * field turning at the turn's end, the results): flat out in both games.
- * The choices, the phases the turn timer counts, at 100%, so that the
- * cursor moves as it always has. The fusions and the card going down
+ * The choices, the phases the turn timer counts, at CHOICE_RATE. The fusions and the card going down
  * (phases 6 and 7): fast but not flat out, FUSION_RATE (Alessio's), so a
  * fusion can still be followed; animation_now() says 2 there. Out of the
  * duel (the start after the restart, the way into each duel) flat out too,
@@ -1144,7 +1149,7 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
     /* Ours for the VBlank the gap says. A longer gap fills the VBlanks in
      * between with no buttons; a shorter one keeps the buttons for the next
      * VBlank still free, so that no press is lost. */
-    want = index + (animation ? GAP_FAST : gap_slow);
+    want = index + (animation ? GAP_FAST : CHOICE_GAP(gap_slow));
     pending_bits |= local;
     if (want > last_target) {
         int jumped = want > last_target + 1;
@@ -1159,7 +1164,7 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
     /* Flat out in the animations, and on until the gap has shrunk back
      * (choosing at 100% with the long gap would feel slow); paused stays
      * paused. Game speed and the turbo come back after the duel. */
-    rate = animation == 2 ? FUSION_RATE : animation || last_target > index + gap_slow ? -1 : 100;
+    rate = animation == 2 ? FUSION_RATE : animation || last_target > index + CHOICE_GAP(gap_slow) ? -1 : CHOICE_RATE;
     if (Platform_ClockRate() != 0 && Platform_ClockRate() != rate) Platform_SetClockRate(rate);
     mine = index < delay ? 0 : local_bits[index % RING];
     if (index >= delay && !peer_gone) {
