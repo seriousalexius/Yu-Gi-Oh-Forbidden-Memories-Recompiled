@@ -6,6 +6,7 @@
 #include "pc/debug/monitor.h"
 #include "pc/guest/state.h"
 #include "pc/memory_map.h"
+#include "pc/mods/events.h"
 #include "pc/platform/menu.h"
 #include "pc/platform/paths.h"
 #include "pc/platform/platform.h"
@@ -28,7 +29,8 @@
 #define SOUND_TO 0x001E1B44u
 
 /* The messages, each a type byte and a 16-bit little-endian length. */
-enum { MSG_HELLO = 'H', MSG_SAVE = 'S', MSG_INPUT = 'I', MSG_CHECK = 'K', MSG_BYE = 'B', MSG_RESIGN = 'R' };
+enum { MSG_HELLO = 'H', MSG_SAVE = 'S', MSG_INPUT = 'I', MSG_CHECK = 'K', MSG_BYE = 'B', MSG_RESIGN = 'R', MSG_DECK = 'D' };
+#define DECK_BYTES 80 /* the save state's first 80 bytes: the deck, 40 halfwords */
 
 typedef struct {
     uint32_t index, frame;
@@ -56,6 +58,13 @@ static char opponent[64]; /* its "contro=" line */
 static int over, test_back; /* the duel's result said (duel_over) */
 static unsigned test_resign;
 static uint64_t over_at;
+/* The arena online (netplay.h): the flags that ride with the input (1 =
+ * ready for the next duel), the jump both flags ask for, the duel running. */
+static NetplayArena arena;
+static int arena_mode, arena_ready, arena_deck_sent, arena_both, arena_go, arena_in_duel, arena_live, arena_waiting;
+static unsigned arena_go_index, test_series;
+static uint64_t arena_notice_at;
+static uint8_t local_flags[RING], remote_flags[RING];
 
 static uint64_t now_ms(void)
 {
@@ -236,9 +245,10 @@ static void handle(int type, const unsigned char *payload, size_t length)
         }
         break;
     case MSG_INPUT:
-        if (length == 6) {
+        if (length == 6 || length == 7) {
             uint32_t index = get32(payload);
             remote_bits[index % RING] = (uint16_t)(payload[4] | payload[5] << 8);
+            remote_flags[index % RING] = length == 7 ? payload[6] : 0;
             remote_index[index % RING] = index;
             remote_have[index % RING] = 1;
         }
@@ -250,6 +260,12 @@ static void handle(int type, const unsigned char *payload, size_t length)
             check->frame = get32(payload + 4);
             check->hash = get32(payload + 8) | (uint64_t)get32(payload + 12) << 32;
             compare_checks();
+        }
+        break;
+    case MSG_DECK:
+        if (length == DECK_BYTES && arena_mode) {
+            memcpy(saves[2 - side], payload, DECK_BYTES);
+            fprintf(stderr, "memories-pc: online: arena: the other player's deck came\n");
         }
         break;
     case MSG_BYE:
@@ -307,6 +323,7 @@ static void read_asked(void)
         const char *save = getenv("MEMORIES_NETPLAY_SAVE");
         snprintf(asked_config, sizeof(asked_config), "%s", config);
         snprintf(asked_save, sizeof(asked_save), "%s", save ? save : "");
+        arena_mode = getenv("MEMORIES_NETPLAY_ARENA") && !strcmp(getenv("MEMORIES_NETPLAY_ARENA"), "1");
         return;
     }
     if (Paths_User(path, sizeof(path), "online.cfg")) return;
@@ -317,6 +334,7 @@ static void read_asked(void)
         if (!strncmp(line, "netplay=", 8)) snprintf(asked_config, sizeof(asked_config), "%s", line + 8);
         else if (!strncmp(line, "save=", 5)) snprintf(asked_save, sizeof(asked_save), "%s", line + 5);
         else if (!strncmp(line, "contro=", 7)) snprintf(opponent, sizeof(opponent), "%s", line + 7);
+        else if (!strcmp(line, "modo=arena")) arena_mode = 1;
     }
     fclose(file);
     remove(path);
@@ -396,12 +414,20 @@ static void duel_over(int won, const char *how)
     if (over) return;
     over = 1;
     over_at = now_ms();
-    fprintf(stderr, "memories-pc: online: duel over: you %s (%s)\n", won ? "won" : "lost", how);
+    arena.over = 1;
+    arena_waiting = 0;
+    fprintf(stderr, "memories-pc: online: duel over: you %s (%s)%s\n", won ? "won" : "lost", how,
+            arena_mode ? " (the arena's series)" : "");
     snprintf(line, sizeof(line), "risultato=%s,%s", won ? "vinto" : "perso", opponent);
     note_result(line);
-    snprintf(text, sizeof(text), "%s %s%s (%s)%s", won ? "Hai vinto contro" : "Hai perso contro",
-             opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
-             from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
+    if (arena_mode)
+        snprintf(text, sizeof(text), "%s la serie d'arena contro %s%s (%s; serie %d-%d)%s",
+                 won ? "Hai vinto" : "Hai perso", opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
+                 arena.wins[0], arena.wins[1], from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
+    else
+        snprintf(text, sizeof(text), "%s %s%s (%s)%s", won ? "Hai vinto contro" : "Hai perso contro",
+                 opponent[0] ? opponent : "l'avversario", won ? "!" : ".", said,
+                 from_lobby ? "\n\nTorna al gioco normale (il gioco si riavvia)." : "");
     Menu_ShowNotice("Online", text, from_lobby ? back : ok, 1, 0, over_closed);
 }
 
@@ -426,9 +452,124 @@ int Netplay_AskResign(void)
     static const char *const buttons[] = {"Arrenditi", "Continua"};
     if (!active || over) return 0;
     /* Continua is focused and last: Enter, Esc and Circle keep playing. */
-    Menu_ShowNotice("Online", "Vuoi arrenderti? Conta come sconfitta.", buttons, 2, 1, resign_chosen);
+    Menu_ShowNotice("Online", arena_mode ? "Vuoi arrenderti? Perdi la serie d'arena." : "Vuoi arrenderti? Conta come sconfitta.",
+                    buttons, 2, 1, resign_chosen);
     return 1;
 }
+
+/* --- the arena online (netplay.h) --- */
+
+static void arena_series_notice(const char *how_text);
+
+static void arena_waiting_chosen(int button, int *quit)
+{
+    (void)quit;
+    (void)button;
+    if (arena_waiting && !over) resign(); /* its one button: Ritirati */
+}
+
+static void arena_wait_notice(void)
+{
+    static const char *const buttons[] = {"Ritirati"};
+    char text[200];
+    snprintf(text, sizeof(text), "Pronto. Aspetto %s...\n\nSerie: tu %d - %d", opponent[0] ? opponent : "l'avversario",
+             arena.wins[0], arena.wins[1]);
+    arena_waiting = 1;
+    Menu_ShowNotice("Arena online", text, buttons, 1, 0, arena_waiting_chosen);
+}
+
+static void arena_next(void)
+{
+    arena_ready = 1;
+    fprintf(stderr, "memories-pc: online: arena: ready for duel %d\n", arena.duel + 1);
+    arena_wait_notice();
+}
+
+static void arena_quit_chosen(int button, int *quit)
+{
+    (void)quit;
+    if (over) return;
+    if (button == 0) resign();
+    else arena_series_notice(NULL);
+}
+
+static void arena_series_chosen(int button, int *quit)
+{
+    static const char *const buttons[] = {"Si, ritirati", "No"};
+    (void)quit;
+    if (over) return;
+    if (button == 0) arena_next();
+    else Menu_ShowNotice("Arena online", "Vuoi ritirarti? Perdi la serie.", buttons, 2, 1, arena_quit_chosen);
+}
+
+static void arena_series_notice(const char *how_text)
+{
+    static const char *const buttons[] = {"Prossimo duello", "Ritirati"};
+    static char last[160];
+    char text[400];
+    if (how_text) snprintf(last, sizeof(last), "%s", how_text);
+    snprintf(text, sizeof(text), "%s\n\nSerie: tu %d - %d %s (al meglio di 3: chi arriva a 2 vince).", last,
+             arena.wins[0], arena.wins[1], opponent[0] ? opponent : "l'avversario");
+    arena_notice_at = now_ms();
+    Menu_ShowNotice("Arena online", text, buttons, 2, 0, arena_series_chosen);
+}
+
+/* A duel of the series is over, in both games at the same point. */
+static void arena_count(int won, const char *how)
+{
+    char text[160];
+    const char *said = !strcmp(how, "exodia") ? "Exodia" : !strcmp(how, "deck") ? "mazzo finito"
+                     : !strcmp(how, "test") ? "prova" : "punti vita a zero";
+    arena_live = arena_in_duel = 0;
+    arena.wins[won ? 0 : 1]++;
+    fprintf(stderr, "memories-pc: online: arena: duel %d: you %s (%s), series %d-%d\n", arena.duel,
+            won ? "won" : "lost", how, arena.wins[0], arena.wins[1]);
+    if (arena.wins[0] >= 2 || arena.wins[1] >= 2) {
+        duel_over(arena.wins[0] >= 2, how);
+        return;
+    }
+    snprintf(text, sizeof(text), "Duello %d: %s (%s).", arena.duel, won ? "hai vinto" : "hai perso", said);
+    arena_series_notice(text);
+}
+
+/* At every point of an arena session: the deck out once the mod has it, the
+ * jump both flags asked for (Netplay_Pads), the tests' shortcuts. */
+static void arena_point(void)
+{
+    if (arena.deck_ready && !arena_deck_sent) {
+        memcpy(saves[side - 1], arena.deck, DECK_BYTES);
+        send_message(MSG_DECK, saves[side - 1], DECK_BYTES);
+        arena_deck_sent = 1;
+        fprintf(stderr, "memories-pc: online: arena: my deck is ready and sent\n");
+        arena_next();
+    }
+    if (arena_go && !over) {
+        char why[160];
+        arena_go = 0;
+        arena_ready = 0;
+        arena.duel++;
+        arena_in_duel = 1;
+        arena_live = 0;
+        arena_go_index = vblank_index;
+        if (arena_waiting) {
+            arena_waiting = 0;
+            Menu_CloseNotice();
+        }
+        fprintf(stderr, "memories-pc: online: arena: duel %d starts (VBlank %u)\n", arena.duel, vblank_index);
+        if (TitleJump_RequestTo(JUMP_DUEL2P, 0, NULL, why, sizeof(why)))
+            fprintf(stderr, "memories-pc: online: no jump to the duel: %s\n", why);
+    }
+    if (test_series && !over) {
+        if (arena_live && vblank_index >= arena_go_index + test_series)
+            arena_count((arena.duel % 2 == 1) == (side == 1), "test");
+        else if (!arena_in_duel && arena_deck_sent && !arena_ready && Menu_NoticeShown() &&
+                 now_ms() - arena_notice_at > 2000) {
+            Menu_CloseNotice();
+            arena_next();
+        }
+    }
+}
+
 
 /* The end of a two-player duel (main mode 3, a negative gDuel_bOpponentID),
  * from what both games hold the same: Exodia's phase (14, whose player is
@@ -451,9 +592,11 @@ static void check_end(void)
         if (adjustment == 40) how = "exodia";
         else if (adjustment == -40) how = "deck";
     } else {
+        arena_live = arena_in_duel; /* the arena's duel runs: its end counts once */
         return;
     }
-    duel_over(winner == side - 1, how);
+    if (!arena_mode) duel_over(winner == side - 1, how);
+    else if (arena_live) arena_count(winner == side - 1, how);
 }
 
 /* The relay's answer, a line: "WAIT" while alone in the room, then
@@ -614,6 +757,16 @@ static void start(void)
     }
     active = 1;
     active_since = now_ms();
+    if (arena_mode) {
+        arena.version = NETPLAY_ARENA_VERSION;
+        arena.side = side;
+        arena.seed = seed;
+        snprintf(arena.rival, sizeof(arena.rival), "%s", opponent);
+        if (getenv("MEMORIES_NETPLAY_TEST_SERIES"))
+            test_series = (unsigned)strtoul(getenv("MEMORIES_NETPLAY_TEST_SERIES"), NULL, 10);
+        Mods_ProvidePort("netplay_arena", &arena);
+        fprintf(stderr, "memories-pc: online: arena: the draft first (seed %u), then best of three\n", (unsigned)seed);
+    }
     {
         char line[96];
         snprintf(line, sizeof(line), "in_corso=%s", opponent);
@@ -714,7 +867,13 @@ void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
 
 uint32_t Netplay_Seed(void)
 {
-    return seed;
+    /* The arena: another seed for each duel of the series. */
+    return arena_mode ? seed + (uint32_t)arena.duel * 0x9E3779B9u : seed;
+}
+
+NetplayArena *Netplay_Arena(void)
+{
+    return active && arena_mode ? &arena : NULL;
 }
 
 const unsigned char *Netplay_Save(int player)
@@ -726,11 +885,16 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
 {
     unsigned index = vblank_index++, ahead = index + delay;
     uint16_t mine, theirs = 0;
-    unsigned char message[6];
+    uint8_t theirs_flags = 0;
+    unsigned char message[7];
+    /* The arena's draft and the series' notices: no buttons to the game. */
+    if (arena_mode && !arena_in_duel) local = 0;
     local_bits[ahead % RING] = local;
+    local_flags[ahead % RING] = (uint8_t)arena_ready;
     put32(message, ahead);
     message[4] = (unsigned char)local, message[5] = (unsigned char)(local >> 8);
-    send_message(MSG_INPUT, message, sizeof(message));
+    message[6] = (unsigned char)arena_ready;
+    send_message(MSG_INPUT, message, arena_mode ? 7 : 6);
     /* Two VBlanks to a message (half the WebSocket messages; the check of
      * Netplay_Point rides along): the even one waits for the odd one, which
      * the delay of 2 or more leaves time for. */
@@ -770,8 +934,16 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
         }
         if (remote_have[index % RING] && remote_index[index % RING] == index) {
             theirs = remote_bits[index % RING];
+            theirs_flags = remote_flags[index % RING];
             remote_have[index % RING] = 0;
         }
+    }
+    /* Both ready at this VBlank, and not at the one before: the jump, at
+     * the same VBlank in both games (each sees the same pair of flags). */
+    if (arena_mode && index >= delay) {
+        int both_ready = (local_flags[index % RING] & 1) && (theirs_flags & 1);
+        if (both_ready && !arena_both) arena_go = 1;
+        arena_both = both_ready;
     }
     both[side - 1] = mine;
     both[2 - side] = theirs;
@@ -780,7 +952,8 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
 void Netplay_Point(unsigned frame)
 {
     if (!active) return;
-    if (!jump_asked) {
+    if (arena_mode) arena_point();
+    else if (!jump_asked) {
         char why[160];
         jump_asked = 1;
         if (TitleJump_RequestTo(JUMP_DUEL2P, 0, NULL, why, sizeof(why)))

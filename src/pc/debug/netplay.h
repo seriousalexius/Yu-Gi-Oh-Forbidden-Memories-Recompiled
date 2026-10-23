@@ -90,4 +90,33 @@ int Netplay_AskResign(void);
 unsigned Netplay_DrawSignature(void);
 void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h);
 
+/* The arena online: the lobby's "Arena" challenge (online.cfg "modo=arena",
+ * or MEMORIES_NETPLAY_ARENA=1). No jump at the first point: the arena mod
+ * finds this under "port:netplay_arena" (events.c) and runs its draft over
+ * the title, with the draft seed below, the same in both games; meanwhile
+ * this game sends no buttons, so both games stay idle and alike. Once the
+ * mod sets deck_ready, deck[] goes into this player's save and to the other
+ * game (a 'D' message, before the ready flag that rides along with the
+ * input); the first VBlank whose input carries both players' flags jumps to
+ * the duel, in both games at once. Best of three: after each duel a notice
+ * with the series' score, "Prossimo duello" (both flags again: the next
+ * jump, another seed) or "Ritirati" (the series lost); the series' end is
+ * the result, as a single duel's. MEMORIES_NETPLAY_TEST_SERIES=<VBlanks>
+ * (tests): each duel counts that many VBlanks after it starts, won by
+ * player 1, 2, 1 in turn, and "Prossimo duello" presses itself. */
+#define NETPLAY_ARENA_VERSION 1
+typedef struct {
+    uint32_t version; /* NETPLAY_ARENA_VERSION */
+    int32_t side;     /* 1 or 2 */
+    uint32_t seed;    /* the draft's: the relay's, the same in both games */
+    int32_t deck_ready; /* the mod's: deck[] is whole */
+    uint16_t deck[40];
+    int32_t duel;    /* duels started; 0 while drafting */
+    int32_t over;    /* the series is over (or the other player left) */
+    int32_t wins[2]; /* this player's and the other's */
+    char rival[64];
+} NetplayArena;
+/* The arena session's, or NULL (not online, or a single duel). */
+NetplayArena *Netplay_Arena(void);
+
 #endif

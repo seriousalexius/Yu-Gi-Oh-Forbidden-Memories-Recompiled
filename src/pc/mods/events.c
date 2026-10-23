@@ -27,6 +27,24 @@ static unsigned dispatching;
 #define PROVIDED_MAX 1024
 static struct { int owner; char name[64]; void *pointer; } provided[PROVIDED_MAX];
 static int provided_count;
+/* What the port itself shares, as "port:<name>" (Mods_ProvidePort). */
+#define PORT_PROVIDED_MAX 16
+static struct { char name[64]; void *pointer; } port_provided[PORT_PROVIDED_MAX];
+static int port_count;
+
+void Mods_ProvidePort(const char *name, void *pointer)
+{
+    int i;
+    for (i = 0; i < port_count; i++)
+        if (!strcmp(port_provided[i].name, name)) {
+            port_provided[i].pointer = pointer;
+            return;
+        }
+    if (port_count == PORT_PROVIDED_MAX || strlen(name) >= sizeof(port_provided[0].name))
+        return;
+    strcpy(port_provided[port_count].name, name);
+    port_provided[port_count++].pointer = pointer;
+}
 
 int Mods_Subscribe(int owner, unsigned event, int priority, MemoriesModCallback callback)
 {
@@ -97,6 +115,12 @@ void *Mods_Find(const char *qualified)
     int i;
     if (!colon)
         return NULL;
+    if (!strncmp(qualified, "port:", 5)) {
+        for (i = 0; i < port_count; i++)
+            if (!strcmp(port_provided[i].name, qualified + 5))
+                return port_provided[i].pointer;
+        return NULL;
+    }
     for (i = 0; i < provided_count; i++) {
         const char *id = Mods_Id(provided[i].owner);
         if (strlen(id) == (size_t)(colon - qualified) && !strncmp(id, qualified, (size_t)(colon - qualified)) &&

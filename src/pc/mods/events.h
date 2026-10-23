@@ -8,6 +8,9 @@ int Mods_RegisterState(int owner, void *data, size_t size, unsigned version);
 /* What mods share with each other (host->provide/find). */
 int Mods_Provide(int owner, const char *name, void *pointer);
 void *Mods_Find(const char *qualified);
+/* The port's own, which mods find as "port:<name>" (the arena online's
+ * session, pc/debug/netplay.h); NULL takes it back. */
+void Mods_ProvidePort(const char *name, void *pointer);
 void Mods_VisitState(void (*visit)(int owner, void *data, size_t size, unsigned version, void *context), void *context);
 /* Any applied mod observes or replaces this gameplay event. */
 int Mods_HasSubscribers(unsigned event);
