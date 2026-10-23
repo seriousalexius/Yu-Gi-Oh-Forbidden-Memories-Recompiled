@@ -25,6 +25,13 @@
  * MEMORIES_LOBBY_TEST_PASSWORD=P answers the question of an account with no
  * password by itself. */
 
+/* fork: at start, before the mods read their data: the first start of the
+ * launch's version (dati-versione.txt below DATA_GENERATION) moves the old
+ * versions' saves, decks, mod data and account into prima-del-reset-2/, so
+ * everyone starts over; then, with no account, Lobby_Start shows the account
+ * screen until one is made. MEMORIES_FIRST_START=0 (and the control channel)
+ * leaves both out. */
+void Lobby_ResetData(void);
 /* At start, after Platform_Open: connects when there is an account. */
 void Lobby_Start(void);
 /* Every frame, on the main thread: what came in, and the notices. */

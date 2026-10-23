@@ -1069,6 +1069,41 @@ static void handle(const char *line)
     Json_Free(document);
 }
 
+/* fork: no account at the start, the start screen (no Annulla) until one is
+ * made or logged into: every account is on the server, with its saves. A
+ * closed screen (a cancelled grid, an error, no internet) comes back. */
+static int must_account, must_wait;
+static int wake_lobby(void);
+
+static void first_start(void)
+{
+    static const char *const buttons[] = {"Registrati", "Entra (ho gia' un account)"};
+    screen = SCREEN_START;
+    Menu_ShowNotice("Benvenuto!",
+                    "Per giocare serve un account: scegli un nome e una password (il codice d'invito te lo da' "
+                    "Alessio).\n\nSul tuo account si salvano i tuoi salvataggi: cambiando telefono, passando "
+                    "dal PC al telefono o reinstallando il gioco non perdi niente. Con l'account giochi anche "
+                    "online contro gli amici.\n\nHai gia' un account? Entra con nome e password.",
+                    buttons, 2, 0, start_chosen);
+}
+
+static void first_start_frame(void)
+{
+    if (!must_account) return;
+    if (token[0]) {
+        must_account = 0;
+        fprintf(stderr, "memories-pc: lobby: first start: account %s\n", my_name);
+        return;
+    }
+    if (Menu_NoticeShown()) {
+        must_wait = 0;
+        return;
+    }
+    if (++must_wait < 45) return;
+    must_wait = 0;
+    if (!wake_lobby()) first_start();
+}
+
 void Lobby_Frame(void)
 {
     static char lines[sizeof(inbox) + 1];
@@ -1077,6 +1112,7 @@ void Lobby_Frame(void)
     size_t length;
     News_Frame(); /* fork: the update notice, with or without an account (news.h) */
     Bet_Frame();  /* fork: how the last bet went (bet.h) */
+    first_start_frame();
     if (!thread_running) return;
     pthread_mutex_lock(&lock);
     length = inbox_length;
@@ -1122,6 +1158,52 @@ static void read_host(void)
     }
 }
 
+/* fork: the launch's fresh start (lobby.h), off in the tests (the control
+ * channel, MEMORIES_FIRST_START=0). */
+static int first_start_off(void)
+{
+    return flag_off("MEMORIES_FIRST_START") || getenv("MEMORIES_CONTROL") || getenv("MEMORIES_HEADLESS");
+}
+
+#define DATA_GENERATION 2
+#define RESET_FOLDER "prima-del-reset-2"
+
+void Lobby_ResetData(void)
+{
+    static const char *const names[] = {"memcard1.mcd", "memcard2.mcd", "saves", "decks", "mod-data", "cards",
+                                        "packs", "duelists", "tower", "online-deck.txt", "lobby.txt",
+                                        "scommessa.txt", "online.cfg"};
+    char marker[1024], folder[1024], from[1024], to[1024], relative[128], line[32] = "";
+    FILE *file;
+    size_t i;
+    int moved = 0;
+    if (first_start_off() || Paths_User(marker, sizeof(marker), "dati-versione.txt")) return;
+    if ((file = fopen(marker, "rb"))) {
+        if (!fgets(line, sizeof(line), file)) line[0] = '\0';
+        fclose(file);
+    }
+    if (atoi(line) >= DATA_GENERATION) return;
+    /* The marker first: a device that cannot keep it never moves anything,
+     * so no start ever moves the saves made since. */
+    if (!(file = fopen(marker, "wb"))) {
+        fprintf(stderr, "memories-pc: reset: cannot write dati-versione.txt: nothing moved\n");
+        return;
+    }
+    fprintf(file, "%d\n", DATA_GENERATION);
+    if (fclose(file)) {
+        remove(marker);
+        return;
+    }
+    if (Paths_User(folder, sizeof(folder), RESET_FOLDER) || Paths_MakeDirs(folder)) return;
+    for (i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
+        snprintf(relative, sizeof(relative), RESET_FOLDER "/%s", names[i]);
+        if (Paths_User(from, sizeof(from), names[i]) || Paths_User(to, sizeof(to), relative)) continue;
+        if (!rename(from, to)) moved++;
+    }
+    fprintf(stderr, "memories-pc: reset: data generation %d, %d old files moved to " RESET_FOLDER "\n",
+            DATA_GENERATION, moved);
+}
+
 void Lobby_Start(void)
 {
     const char *on = getenv("MEMORIES_LOBBY"), *wanted = getenv("MEMORIES_LOBBY_CHALLENGE");
@@ -1143,7 +1225,10 @@ void Lobby_Start(void)
         char fields[3][32] = {"", "", ""};
         const char *given = made && *made ? made : login && *login ? login : NULL;
         int count = 0;
-        if (!given) return;
+        if (!given) {
+            must_account = !first_start_off();
+            return;
+        }
         while (count < 3) {
             size_t span = strcspn(given, ":");
             snprintf(fields[count++], sizeof(fields[0]), "%.*s", (int)(span < 31 ? span : 31), given);

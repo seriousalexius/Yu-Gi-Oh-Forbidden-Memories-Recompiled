@@ -234,6 +234,7 @@ int main(int argc, char **argv)
         int loaded = load_game(exe);
         if (loaded) return loaded > 0 ? 0 : 1;
     }
+    Lobby_ResetData(); /* fork: the launch's fresh start, before the mods read their data (lobby.h) */
     if (Memories_ModulesInit() != 0) {
         return 1;
     }
