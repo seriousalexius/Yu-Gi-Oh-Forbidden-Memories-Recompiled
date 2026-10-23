@@ -113,6 +113,15 @@ static void read_answer(void)
                      "\nPer aggiornare: apri SideStore, vai in My Apps e premi Update. Salvataggi e impostazioni "
                      "restano.");
         }
+#elif defined(_WIN32)
+        /* fork: the PC's game is a zip in the PC folder of the same Drive link. */
+        if (pending == NOTICE_NEWER) {
+            at = strlen(text);
+            snprintf(text + at, sizeof(text) - at,
+                     "\nPer aggiornare: %s nella cartella PC scarica lo zip, chiudi il gioco, estrailo e metti la "
+                     "cartella nuova al posto di questa. Salvataggi e impostazioni restano.",
+                     page[0] ? "premi Aggiorna e" : "dove hai preso il gioco,");
+        }
 #else
         if (pending == NOTICE_NEWER) {
             at = strlen(text);
