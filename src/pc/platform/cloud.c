@@ -782,6 +782,27 @@ int Cloud_Handle(const char *type, const JsonValue *root)
         }
         listed = 1;
         fprintf(stderr, "memories-pc: cloud: %d saves on the account\n", count);
+    } else if (!strcmp(type, "nuovo")) {
+        /* fork: another game open on this account sent this slot: step() takes it (or asks) */
+        Copy copy;
+        read_copy(root, &copy);
+        if (good && copy.version > slots[slot].server.version) {
+            slots[slot].server = copy;
+            slots[slot].later = 0;
+            fprintf(stderr, "memories-pc: cloud: save slot %d is new on the account (version %d, %s)\n", slot + 1,
+                    copy.version, copy.device);
+        }
+    } else if (!strcmp(type, "nuovo_file")) {
+        /* fork: the same for the other files: files_step() takes it */
+        int at = find_file(Json_String(Json_Member(root, "nome"), ""));
+        Copy copy;
+        read_copy(root, &copy);
+        if (at >= 0 && copy.version > files[at].server.version) {
+            files[at].server = copy;
+            files[at].later = 0;
+            fprintf(stderr, "memories-pc: cloud: %s is new on the account (version %d, %s)\n", files[at].name,
+                    copy.version, copy.device);
+        }
     } else if (!strcmp(type, "salvato")) {
         if (good && slot == busy) {
             slots[slot].synced = (int)Json_Number(Json_Member(root, "versione"), 0);
