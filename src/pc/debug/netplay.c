@@ -1065,7 +1065,16 @@ unsigned Netplay_LifePoints(void)
 
 int Netplay_FirstSide(void)
 {
-    return active && arena_mode && arena.duel > 0 ? (arena.duel - 1) & 1 : 0;
+    if (!active)
+        return 0;
+    /* The arena: the duels of the series take turns. Otherwise a coin toss
+     * both games make alike, from the seed they share. */
+    if (arena_mode)
+        return arena.duel > 0 ? (arena.duel - 1) & 1 : 0;
+    const char *test = getenv("MEMORIES_NETPLAY_TEST_FIRST");
+    if (test && (*test == '1' || *test == '2'))
+        return *test - '1';
+    return (int)((seed * 0x9E3779B9u) >> 31);
 }
 
 uint32_t Netplay_Seed(void)
