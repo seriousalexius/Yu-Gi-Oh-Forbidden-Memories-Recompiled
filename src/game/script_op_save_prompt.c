@@ -29,6 +29,9 @@
 #include "../unmatched.h"
 #include "dialog_read_choice_input.h"
 #include "script_op_save_prompt.h"
+#ifdef MEMORIES_PC
+#include "pc/cards/deck_rules.h"
+#endif
 #include "duel_effect_mark_object_if_active.h"
 #include "duel_effect_entry_control.h"
 #include "dialog_choice.h"
@@ -54,6 +57,11 @@ int Duel_IsPlayerDeckComplete(void)
         i++;
         entry++;
     }
+#ifdef MEMORIES_PC
+    /* fork: a deck out of the rules is not ready for a duel either; the
+       notice says why (deck_rules.h). */
+    if (!DeckRules_DeckOk(gDuel_awPlayerDeck)) return 0;
+#endif
     return 1;
 }
 
