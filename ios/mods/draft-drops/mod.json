@@ -1,7 +1,7 @@
 {
     "id": "draft-drops",
     "name": "Draft dei drop",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "author": "Alessio",
     "description": "Dopo una vittoria il gioco tira 3 carte dalla tabella di drop dell'avversario (stesso rank, stesse probabilita del gioco originale, doppioni possibili) e tu ne scegli una, vedendo la carta disegnata, la probabilita di ognuna e quante ne hai. Le altre non vengono date. Spenta, il gioco e identico all'originale.",
     "min_api": 13,

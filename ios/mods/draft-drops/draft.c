@@ -30,6 +30,9 @@ static const MemoriesModHost *host;
 #include "game/duel_effect.h"
 #include "game/text_staging.h"
 #include "game/input.h"
+#include "game/card_constants.h"
+#include "pc/cards/cards.h"
+#include <stdlib.h>
 
 #define DRAFT_MAX 10
 /* Regola bloccata (22/10): 1 carta su 3, doppioni tenuti come nel gioco. */
@@ -46,6 +49,48 @@ static struct {
     u16 cards[DRAFT_MAX];
     u8 owned[DRAFT_MAX];    /* copies in deck and chest before the duel */
 } state;
+
+/* Triangle: the card under the cursor in big, as the arena's sheet (its
+ * picture, ATK/DEF, kind, tier and the card's text in Italian, testi.txt
+ * as the arena's, from tools/testi_carte.py); 0 while the list is up. */
+static int sheet;
+static char text_buf[96 * 1024];
+static int text_at[CARD_TABLE_ID_END + 1]; /* 1 + where in text_buf, 0 none */
+static int texts_loaded;
+
+static void load_texts(void)
+{
+    FILE *file;
+    char line[1024];
+    size_t used = 0;
+    texts_loaded = 1;
+    if (!(file = host->open_asset(host, "testi.txt"))) {
+        host->log(host, "draft: testi.txt non trovato: la scheda resta senza testo");
+        return;
+    }
+    while (fgets(line, sizeof(line), file)) {
+        char *end;
+        long id;
+        size_t len;
+        if (line[0] == '#') continue;
+        id = strtol(line, &end, 10);
+        if (end == line || *end != '|' || id <= 0 || id > CARD_TABLE_ID_END) continue;
+        for (len = 0; line[len] && line[len] != '\r' && line[len] != '\n'; len++) {}
+        line[len] = 0;
+        fv_ascii(end + 1, text_buf + used, sizeof(text_buf) - used);
+        len = strlen(text_buf + used);
+        if (used + len + 2 >= sizeof(text_buf)) break;
+        text_at[id] = (int)used + 1;
+        used += len + 1;
+    }
+    fclose(file);
+}
+
+static const char *card_text(int id)
+{
+    if (!texts_loaded) load_texts();
+    return id > 0 && id <= CARD_TABLE_ID_END && text_at[id] ? text_buf + text_at[id] - 1 : NULL;
+}
 
 static int offered(int id)
 {
@@ -123,6 +168,14 @@ static void read_input(void)
     /* The results screen must not see them: Cross would leave it. */
     gInput_wPad1Pressed = 0;
     gInput_wPad1Repeat = 0;
+    if (sheet) {
+        if (pressed & (PAD_BUTTON_TRIANGLE | PAD_BUTTON_CROSS | PAD_BUTTON_CIRCLE)) sheet = 0;
+        return;
+    }
+    if (pressed & PAD_BUTTON_TRIANGLE) {
+        sheet = state.cards[state.cursor];
+        return;
+    }
     if (repeat & PAD_DIRECTION_UP) state.cursor = (state.cursor + state.count - 1) % state.count;
     if (repeat & PAD_DIRECTION_DOWN) state.cursor = (state.cursor + 1) % state.count;
     if (pressed & PAD_BUTTON_CROSS) choose(state.cursor);
@@ -143,6 +196,7 @@ static void results_screen(void)
     ((void (*)(void))original)();
     if (!started && (gDuel_wSceneStateFlags & SCENE_STARTED)) {
         state.picking = 0;
+        sheet = 0;
         if (player_won() && !arena_duel()) start_draft();
     }
     /* A state loaded on this screen has the cards but not their pictures. */
@@ -164,6 +218,103 @@ static void row_texts(int i, char *name, size_t name_size, char *stat, size_t st
     snprintf(own, own_size, state.owned[i] ? "hai %d" : "NUOVA", state.owned[i]);
 }
 
+/* As many words a row as fit in w, rows down to bottom (the arena's). */
+static void draw_wrapped(const char *text, int x, int mid, int w, int bottom, int line, uint32_t rgb, int s)
+{
+    char row[256];
+    while (*text == ' ') text++;
+    while (*text && mid + line / 2 <= bottom) {
+        int end = 0, fit = 0, last = mid + line + line / 2 > bottom;
+        for (;;) {
+            int e = end;
+            while (text[e] == ' ') e++;
+            while (text[e] && text[e] != ' ') e++;
+            if (e == end || e >= (int)sizeof(row)) break;
+            memcpy(row, text, (size_t)e);
+            row[e] = 0;
+            if (host->text_width(host, row, s) > w) break;
+            end = e;
+            fit = 1;
+            if (!text[e]) break;
+        }
+        if (!fit || (last && text[end])) {
+            snprintf(row, sizeof(row), "%s", text);
+            fv_fit(row, w, s);
+            host->draw_text(host, x, mid, row, rgb, s);
+            return;
+        }
+        memcpy(row, text, (size_t)end);
+        row[end] = 0;
+        host->draw_text(host, x, mid, row, rgb, s);
+        text += end;
+        while (*text == ' ') text++;
+        mid += line;
+    }
+}
+
+static void draw_sheet(void)
+{
+    static const char *const attributes[6] = {"Luce", "Oscurita'", "Terra", "Acqua", "Fuoco", "Vento"};
+    static const char *const types[20] = {"Drago",   "Incantatore", "Zombie",    "Guerriero", "Guerriero-Bestia",
+                                          "Bestia",  "Bestia Alata", "Demone",   "Fata",      "Insetto",
+                                          "Dinosauro", "Rettile",   "Pesce",     "Serpente Marino", "Macchina",
+                                          "Tuono",   "Acqua",       "Pyro",      "Roccia",    "Pianta"};
+    FvArea area;
+    char name[64], kind[96], text[96];
+    int id = sheet, s, line, pad, gap, panel_w, panel_h, x, y, top, bottom, zoom, cw = 0, ch = 0, tx, tw, mid;
+    char tier = id > 0 && id < (int)sizeof(fv_fasce) - 1 ? fv_fasce[id] : 0;
+    const char *tier_name = tier == 'L' ? "Leggendaria" : tier == 'E' ? "Epica" : tier == 'R' ? "Rara" :
+                            tier == 'C' ? "Comune" : "";
+    fv_area(&area, 360);
+    s = area.s;
+    line = 18 * s;
+    pad = 10 * s;
+    gap = 12 * s;
+    panel_w = area.w;
+    panel_h = area.h;
+    x = area.x;
+    y = area.y;
+    host->fill(host, 0, 0, area.width, area.height, 0x000000, 150);
+    fv_box(x, y, panel_w, panel_h, s);
+    fv_card_name(id, name, sizeof(name));
+    if (fv_is_monster(id)) {
+        int type_id = Cards_Type(id), attribute = Cards_Attribute(id);
+        snprintf(kind, sizeof(kind), "Mostro %s - Livello %d%s%s", type_id >= 0 && type_id < 20 ? types[type_id] : "",
+                 Cards_Level(id), attribute >= 0 && attribute < 6 ? " - " : "",
+                 attribute >= 0 && attribute < 6 ? attributes[attribute] : "");
+    } else {
+        fv_stats(id, kind, sizeof(kind));
+    }
+    fv_fit(name, panel_w - 2 * pad, s);
+    host->draw_text(host, x + pad, y + pad + line / 2, name, fv_tier_rgb(id), s);
+    top = y + pad + line + 6 * s;
+    bottom = y + panel_h - pad - line - 4 * s;
+    zoom = fv_card_zoom((panel_w - 2 * pad) / 2, bottom - top, s);
+    if (zoom) {
+        fv_card_size(zoom, s, &cw, &ch);
+        fv_card_draw(id, x + pad, top, zoom, s);
+    }
+    tx = x + pad + (zoom ? cw + gap : 0);
+    tw = x + panel_w - pad - tx;
+    mid = top + line / 2;
+    fv_fit(kind, tw, s);
+    host->draw_text(host, tx, mid, kind, 0xB8C0D8, s);
+    mid += line;
+    if (fv_is_monster(id)) {
+        snprintf(text, sizeof(text), "ATK %d   DEF %d", fv_stat(id, 0), fv_stat(id, 1));
+        host->draw_text(host, tx, mid, text, 0xF0D070, s);
+        mid += line;
+    }
+    if (tier_name[0]) {
+        snprintf(text, sizeof(text), "Fascia: %s", tier_name);
+        host->draw_text(host, tx, mid, text, fv_tier_rgb(id), s);
+        mid += line;
+    }
+    mid += 4 * s;
+    if (card_text(id)) draw_wrapped(card_text(id), tx, mid, tw, bottom, line, 0xF4F4F4, s);
+    host->draw_text(host, x + pad, y + panel_h - pad - line / 2, "/\\, X o O: torna alle 3 carte", 0x8890A8, s);
+}
+
 static void draw_panel(void)
 {
     FvArea area;
@@ -172,6 +323,10 @@ static void draw_panel(void)
     char name[64], stat[24], chance[16], own[24], title[48], subtitle[96], duelist[48];
 
     if (!state.picking) return;
+    if (sheet) {
+        draw_sheet();
+        return;
+    }
     fv_area(&area, 360);
     s = area.s;
     line = 18 * s;
@@ -228,7 +383,7 @@ static void draw_panel(void)
         host->draw_text(host, x + pad + list_w - host->text_width(host, own, s), mid, own,
                         state.owned[i] ? color : 0x70E070, s);
     }
-    host->draw_text(host, x + pad, y + panel_h - pad - line / 2, "Su/Giu: scorri   X: prendi", 0x8890A8, s);
+    host->draw_text(host, x + pad, y + panel_h - pad - line / 2, "Su/Giu: scorri   X: prendi   /\\: scheda", 0x8890A8, s);
 }
 
 static unsigned panel_signature(void)
@@ -237,7 +392,7 @@ static unsigned panel_signature(void)
     if (!state.picking) return 1;
     TouchPad_FreeSpan(&left, &right);
     return 2u + (unsigned)state.cursor * 131u + (unsigned)state.count * 7u + (unsigned)state.cards[0] * 1031u +
-           (fv_art_find(state.cards[state.cursor]) ? 1u : 0u) * 5u + (unsigned)left * 17u + (unsigned)right * 19u;
+           (fv_art_find(state.cards[state.cursor]) ? 1u : 0u) * 5u + (unsigned)sheet * 7919u + (unsigned)left * 17u + (unsigned)right * 19u;
 }
 
 int MemoriesModInit(const MemoriesModHost *from, MemoriesMod *mod)

@@ -1,5 +1,6 @@
-# duellante|starchip|scritta (mods/premi-storia/storia.c): una volta per salvataggio, alla prima vittoria nella storia
-8|100|Hai battuto Heishin: fine del prologo
+# duellante|starchip|scritta[|fine] (mods/premi-storia/storia.c): una volta per salvataggio, alla prima vittoria nella storia;
+# con |fine: appena la storia supera quel duello, vinto o perso (una volta per nome, anche per i salvataggi gia' oltre)
+8|100|Hai finito il prologo|fine
 17|300|Hai vinto il torneo battendo Kaiba
 22|200|Hai battuto il Gran Mago Secmeton
 24|200|Hai battuto il Gran Mago Anubisius

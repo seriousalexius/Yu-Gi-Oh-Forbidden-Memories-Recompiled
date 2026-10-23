@@ -1,0 +1,723 @@
+# numero|testo della carta (tools/testi_carte.py)
+1|Molto rara con attacco e difesa insuperabili.
+2|Un esile elfo debole in attacco ma forte in difesa.
+3|Ciclope con braccia possenti, sferra colpi letali.
+4|Questo drago, più che cucciolo, è dotato di poteri non sfruttati.
+5|Creatura che sembra una statua almeno finché non attacca.
+6|Un diavoletto giocherellone. Aspetta cauto e attacca di sorpresa.
+7|Drago a guardia di tesori. Attacca con un'onda forte e improvvisa.
+8|Mostro delle aree umide, lancia spore velenose ai nemici.
+9|Bestia che infesta posti desolati molto pericolosa se aiutata da altri.
+10|Un drago degli abissi più scuri. La sua difesa è bassa, soffre della scarsa vista.
+11|Grazie alle spine aguzze, questo mostro non teme nessuno in attacco.
+12|Una creatura armata di mazza che può distruggere quasi tutto. Pare abbia un fratello distruttivo.
+13|Può sparare proiettili dalla bocca contro nemici lontani.
+14|Toro gigante dei boschi. Carica i nemici con corna aguzze.
+15|Combatte con il fuoco. Attacca con una spada incendiaria.
+16|Lo stregone comanda il tempo. Sembra debole ma l'aspetto inganna.
+17|Arto proibito bandito per magia. Chi lo libera avrà il potere. Una sola carta per mazzo.
+18|Arto proibito bandito per magia. Chi lo libera avrà il potere. Una sola carta per mazzo.
+19|Arto proibito bandito per magia. Chi lo libera avrà il potere. Una sola carta per mazzo.
+20|Arto proibito bandito per magia. Chi lo libera avrà il potere. Una sola carta per mazzo.
+21|Collegato agli arti, il mostro è liberato dalle sue catene. Una sola carta per mazzo.
+22|Entità con magie che disorientano. Tra i mostri DEMONE, è molto raro.
+23|Verme creato dalle tenebre. Compare dal terreno per attaccare i nemici.
+24|Uno spettro debole, ma in gruppo è pericoloso.
+25|Un diavoletto tenebroso. Il suo corno lo rende formidabile.
+26|Un mostro di grande forza. Distrugge i nemici con la sua ascia.
+27|Se combatte nei prati, la sua difesa cresce a dismisura.
+28|Protetta da dura roccia questo essere sferra colpi letali.
+29|Un guerriero agile su ogni ogni terreno.
+30|Uno scheletro guerriero che sembra debole ma scaglia attacchi precisi.
+31|Feroce drago sputafuoco le cui fiamme corrompono l'anima.
+32|Un insolito e raro drago a due teste.
+33|Per questo guerriero e la sua clava, non ci sono vie di mezzo vincere o perdere
+34|Questo clown compare e si muove bizzarramente per schivare.
+35|Lo stregone migliore in battaglia.
+36|Un mostro con la testa di un velenoso serpente. Lo sguardo pietrifica.
+37|Il valore di un guerriero e la rapidità di un drago: una vera forza.
+38|Un cavaliere dal destriero velocissimo. Il cavallo non va trascurato.
+39|Un drago che che usa forze oscure per attaccare
+40|Brocca con strani glifi. Ha un fattore DIF alto.
+41|Elfo armato di spada che confonde con attacchi fulminei.
+42|Con illusioni manipola gli attacchi Carta rara.
+43|Un guerriero normale con fattore di attacco molto alto.
+44|Una bambola con poteri. Molto potente se attacca le Tenebre.
+45|Attacca con il tuono.
+46|Una creatura corazzata che schiva.
+47|Non resistente quanto sembra in difesa. Il corno gli conferisce un vantaggio.
+48|Un mostro con tre occhi: pericoloso se si affronta al buio.
+49|Una formica tipica delle giungle. Ha ATT e DIF elevati.
+50|Questo essere vive in sciami all'interno dei boschi.
+51|Una lucertola con corazza e fauci.
+52|Uno scarabeo corazzato e cornuto.
+53|Un'ape enorme dalla forza eccezionale. Molto pericolosa se se parte di uno sciame.
+54|Scarafaggio che attacca i nemici rotolando. La sua difesa lo rende formidabile.
+55|Gigantesca pulce dall'attacco devastante.
+56|Quasi innocua come larva ha una forza notevole quando cresce e diventa gigante.
+57|Questa falena delle foreste attacca i nemici con polveri velenose.
+58|Una piccola bestia quasi innocua. Ma se attacca in gruppo, è davvero temibile.
+59|Un mammut che protegge il cimitero del branco. Assolutamente spietato con i ladri.
+60|Squalo bianco con denti affilati.
+61|Un lupo raro con un fiuto che capta i nemici.
+62|Essere alato ma umano. Bella ma mortale in battaglia.
+63|Tre sorelle che attaccano insieme.
+64|Veloce e potente, usa un'ascia.
+65|Lupo bianco aggraziato ma terribile in battaglia.
+66|Cacciatore dalla forza inaudita.
+67|Incarnazione del mostro Grande Falena!
+68|Usa un'ascia. Ha una testa di drago.
+69|Un drago che è cresciuto e sviluppato in mille anni.
+70|Un calamaro che compare dal profondo e attacca di sorpresa.
+71|Un mollusco quasi invisibile semi-trasparente che vaga nel mare.
+72|La creatura fa evolvere una larva in un insetto.
+73|Drago marino chiamato "Re dell'Oceano". Attacca i nemici con enormi onde.
+74|Gigantesco e di pietra. Un solo pugno con forza può scuotere la terra.
+75|Pianta d'aspetto gradevole ma pericolosa da vicino.
+76|Coccodrillo intelligente. Le scaglie sono una corazza.
+77|Serpente enorme che stritola il nemico con le spire mortali.
+78|Mostro armato di ascia con grande forza e agilità.
+79|Niente sbarra la strada a questo mostro spinato.
+80|Dinosauro che affetta i nemici con i suoi artigli.
+81|Potente drago con i denti che tritano ogni cosa.
+82|Carta rara con elevato fattore ATT.
+83|Può generare tenebre che avvolgono e nascondono.
+84|Vanta una forte difesa, brandisce una grossa falce: taglia tutto.
+85|Usa il potere del buio per distruggere.
+86|Creatura che vola al buio, e attacca con lunghi arti pelosi.
+87|Sputafuoco che risiede nel nulla.
+88|Un demone a guardia di tesori. Una difesa molto forte nel buio.
+89|Difeso da un guscio, scaglia dardi con la sua catapulta.
+90|Usa i poteri mistici per difendere i deboli.
+91|Un centauro noto per la sua grande velocità.
+92|Inarrestabile combinazione di toro e cavallo.
+93|Combatte da solo i nemici Sguaina velocemente e li finisce con un colpo.
+94|Un drago che non vola più. Ha una forza non certo trascurabile.
+95|Un clown del Circo Oscuro che sottrae la forza dei nemici con strane danze.
+96|Un guerriero resuscitato Colpisce con una lama, è devastante.
+97|Risorto per magia il suo fiato corrode
+98|Un clown mosso dalle tenebre. La sua danza ha spedito molti mostri alla morte
+99|Il re zucca colpisce con lunghi tentacoli.
+100|Combatte a mani nude
+101|Sovrasta tutti su ali di fuoco e lancia fiamme dal suo corpo.
+102|Maschera d'ombra creata da un mago oscuro.
+103|Specchio indistruttibile: blocca gli attacchi.
+104|Una tenda tessuta da una maga. Forse aumenta i poteri magici.
+105|Creatura piccina e malvagia. Attacca nemici e amici
+106|Spirito del vento. Vola libero nel cielo. Se arrabbiato genera tempeste.
+107|Usa le forme fisica e d'ombra per attaccare. Creatura difficile da battere.
+108|Luogo per il riposo eterno. Esalta la potenza dei morti e la riduce ai vivi.
+109|Dea con un occhio. Vede e rivela tutto.
+110|Un samurai dal lontano Oriente, con una spada affilatissima.
+111|Angelo: governa i dannati e dispensa giustizia se necessario.
+112|Mostro che si nutre con l'essenza vitale dei suoi avversari.
+113|Bestia tutta grigia; raramente vista da occhi umani.
+114|Cortese ladro; elude la legge benché sia ben visibile, per il cappello di seta e il mantello bianco.
+115|Stregone che domina il caos e usa una grande falce.
+116|Creatura velenosa; genera incubi e attacca le vittime con 4 pungiglioni avvelenati.
+117|Spirito dei libri con conoscenze senza limiti e infinite strategie d'attacco.
+118|Elfo che aiuta rimanendo nascosto alla vista.
+119|Giudica i nemici nelle bare.
+120|La sua danza attira i nemici nel sonno eterno.
+121|Spesso dorme, ma da sveglio è un mostro pericoloso.
+122|Drago che appare da una pergamena per attaccare. Poco forte in difesa.
+123|Fiore malvagio nato in una terra concimata da forze oscure.
+124|Macchina mortale, dalle rovine di un'antica civiltà.
+125|Uccello con coda lunga. Attacca con una luce emanata dal suo corpo.
+126|Una creatura misteriosa nota come il re dei guerrieri, ma nessuno è vissuto tanto da raccontare come si sia guadagnato questa reputazione.
+127|Silenzioso e veloce, questo guerriero attacca di soppiatto.
+128|Lo stregone sulla luna attacca con la luce lunare.
+129|Simile a un bimbo, ha uno spirito che chiama i nemici al sonno eterno.
+130|Mostro che cambia il clima. Con il suo potere, cambia il tempo in montagna.
+131|Creatura con testa di pesce e tentacoli di polpo. Attacca i nemici armato di lance.
+132|Lo zombie appare dal lotto 13 - forse una tomba vuota.
+133|Guerriero con un guscio; può evitare le fiamme.
+134|Catena mistica che pare leghi i nemici bloccando gli attacchi.
+135|Le braccia escono dalla Palude del Caos e afferrano il nemico.
+136|Ha lo smoking nero e domina i dannati.
+137|da un'altra dimensione escono braccia per attaccare i nemici.
+138|Guerriero di granito con anima di drago che usa una spada contro i nemici.
+139|Pare che muti i nemici in zombie con un raggio dai suoi occhi.
+140|Il mago rospo è millenario e attacca con un esercito di girini.
+141|L'oscura chiocciola ha gambe e braccia, e attacca i nemici con rapidità.
+142|Attacca con incantesimi di fuoco. "Mare" di Fiamme" o "Muro di Fuoco".
+143|Primo di una serie di golem che appare ovunque da un anello dimensionale.
+144|Usa le correnti d'aria per creare raffiche di vento e tornado contro i nemici.
+145|Vistoso ladro con mantello nero e bastone magico.
+146|L'oscuro tempio di teschi e ossa succhia l'essenza a chiunque si avvicini.
+147|Un guerriero dentro un uovo, che attacca lanciando gusci.
+148|L'ombra vive nel regno oscuro. Paralizza i nemici, così non attaccano.
+149|Il gigante della lampada esegue gli ordini del proprietario.
+150|Misteriosa creatura subacquea.
+151|Guerriero con una Spada di Fiamme Cremisi. Con il fuoco blocca i movimenti nemici.
+152|Creatura che si fonde con la terra, si confonde con l'ombra del nemico e attacca da sotto terra.
+153|Spirito vivente: si ciba dell'essenza vitale dei nemici.
+154|Creatura che punisce con frecce di fuoco.
+155|Creatura veloce simile a un uccello. Strangola i mostri nemici con lunghe braccia sottili.
+156|Armatura vivente: attacca i nemici con una presa micidiale.
+157|Pianta che cresce vicino ai vulcani e sputa fuoco.
+158|Pianta carnivora: attacca i nemici con antenne velenose.
+159|Si arrotola come un serpente poi ruota su sé stesso e attacca con il suo forte becco.
+160|Questo guerriero, specialista in attacchi combo, usa il magnetismo per bloccare la fuga dei nemici.
+161|Questo guerriero, specialista in attacchi combo, possiede una corazza resistente, con un rivestimento magnetico.
+162|Cervello parassita che si nutre delle conoscenze e dell'intelligenza dei suoi avversari.
+163|Una creatura insolita con occhi di zaffiro che crea visioni per confondere il nemico.
+164|Un'entità malvagia che inganna i nemici portandoli sulla via della distruzione.
+165|La mano del giudizio finale è capace di pesanti attacchi contro il nemico.
+166|Un burattinaio che controlla i nemici durante la battaglia.
+167|Un'antica e fragile brocca che contiene una creatura misteriosa.
+168|Fiamme ardenti spazzano via i nemici in un attimo.
+169|Il Re del nulla. Si dice che un tempo avesse il potere di governare l'Oscurità.
+170|Uno spirito che lenisce l'anima con la musica della sua arpa.
+171|Questa creatura è ricoperta di occhi magnetici che ipnotizzano i nemici.
+172|Uno strano guerriero che brandisce tre temibili lame usando le mani e la coda.
+173|Questa creatura altera la luce per eliminare ogni traccia della sua presenza.
+174|Un uragano che scorrazza nelle terre desolate, facendo a pezzi i nemici con lame di vento.
+175|Scacciata dal mondo reale, questa creatura è esperta nei combattimenti al buio.
+176|Un occhio alato avvolto nelle fiamme, che attacca i nemici con il fuoco.
+177|Una feroce malvagia tartaruga con un guscio irto di spine.
+178|Le braccia che si allungano e gli artigli affilatissimi fanno di questo mostro un formidabile avversario.
+179|Un mago che congela i movimenti del nemico con un solo maleficio.
+180|Una fanciulla nei boccioli che sparge polline avvelenato sugli avversari.
+181|Emette una luce sfolgorante dal suo cristallo e acceca i nemici.
+182|Un guerriero danzante che fa a pezzetti i nemici con una falce affilata.
+183|Una creatura esile protetta da una forza sacra.
+184|Con incredibile destrezza inganna e distrugge i suoi nemici.
+185|Questo guerriero confonde e annienta i nemici assumendone l'aspetto.
+186|Un uccello che chiama rinforzi con uno specchietto.
+187|Una creatura con un portale addominale che viene usato per evocare mostri dal nulla.
+188|Una brutta creatura con due teste e una bocca dalla quale lancia raggi laser.
+189|Un gatto mostruoso con le ali e una lunga coda con cui colpisce.
+190|Un mago i cui incantesimi annebbiano i sensi dei mostri avversari.
+191|Protetta dal tuono, questa pericolosa nube attacca i nemici con pioggia acida.
+192|Un piccolo angelo la cui bellezza scioglie il cuore dei nemici.
+193|Una tigre rinchiusa in un guscio protettivo che attacca i nemici con zanne affilate come rasoi.
+194|Noto abitante delle paludi, questa creatura è schierata con le forze dell'Oscurità.
+195|Imprevedibile creatura che si divide i due e attacca il nemico da direzioni opposte.
+196|Un guerriero di ammonite che protegge i mari fin dall'alba dei tempi.
+197|Una creatura della notte che attacca i nemici con le braccia dotate di razzi.
+198|Un piccolo angelo che lancia raggi di felicità dal gioiello a forma di cuore sulla fronte.
+199|Una creatura simile a un pinguino, che scivola sul ventre per colpire usando la spada tesa in avanti.
+200|Un draghetto noto per i suoi terribili attacchi.
+201|Una bestia selvaggia che porta con sé un grande bastone di bambù con cui abbatte i nemici.
+202|Un castoro cornuto e alato, che lancia ghiande velocissime dal cielo, con mira notevole.
+203|Spiriti malvagi che camminano nel mondo dei vivi, incapaci di ritrovare un posto in cui riposare.
+204|Mostro dalla forma di un cannone, che spara a raffica bulbi oculari contro il nemico.
+205|Un'orribile creatura che si scioglie ed emette gas velenoso.
+206|Questa creatura agita le braccia come fruste ed attacca i nemici nella media distanza.
+207|Con un grido di battaglia che gela il sangue degli avversari, questa creatura attacca con il suo enorme becco.
+208|Un angioletto dai rapidi movimenti e molto difficile da colpire.
+209|Questa creatura attacca agitando attorno a sé le braccia falcate.
+210|Una caldissima creatura di fiamma che colpisce qualsiasi cosa le si pari davanti.
+211|Questa creatura accumula i fulmini nel suo corpo per sferrare attacchi elettrici.
+212|Un mostro gigantesco con un solo occhio, che emette un raggio intenso.
+213|Un mago delle acque che evoca un muro liquido per schiacciare i nemici che lo affrontano.
+214|Funge come doppio del dominatore della Fiamma Azzurra. Un provetto spadaccino brandisce una bella lama.
+215|Uno spirito di fuoco che brucia tutto ciò che si trova davanti.
+216|Uno spirito della foresta protetto dalla vita vegetale che lo circondano.
+217|Una creatura molto rara, nata dalla fusione tra una bestia insolita e un drago malvagio.
+218|Un dinosauro con possenti mandibole. Accumula elettricità nel corno ed emette scariche ad alto voltaggio dalla bocca posta sul dorso.
+219|Un guerriero-bestia che agita una grossa falce che annienta il coraggio dei nemici, prima di assestare loro colpi devastanti.
+220|Un mago misterioso, il cui volto rimane nascosto dietro una strana maschera.
+221|Un enorme ragno intelligente, che intrappola i nemici nella ragnatela.
+222|Una creatura alata che dicono appaia a mezzanotte.
+223|Un enorme serpente marino, che crea ondate che spazzano via i nemici.
+224|Un guerriero che eccelle nel posare trappole, come un pozzo senza fondo, dove blocca i nemici per l'eternità.
+225|Pochi sono sfuggiti alla maledizione di questa creatura. Chi ci è riuscito ha ottenuto un potere inaudito.
+226|Malvagio e veloce, questo mostro afferra le vittime con le sue pinze e attacca i prigionieri con un pungiglione avvelenato.
+227|Una feroce stella marina che sputa acido per sciogliere i nemici.
+228|Uno zombie risorto dai resti di un signore dei boschi.
+229|Una creatura che permette di accumulare potenza a costo della vita.
+230|Un insolito e feroce pesce con la testa di una bestia.
+231|Una creatura dallo sgradevole sorriso che brandisce una falce per evitare i colpi dei nemici.
+232|Un'arma vivente che lancia proiettili dalla bocca.
+233|Uno spirito che si dice viva nel mondo dei sogni. Attacca i nemici nel sonno.
+234|Una bella spadaccina dai movimenti molto agili.
+235|Un guerriero vissuto a lungo nella foresta, che gode della protezione di Madre Natura.
+236|Un guerriero di guardia all'ingresso del nulla.
+237|Una bambola di terra che protegge il tesoro nascosto nelle tombe degli antichi re.
+238|Una palma con una volontà propria, che attacca i nemici lanciando noci di cocco.
+239|Una donna guerriera al servizio delle forze dell'oscurità.
+240|Una creatura oculare con gambe che gli permettono di saltare e colpire a morte con artigli affilati.
+241|Armato di Psico-Spada questo sinistro tagliagole domina nei territori esterni.
+242|Il destino di un avversario viene deciso quando si spengono le fiamme su tutte le dita.
+243|Uno spirito d'acqua che avvolge l'avversario in una fitta nebbia per nascondere i suoi attacchi.
+244|Un mostro nato da pozzi di lava. Produce un calore elevato, in grado di sciogliere i nemici.
+245|Un demone in forma di bulbo oculare creato da un servo dell'oscurità. Usa "Sfere oscure" per scacciare i nemici.
+246|Una creatura con una spada che ottiene il suo potere dalla forza vitale delle sue vittime.
+247|Un anfibio in grado di richiamare una grande onda dai mari oscuri per scacciare i mostri nemici.
+248|Un temibile duo composto da un Maestro di bestie e dal suo fedele servitore.
+249|Trasforma l'acqua che sgorga da una brocca in draghi in grado di attaccare.
+250|Un guerriero di ghiaccio che congela l'avversario con un semplice tocco.
+251|Una bellissima sirena che attira i viandanti in una tomba d'acqua.
+252|Una creatura felina d'aspetto gradevole, ma che graffia ferocemente con artigli affilati.
+253|Una creatura che ha scelto la via della magia per diventare una strega.
+254|Un mostro ributtante con il ventre che si apre e inghiotte quasi ogni cosa.
+255|Questo mostro è protetto da una pelle coperta da una fitta pelliccia.
+256|Un mostro capace di creare varchi dimensionali per intrappolare i nemici.
+257|Con il corpo protetto da una corazza di pelo duro come la roccia, questo mostro ha eccellenti capacità difensive.
+258|Questa creatura cambia il terreno ai suoi piedi in in sabbie mobili, intrappolando i nemici.
+259|Un maestro di combattimento che usa diversi bastoni per ridurre i nemici all'incoscienza.
+260|Una graziosa dea della luna, che può gettare una cortina lunare per bloccare gli attacchi nemici.
+261|Uno specchio malevolo che ipnotizza chi lo osserva e lo rende vittima di possibili attacchi.
+262|Un guerriero elfo in sella ad una enorme lucertola.
+263|Un golem di pietra che muta gli avversari in rocce e li polverizza.
+264|Questa creatura si nasconde nel suo guscio e blocca gli attacchi nemici con le sue grandi ali.
+265|Il Grande Re dei Sette Mari è in grado di evocare onde gigantesche per far annegare il nemico.
+266|Una regina di spade praticamente ineguagliabile nella sua capacità di maneggiare lame di ogni tipo.
+267|La velocità di questo guerriero crea un gran vuoto, che può anche perforare la pelle di un mostro.
+268|Uno stregone che adora le forze oscure e può evocare una grande mano per trascinare via gli avversari nel nulla.
+269|Un signore della distruzione nato dal cuore dell'oscurità: questa creatura può evocare tempeste per distruggere gli avversari.
+270|Spirito della pioggia che può evocare tornado che spazzano via tutti i nemici.
+271|I terribili occhi di questa creatura emettono raggi accecanti contro i nemici.
+272|Imparentata con la fenice, questa creatura vive in montagna. Il suo orribile fiato procura gravi ustioni.
+273|Questo mostro possiede una grande conoscenza, in grado di bloccare praticamente ogni attacco.
+274|Il giovane re della foresta vive in un mondo verde, ricco di alberi e animali selvaggi.
+275|Un robot corazzato per combattere al suolo; pare avesse capacità di attacco anche in mare.
+276|Il Sole e il Vento del Nord si alleano per produrre una devastante combinazione di calore e venti di burrasca.
+277|Un uovo di gorgone con gli occhi, si dice che generi ogni creatura che gli passa davanti.
+278|Nessuno ha idea di quale creatura possa spuntare da questa larva misteriosa.
+279|Uno spettro che vive in una cortina di fumo accecante.
+280|Una creatura che protegge il trono del re dagli usurpatori.
+281|Niente può fermare il folle attacco di questa potente creatura.
+282|Questa mostruosa pecora ha una lunga coda con cui ipnotizza i nemici riducendoli all'impotenza.
+283|Una macchina mostruosa che genera immagini per confondere i nemici piegandoli ai suoi attacchi.
+284|Uno stregone che corrompe yin e yang per creare un potere deviato per attaccare i nemici.
+285|Un serpente con un solo occhio, che emette un fiato gelido per congelare gli avversari.
+286|Una macchina indistruttibile costruita per proteggere le entrate principali.
+287|Un orco posseduto dal potere dell'oscurità. Pochi possono sopportare il suo rapido attacco.
+288|Un artista folle che crea oggetti d'arte per colpire i nemici.
+289|Una chiocciola che muta aspetto assumendo le forme di altre creature.
+290|Un servitore della dea della luna, questo guerriero brandisce una picca con una splendida lama a forma di mezzaluna.
+291|Una creatura malevola avvolta nelle fiamme, che attacca i nemici con fuoco formidabile.
+292|Un anfibio con poteri extrasensoriali per bloccare gli attacchi.
+293|Spadaccino leggendario, veterano di oltre 100 battaglie.
+294|Un guerriero dotato di equipaggiamento creato dalle scaglie di drago.
+295|Una creatura mostruosa nata da un esperimento di laboratorio non riuscito.
+296|Questo drago porta uno scudo, non solo per proteggersi ma anche per colpire i suoi nemici.
+297|Un soldato meccanico inarrestabile, alimentato dalle forze oscure.
+298|Un drago a due teste con un paio di mandibole terribili che annientano i nemici.
+299|Una fanciulla che usa il suono a suo vantaggio. Brandisce una falce che ha la forma di una nota musicale.
+300|Un malevolo uccello che attacca dal cielo con la sua coda a frusta.
+301|Una spada che fa emergere il meglio dai guerrieri. Non può essere usata dai servi dell'oscurità.
+302|Le forze oscure aumentano il potere dei Guerrieri!
+303|Le forze oscure aumentano il potere dei Demoni e degli altri mostri dell'Oscurità.
+304|I Demoni e i Guerrieri-bestia possono usare sempre la massima forza!
+305|Dota gli Insetti di un laser potente!
+306|Consente agli Insetti di emettere una sfera di fuoco intenso!
+307|Aumenta il potere degli elfi con luce mistica!
+308|Aumenta il potere delle Bestie e di altri mostri dotati di zanne.
+309|Aumenta il potere dei mostri dotati di guscio! Pare che non abbia alcun effetto su quelli che non ne possiedono.
+310|Microbi malvagi che aumentano il potere dei Vegetali nel bosco!
+311|Questo ciondolo dona un potere extra agli stregoni oscuri!
+312|Arco e frecce d'argento aumentano il potere delle Fate.
+313|Incrementa il potere delle creature dotate di corno! Non ha alcun effetto sui mostri oscuri.
+314|Aumenta il potere dei mostri oscuri dotati di corna!
+315|Un tesoro leggendario che aumenta il potere dei draghi.
+316|Una frusta che paralizza i nemici. Aumenta la potenza quando viene assegnato a creature femmine.
+317|Incrementa il potere di mostri femmina modificando le loro attitudini.
+318|Crea due doppioni della Signora Arpia per attacchi a tre!
+319|La luce della luna aumenta il potere delle Bestie!
+320|Obbliga un mostro dell'avversario disposto in difesa a passare in posizione di attacco.
+321|Forze diaboliche agiscono per aumentare il potere di mostri femmina e oscuri!
+322|Forze mistiche dal cristallo aumentano il potere degli Zombie.
+323|Un libro magico che aumenta il potere degli stregoni. Non può essere usato da stregoni servi del male.
+324|Aumenta il potere di mostri Tuono, Roccioso e Ardente.
+325|Una fabbrica che mette a punto tutti i mostri Macchina.
+326|Assorbe l'energia del sole per aumentare il potere dei Dinosauri!
+327|I venti contribuiscono ad aumentare il potere delle Bestie alate e di altri mostri volanti!
+328|La forza di Poseidone viene usata per incrementare il potere dei mostri di tipo Acquatico, Pesce e Serpente di Mare!
+329|Distrugge tutti i mostri Drago avversari, presenti sul campo!
+330|Modifica il campo a vantaggio dei mostri Guerriero-bestia Insetto, Vegetale e Bestia!
+331|Modifica il campo a vantaggio dei mostri Zombie, Dinosauro e Roccioso!
+332|Modifica il campo a vantaggio dei mostri Drago, Bestia alata e Tuono!
+333|Modifica il campo trasformandolo in un prato, a vantaggio dei mostri Guerriero e Guerriero-bestia.
+334|Modifica il campo a vantaggio dei mostri Acquatico e Tuono e a svantaggio di mostri di tipo Macchina e Ardente!
+335|Modifica il campo a vantaggio dei mostri Stregone e Demone ma a svantaggio di mostri Fata!
+336|Risucchia tutte le carte in gioco sul campo!
+337|Distrugge tutti i mostri avversari con un colpo di fulmine!
+338|Un delizioso piatto di manzo al curry aumenta i Punti Vita di 200!
+339|Una pozione magica che aumenta i Punti Vita di 500!
+340|Un'erba dei goblin che aumenta i Punti Vita di 1.000!
+341|Una pozione fatata che aumenta i Punti Vita di 2.000!
+342|Un potere mistico che aumenta i Punti Vita di 5.000!
+343|Una pioggia di faville infligge 50 punti danno ai Punti Vita dell'avversario!!
+344|Una palla di fuoco infligge 100 punti danno ai Punti Vita dell'avversario!!
+345|Le fiamme infliggono 200 punti danno ai Punti Vita dell'avversario!!
+346|Le fiamme infliggono 500 punti danno ai Punti Vita dell'avversario!!
+347|Un terribile incendio infligge 1.000 punti danno ai Punti Vita dell'avversario!!
+348|I mostri nemici vengono rivelati e il tuo avversario non può attaccare per tre turni.
+349|Una maledizione limita la potenza di tutti i mostri nemici!
+350|Una luce accecante rivela tutti i mostri sul campo di gioco.
+351|Un mostro che attacca chiunque tenti di aprire il suo coperchio.
+352|Una spadaccina che vola come una farfalla e punge come un'ape.
+353|Una creatura dotata di pinne, lontana parente dei Draghi di mare.
+354|Un animaletto impagliato che sembra carino ma morde.
+355|Una misteriosa macchina del giorno del giudizio, proveniente dai confini dell'universo.
+356|Un leone decisamente malvagio, con artigli lunghi ed affilati.
+357|Un mostro sputafuoco a tre teste.
+358|Un drago sacro che brucia ogni malvagità con le sue fiamme mistiche.
+359|Bony e Tubby, una coppia di amici scheletri.
+360|Un mostro enorme e brutale, che attacca con gli artigli affilatissimi.
+361|Un raro pinguino che vola grazie alle ali che ha sulla testa.
+362|Un possibile Oggetto del Millennio: si dice che possa impedire ogni attacco potente.
+363|Svolazza portando a tutti la felicità.
+364|Un potente guerriero con le stesse capacità del leggendario Occhi Azzurri Drago Bianco.
+365|Un misterioso specchio che attira i suoi nemici nel suo mondo di riflessi.
+366|Sul campo appaiono mura che formano un labirinto senza uscita.
+367|Un ragno mostruoso che vive sotto terra.
+368|Un pericoloso zombie che si aggira al buio.
+369|Un mostro insolitamente veloce che passa attraverso le pareti per attaccare.
+370|Un carro armato che si aggira in un labirinto, dando la caccia ai nemici.
+371|Un golem che usa attacchi lampo simili a quelli dei Fratelli del Labirinto.
+372|Un golem che controlla i venti come i Fratelli del Labirinto.
+373|Un golem che usa gli attacchi d'acqua come i Fratelli del Labirinto.
+374|Sanga, Kazejin e Suijin si riuniscono per formare un unico e potente mostro.
+375|Nascosto sotto il pavimento di un labirinto, inghiotte chiunque passi sopra di lui.
+376|Un domatore di mostri che esercita il proprio controllo su parecchie creature.
+377|Ryu-chishin potenziato dai poteri dell'oscurità. I suoi artigli acuminati lo rendono un valido avversario.
+378|Un mostro formato dalle anime assetate di vendetta di chi è morto in battaglia.
+379|Un genio della lampada sempre agli ordini del suo padrone.
+380|Il drago supremo formato dalla fusione di tre Occhi Azzurri Draghi Bianchi.
+381|Un mostro alligatore proveniente dal mondo dei cartoni.
+382|Con un'ascia in ogni mano questo mostro infligge letali danni.
+383|Un drago proveniente dal mondo dei cartoni che è più pericoloso di quanto sembri.
+384|Un coniglio dei cartoni che saltella velocemente di qua e di là: è un difficile bersaglio.
+385|Una scatola a sorpresa che eccelle negli attacchi improvvisi.
+386|Animaletto preferito dalle arpie, che però è un drago pericoloso.
+387|Una lampada usata dai maghi per mescolare le pozioni.
+388|Un orribile strumento di tortura con una grande lama oscillante.
+389|Armata con una lancia che perfora l'anima, questa creatura favorisce gli attacchi magici.
+390|Un ragno meccanico che lancia razzi esplosivi contro i nemici.
+391|Un mostro che raggiunge il massimo del suo potere quando assume la forma metallica.
+392|Uno Zoa metallico in grado di sferrare potentissimi attacchi.
+393|Creatura marina che inghiotte i nemici e li digerisce lentamente.
+394|Un mostro dalla coda di ferro, dotato di forbici molto affilate.
+395|Un elfo che danza nel cielo con ali dotate di lame affilatissime.
+396|Questa creatura dall'aspetto spaventoso, usa i suoi grandi occhi e orecchie per controllare ogni movimento.
+397|Non è un mostro molto potente, nonostante gli aculei e le grandi zanne.
+398|Una mostruosa rana toro con aculei velenosi.
+399|Un guerriero orientale armato con una spada maledetta.
+400|Un rettile sputafuoco.
+401|Un mostro taurino risorto grazie alle arti oscure, che compare dall'interno di una brocca.
+402|Un servitore che tiene d'occhio tutto e tutti. Quando viene scoperto, emette uno schermo di fumo.
+403|Un enorme mostro con criniera leonina simile a quella del "Re delle Bestie".
+404|Un veloce mostro marino che ha il corpo di cavallo e di pesce.
+405|Una macchina travolgente che brandisce una enorme spada.
+406|Una macchina dotata di parecchie lame nascoste nel suo corpo squadrato.
+407|Dotato di una corazza in una lega speciale, questo robot attacca con sfere di fuoco lanciate con entrambe le braccia.
+408|Questo mostro agita un'ascia potente che può eliminare i nemici con un solo colpo.
+409|Un drago dorato sputafuoco che brucia ogni avversario sul suo cammino.
+410|Un mostro meccanico dalla forma di ragno, con falci alle estremità delle zampe.
+411|Un pipistrello meccanico che attacca lasciando cadere sfere esplosive.
+412|Un lupo di ferro, dalle mandibole d'acciaio, che perforano ogni cosa.
+413|Soldati di forma sferica, che rotolano in giro e fanno la guardia al Re Macchina.
+414|Armata con un paio di vanghe, questa creatura è un motore di distruzione ambulante.
+415|Un cacciatore che insegue senza sosta il suo bersaglio su ordine del Re Macchina.
+416|Ogni singola parte di questa creatura è un'arma a sé stante in grado di sferrare attacchi devastanti.
+417|Un meccanismo a tempo ambulante che ama far esplodere i nemici.
+418|Un enorme golem di ferro che appare da un varco dimensionale.
+419|Questa creatura agita un'enorme palla irta di punte, per distruggere i nemici.
+420|Creata in un laboratorio sotterraneo, questa macchina infernale lancia razzi dall'interno della bocca.
+421|Una forza di attacco dotata di radar e sensori.
+422|Creato in un laboratorio sotterraneo, questo essere artificiale ogni tanto si infuria.
+423|Una creatura somigliante ad un armadillo, che diventa un dado quando si arrotola su sé stesso.
+424|Un drago in forma di uccello con quattro ali dotate di lame.
+425|Un drago che evoca tuoni e fulmini per attaccare i suoi avversari.
+426|Con un corpo tutto di roccia, questo drago getta massi contro i nemici.
+427|Un drago imperatore molto orgoglioso e potente.
+428|Nonostante la sua scarsa forza, questa creatura è in grado di lanciare incantesimi che scacciano le tenebre.
+429|Una timida dea che sembra trascorrere la maggior parte dormiente.
+430|Questa creatura circonda gli avversari con l'acqua, li travolge e li spazza via.
+431|Una sirena molto aggressiva che usa i suoi aculei per attaccare i nemici.
+432|Una fata che vaga per i mari. Si dice abbia la capacità di evocare draghi marini.
+433|Si dice che questo elfo sia in vita da migliaia di anni. Guida un'armata di spiriti contro i suoi nemici.
+434|Un raro stregone femmina, armato con una frusta malvagia.
+435|Una bellissima creatura che lancia frecce di ghiaccio.
+436|Un delfino bianco dotato di un corno, che attacca richiamando grandi ondate.
+437|Un violento squalo che attacca qualsiasi cosa si trovi in mare.
+438|Un pesce d'acciaio con un'acuminata pinna dorsale.
+439|Una bellissima nuotatrice con un pessimo carattere.
+440|Un raro pesce arcobaleno praticamente inafferrabile.
+441|Questa creatura porta un cannone al plasma sulla schiena.
+442|Un drago che risiede nei mari. È in grado di sputare getti d'acqua ad alta pressione.
+443|Il re dei mari è protetto da un solido scudo e sputa bolle velenose contro i suoi nemici.
+444|Uno strano mostro con un solo occhio e una lancia pericolosa.
+445|Un tritone guerriero che attacca chiunque osi inquinare il mare.
+446|Questa creatura annega gli avversari ipnotizzandoli con la sfera che si trova sulla punta della sua coda.
+447|Un serpente marino che morde qualsiasi cosa gli passi accanto.
+448|Con le punte che protrudono dal suo corpo, questa creatura trafigge gli avversari e li irradia di elettricità.
+449|Una tartaruga gigante, molto grande e ben protetta, con più di 30.000 anni.
+450|Un anfibio votato a vendicare la morte dei suoi fratelli.
+451|Un granchio mostruoso con due enormi forbici che usa per tagliare i nemici.
+452|Una recente evoluzione dell'aragosta, con forbici affilate con cui tagliuzza i nemici.
+453|Un golem che ha protetto il tesoro per quasi un millennio.
+454|Un golem con una mano destra enorme che gli serve per schiacciare i nemici.
+455|Un mostro che attacca i nemici colpendoli con una coppia di cannoni montati sulle spalle.
+456|Un guerriero di roccia che brandisce una spada molto pesante, scolpita nella pietra.
+457|Una creatura che erutta con rabbia, provocando una tremenda pioggia di massi.
+458|Un mostro che giudica i colpevoli e li punisce adeguatamente.
+459|Questa creatura attacca i nemici con onde elettromagnetiche.
+460|Questa creatura sputa una sostanza appiccicosa che impedisce ai nemici di muoversi per poi stordirli con scosse elettriche.
+461|Un mostro con un paio di fruste elettriche al posto delle braccia.
+462|Una creatura che attacca i nemici con i fulmini.
+463|Un serpente con una coda che accumula elettricità.
+464|Un cacciatore dei cieli che non ha mai mancato il bersaglio.
+465|Un giudice dei cieli che emette la sentenza e punisce con gli artigli argentei
+466|Questo mostro piomba sui nemici e li attacca con una pioggia di coltelli che nasconde nelle ali.
+467|Un mostro avvolto nelle fiamme, che produce una pioggia di lapilli sbattendo le ali.
+468|Questa creatura attacca i nemici con il suo grande becco.
+469|Un ninja blu che attacca con un grande falcetto e i piedi chiodati.
+470|Questa creatura lancia un incantesimo che confonde e terrorizza prima di sferrare il suo attacco.
+471|Questo clown offre la forza vitale dei suoi nemici in pasto a una mostruosa lucertola.
+472|Un mostro che soffoca il nemico nutrendosi di tutta l'aria che lo circonda.
+473|Un guerriero fiammeggiante che emette un calore molto intenso dal corpo.
+474|Un mostro crudele che lacera i nemici con gli artigli affilati.
+475|Un velenoso serpente volante, che non è in grado di muoversi agevolmente a terra.
+476|Un ragno armato di forbici, con le quali attacca qualsiasi cosa finisca nella sua tela.
+477|Un mostro in forma di cervo volante, con corno e zampe seghettati.
+478|Insetti soldato che attaccano a sciami.
+479|Uno scarafaggio guerriero che si nasconde in spazi angusti ed emerge per attaccare i nemici.
+480|Un violento cervo volante armato di lama affilatissima.
+481|Un topo astuto, armato con un affilato artiglio sinistro.
+482|Un mostro molto pericoloso, con punte sulla testa e sulla coda.
+483|Una creatura malevola che somiglia ad un leone alato.
+484|Un mostro che avviluppa il nemico per poi digerirlo lentamente.
+485|Questa creatura fa rotolare enormi oggetti con cui schiaccia i nemici.
+486|Un libro magico con pagine su pagine di potenti incantesimi.
+487|Una bestia coperta di fiori da capo a piedi.
+488|Una creatura floreale con boccioli del colore dell'arcobaleno che attira il nemico nelle sue fauci.
+489|Un pericoloso fiore che lancia proiettili di polline.
+490|Una sfera ricoperta di spilli appuntiti. Di solito si abbatte sui nemici raggruppati
+491|Una bellissima creatura somigliante a un pavone, che lancia le sue penne contro gli avversari.
+492|Seguita da una bellissima coda, questa meteora danneggia il nemico quando lo colpisce.
+493|Un mago vestito di blu, che di solito si trova mentre medita.
+494|Un'insolita sirena che compare quando un arcobaleno attraversa il cielo.
+495|Un chitarrista fantastico che attacca i nemici con emissioni ultrasoniche.
+496|Un feroce coniglio con artigli affilati.
+497|Un paguro con la testa di drago.
+498|Uno strano demone con lunghe braccia e artigli affilati.
+499|Attacca lanciando ragnatele contro i nemici. Nessuno sa quale possa essere la forma adulta di questo insetto.
+500|Un mostro temibile proveniente dal nulla per distruggere i draghi.
+501|Una creatura che fa a fettine le sue vittime con le forbici e le divora.
+502|Dotato dei poteri dei draghi, questo guerriero brandisce una spada creata da una zanna di drago.
+503|Una creatura simile ad una volpe, con un guscio protettivo.
+504|Un mostro che emette dai pori un acido che scioglie qualsiasi cosa tocchi la sua pelle.
+505|Un cristallo chiaro che concentra i raggi luminosi e crea un raggio laser.
+506|Un'enorme falena che genera un tornado contenente polvere velenosa.
+507|Un pesce volante con una testa appuntita che perfora i bersagli.
+508|Un dinosauro meccanico dotato di un cannone a raggi.
+509|Un dinosauro gigantesco che calpesta a qualsiasi cosa incontri sul suo cammino.
+510|Un fiore che ride in modo tale da far impazzire il nemico.
+511|Un guerriero vegetale che attacca combinando fendenti con lanci di proiettili a forma di piselli.
+512|Una macchina molto distruttiva dotata di un potente cannone.
+513|Un robot sentinella armato con razzi cercanti che impedisce agli intrusi di entrare nella sala del trono.
+514|Una creatura in grado di usare molte forbici, con effetti minuziosi.
+515|Un enorme idolo di pietra dall'Isola di Pasqua, che spara anelli laser dalla bocca.
+516|Un mostro che fa arrabbiare gli avversari al punto da far loro perdere il controllo.
+517|Appare da sotto terra e attacca con lunghi tentacoli che somigliano a serpenti.
+518|Una tartaruga di pietra con un fattore difensivo molto elevato.
+519|Un calamaro fiammeggiante in grado di conservare le fiamme anche sottacqua.
+520|Una rara tartaruga volante che vive in mare.
+521|Il fiato di questo uccello sottrae alle creature la loro energia vitale.
+522|Un uccello enorme, noto per i suoi improvvisi attacchi in tuffo.
+523|Questo mostro buongustaio usa i nemici sconfitti come ingredienti.
+524|Una forma di vita extraterrestre che ama vivere nell'acqua.
+525|La musica proveniente dal flauto di questa creatura può sottrarre al nemico la sua forza di volontà.
+526|Questo mostro, armato di un'enorme falce, lancia fiammate dai suoi grandi occhi.
+527|Lo si scambia spesso per un grazioso animaletto, mentre questa creatura è una bestia molto pericolosa.
+528|Un mostro molto veloce che si arrotola e si abbatte contro i nemici.
+529|Una bestia fiammeggiante che risulta letale al tatto.
+530|Usa una bacchetta per lanciare vari incantesimi contro il nemico.
+531|Trasforma i nemici in pietre e li riduce in polvere.
+532|I due gemelli elfi attaccano il nemico da opposte direzioni.
+533|Un mostruoso insetto con le mandibole del cervo volante e il corno di uno scarabeo.
+534|Un mostro con quattro zampe molto abili con le quali può sferrare attacchi separati.
+535|Una mantide dalla forma umana, armata con falci affilate.
+536|Un mostro simile a un camaleonte, che può nascondersi ovunque, cambiando colore.
+537|Rotola sul terreno emettendo scosse elettriche con le quali attacca i nemici.
+538|Inghiotte i nemici in un boccone e usa l'energia della loro essenza.
+539|Uno squalo zombie che vaga nelle profondità dell'oceano, maledicendo chiunque ne incroci il percorso.
+540|Una fata fantasma che lancia frecce infinite contro chiunque manifesti l'intenzione di attaccare.
+541|Questa creatura blocca il movimento del nemico con venti di burrasca e attacca con un'enorme ascia da battaglia.
+542|Un pesce lanciarazzi protetto da aculei e spine.
+543|Questa creatura è alimentata dalla forza vitale dei pesci che cattura con la sua lunga lingua.
+544|Un mostro meccanico molto preciso, coperto di cannoni di grosso calibro.
+545|Uno scheletrico zombie di drago, in grado di solcare i cieli.
+546|Un enorme pesce con braccia, gambe e denti affilati come rasoi.
+547|Questo mostro gira attorno al nemico lanciando foglie accecanti e semi che provocano dolore.
+548|Un ratto zombie che caccia i felini.
+549|Una creatura bavosa con la testa di una rana che gracida quando attacca.
+550|Uno strano serpente marino, con una bocca gigantesca irta di grandi zanne.
+551|Un elfo malvagio che adora ingaggiare scontri.
+552|Crea potenti tornado con le sue immense ali.
+553|Un Uomo Fungo completamente cresciuto con un elevato fattore di attacco.
+554|Questo fratello di Combattente della Palude può anche non essere potente ma se la cava molto bene in difesa.
+555|Un drago cremisi che sputa sfere di fuoco contro i nemici.
+556|Un mostro che vaga senza scopo in cerca di nemici.
+557|Un idolo d'acciaio adorato nella Terra delle Macchine.
+558|Un poco affidabile assistente stregone.
+559|Uno strano guerriero proveniente da un'altra dimensione.
+560|Una creatura proveniente da un'altra galassia.
+561|Un drago minore, di classe inferiore, incapace di sputare fuoco.
+562|Una larva con punte di acciaio per attaccare gli ignari.
+563|Una creatura innocua che si trova in ogni soffitta.
+564|Uno scheletrico zombie di elefante molto insolito con brillanti ossa d'oro.
+565|Uno squalo nero in grado di rilevare quasi tutti gli odori nell'acqua.
+566|Un serpente molto lungo che compare spesso nelle leggende e nei miti.
+567|Una pianta spinosa che si trova nelle terre oscure e si avvolge attorno a ogni ignaro viandante.
+568|Un dinosauro dalle sembianze umane, non forte ma con alto Q.I.
+569|Un serpente dalle sembianze umane che succhia sangue e attacca ogni essere umano che incontra.
+570|Un drago dal mantello tigrato che si vede spesso attraversare le terre desolate a velocità straordinaria.
+571|Un drago nero corvino che vive nella giungla e si ciba di piante.
+572|Imperatrice del Regno Dorato. Nessuno si può opporre al suo volere.
+573|Un mostro ferocissimo generato da un T-Rex.
+574|Questa strega della foresta può vedere tutto con l'occhio che ha sulla fronte.
+575|Una capra bianca che da tempo immemore vive nella foresta. Questa creatura di fatto è la più vecchia nel bosco.
+576|Un raro scorpione scarlatto che si può trovare nella tundra -- non nel deserto.
+577|Un goblin molto saggio, dal lungo naso, con poteri sovrannaturali.
+578|Un mago con il mantello nero, che in realtà è un leone parlante travestito da uomo.
+579|Un raro fiore che fiorisce in un abisso di oscurità.
+580|Un robot all'avanguardia che elimina gli intrusi non appena li individua.
+581|Questo uccello annuncia il disastro!!
+582|Una creatura popolare nella mitologia, che emette i suoi giudizi usando una lancia acuminata.
+583|Questa creatura è nota per la sua capacità di prevedere il tempo con scarsa precisione.
+584|Questa creatura mette in angolo i nemici e inibisce il loro potere.
+585|Una chiocciola meccanica che comunque non riesce ad andare più veloce.
+586|Una creatura che si trasforma nell'immagine dei suoi nemici e copia ogni mossa offensiva.
+587|Un Larvas molto evoluto, persino più potente di prima.
+588|Un vaso vivente che acceca i nemici con il polline e con i denti affilati.
+589|Attacca un nemico nelle vicinanze allungando i suoi tralci blu.
+590|Avvolge le sue spire attorno all'avversario e lo colpisce con il suo grande becco.
+591|Una grossa brocca che attacca il nemico vicino sguinzagliando il mostro che ha al suo interno.
+592|Una fata delle arti eccellente suonatrice di arpa.
+593|Una tartaruga mostruosa con un guscio cremisi. Si ciba di fuoco.
+594|Una rosa rossa posseduta da uno spirito malvagio che si ciba della forza vitale altrui per nutrire il suo fiore.
+595|Trascina i suoi nemici nel mondo dello specchio.
+596|Un mostro che può mangiare tutto ciò che vuole ma non è mai soddisfatto.
+597|Con una pelle bianco azzurrato, questa strana creatura è temibile a vedersi.
+598|Un mostro frutto di un esperimento che tentava l'innesto di ali sulle bestie.
+599|Un mostro in grado di scatenare improvvisi acquazzoni.
+600|Isola tutto ciò che di buono è contenuto nell'anima per creare un essere maligno.
+601|Una bella fata impegnata a portare a tutti eterno amore.
+602|Un pinguino soldato di classe inferiore che attacca in gruppo.
+603|Una fata drago potente e bellissima.
+604|Un topo dei campi di pessimo carattere, che morde qualsiasi cosa.
+605|Una forma di vita liquida che si muove liberamente nell'acqua.
+606|Una creatura sottomarina che attacca con due code simili a fruste.
+607|Un mostro dotato di uno stomaco enorme che gli consente di inghiottire un nemico tutto intero.
+608|Porta pace tra i mostri.
+609|una mosca mostruosa che piomba dall'alto puntando in avanti le zampe affilate come spade.
+610|Una lucertola che scarica l'elettricità accumulata nel suo corpo.
+611|Un servo dei demoni usato principalmente come esploratore.
+612|Lenisce le anime recitando un misterioso incantesimo.
+613|Un Drago Tuono a due teste capace di potenti attacchi elettrici.
+614|Un cacciatore che usa la sua ragnatela per intrappolare i nemici.
+615|Una stella marina blu con una pelle dura in grado di sventare gli attacchi.
+616|Una fata che controlla i sentimenti altrui, fornendo coraggio.
+617|Una creatura marina con denti aguzzi che non lascia più libere le sue vittime una volta catturate.
+618|Una dama guerriera imbevuta dell'essenza di migliaia di campi di battaglia.
+619|Un idolo di argilla che rappresenta uno spirito della roccia. Questa creatura è dotata di notevoli valori di attacco e difesa.
+620|Una creatura composta di parecchi serpenti che attaccano separatamente in battaglia.
+621|Un malvagio mago guerriero che lancia incantesimi fatali.
+622|Controlla le correnti d'aria e può generare un'improvvisa folata di vento per far volar via l'avversario.
+623|La comparsa di questa creatura è preceduta dallo sciogliersi della terra sotto i piedi dell'avversario.
+624|Un guerriero anfibio che può facilmente navigare sott'acqua.
+625|Una fata impegnata a proteggere le fontane dall'inquinamento.
+626|Una sirena sentinella che serve il Re del Mare ed il suo regno.
+627|Questa rapida creatura può eludere facilmente gli attacchi del nemico e contrastarli con i suoi pericolosi artigli.
+628|Una strega inesperta che ha appena cominciato ad imparare le arti mistiche.
+629|Un topo protetto da una pelliccia simile a un'armatura.
+630|Una potente lucertola guerriera preistorica.
+631|Uno stregone lunare che usa incantesimi mistici che producono allucinazioni.
+632|Un gigante di roccia composto da enormi massi.
+633|Un messaggero di nuova vita.
+634|Una lucertola guerriera dalle scaglie verdi, protettrice del mare.
+635|Una sosia della regina relativamente inutile.
+636|Un uccello che brilla di fiamme blu e ha la testa coperta di capelli che formano una corona.
+637|Questo gigantesco albero, protettore della foresta, cresce senza sosta.
+638|Regina dello Spirito dell'Albero, circondata di brillanti foglie d'autunno.
+639|Una unità Bugroth modificata per combattimenti subacquei.
+640|Un bruco gigantesco che sputa acido in grado di sciogliere quasi qualsiasi cosa.
+641|Una regina intrigante che vuole occupare il trono del re durante la sua assenza.
+642|Una pecora dal vello nero capace di compiere stregonerie.
+643|Una creatura che si nasconde in un piattino e appare solo per attaccare i nemici.
+644|Una vipera velocissima che sputa fuoco.
+645|Un soldato meccanico dotato di propria mente. Creato in origine per proteggere i membri della famiglia reale.
+646|Simile ad altre masse bavose, ma è decisamente più potente.
+647|Questa creatura anfibia vanta un elevato fattore di attacco, ma non è un granché in difesa.
+648|Una macchina progettata per effettuare attacchi lampo.
+649|Confonde i mostri nemici con un rumore molto fastidioso.
+650|Attacca dal cielo con una coda come una frusta.
+651|Un boomerang che presenta gli effetti di due carte: la Spada Leggendaria e la Spada della Rovina Oscura.
+652|Questa carta aumenta il potere del Muro del Labirinto.
+653|Distrugge tutte le carte Guerriero in gioco sul campo.
+654|Aumenta la forza di chi controlla il potere di Salamandra.
+655|Annulla la magia su tutti i mostri di livello ridotto e li pone tutti a livello 0.
+656|Elimina tutte le creature Zombie.
+657|Una carta che aumenta di 2 livelli il potere di qualsiasi mostro selezionato.
+658|Una carta che trasforma ogni mostro selezionato in un mostro Macchina.
+659|Un corno che aumenta il potere delle creature Fata.
+660|La pioggia acida distrugge ogni mostro Macchina dell'avversario.
+661|I mostri avversari in gioco, con fattori di attacco di 1.500 o più sono eliminati.
+662|Un insetticida che scaccia i mostri Insetto dell'avversario in gioco in quel momento.
+663|Un vento magico sbriciola i mostri Roccia dell'avversario in gioco in quel momento.
+664|Un colpo di caldo prosciuga ed elimina i mostri Pesce dell'avversario, in gioco in quel momento.
+665|Sacrifica il mostro con il punteggio difesa più elevato ed evoca lo Scudo.
+666|Sacrifica i mostri Drago, Guerriero-bestia e Ardente per evocare Yamadron.
+667|Sacrifica Kazejin, Suijin e Sanga del Tuono per evocare il Guardiano del Cancello.
+668|Una luce intensa che aumenta il potere di tutti i mostri.
+669|Riduce di due livelli i mostri dell'avversario in gioco in quel momento.
+670|Cerimonia condotta per evocare il Soldato dello Splendore Nero. Richiede un sacrificio.
+671|Cerimonia condotta per evocare Zera. Richiede un sacrificio.
+672|Distrugge tutte le carte Magia in gioco dell'avversario.
+673|Cerimonia condotta per evocare il Leone da Guerra. Richiede un sacrificio.
+674|Cerimonia condotta per evocare lo Specchio Demonio. Richiede un sacrificio.
+675|Sacrifica tre Occhi Azzurri per evocare un Drago Massimo.
+676|Sacrifica Danzatori e Guerrieri per evocare Danza della Spada.
+677|Una carta con gli ingredienti necessari per preparare gustosi hamburger.
+678|Sacrifica Guerriero-bestia e Golem per evocare Sengenjin.
+679|Sacrifica Guerrieri e Portatori di Falce per evocare Guardiano Teschio
+680|Sacrifica un mostro dotato di corno per evocare Drago Tri-corno.
+681|I Mostri con fattori di attacco di 500 o meno, vengono eliminati dal campo di gioco.
+682|I Mostri con fattori di attacco di 1.000 o meno, vengono eliminati dal campo di gioco.
+683|Quando il fattore di attacco di un mostro avversario è di 1.500 o meno, viene eliminato dal campo di gioco.
+684|Quando il fattore di attacco di un mostro avversario è di 2.000 o meno, viene eliminato dal campo di gioco.
+685|Quando il fattore di attacco di un mostro avversario è di 3.000 o meno, viene eliminato dal campo di gioco.
+686|Quando un mostro avversario attacca, viene fatto a pezzettini ed eliminato dal campo di gioco.
+687|Capovolge il danno prodotto da carte con attacco diretto come faville, fuochi e incendi sul tuo avversario.
+688|Una carta che capovolge gli effetti delle carte di recupero e li trasforma in punti danno.
+689|Una carta che capovolge gli effetti delle carte di ricarica trasformandoli in riduzione di potenza.
+690|Una carta trappola per ingannare il tuo avversario. Quando è attaccata non accade nulla.
+691|Scegli uno specifico mostro da sacrificare ed evoca Drago di Notte del Serpente.
+692|Sacrifica granchi e tartarughe per evocare Tarta-granchio.
+693|Sacrifica un essere mascherato per evocare una nuova maschera.
+694|Sacrifica 3 mostri Demone per eseguire il rituale della Risurrezione di Chakra.
+695|Sacrifica Burattinaio e e mostri macchina per evocare Burattino.
+696|Sacrifica un cervo volante e uno scarabeo per evocare Coleottero Giavellotto.
+697|Sacrifica Braccio di Ashura e un mostro armato di spada per evocare.
+698|Sacrifica una Regina normale per evocare Regina del Cosmo.
+699|Sacrifica un Tempio e uno Scarafaggio per evocare Dokurorider.
+700|Sacrifica un Corno e un Pesce macchina per evocare Fortezza Marina.
+701|Un danzatore guerriero che esegue passi divertenti.
+702|Attrae nemici affamati con aromi gustosi e se li mangia quando arrivano abbastanza vicini.
+703|Un ostinato uomo primitivo, che porta un Oggetto del Millennio.
+704|Un guardiano della legge che non perdona gli inganni. Attacca i nemici con braccia simili a spade.
+705|Un drago malvagio con tre corna che gli spuntano dalla testa.
+706|Un drago creato dall'anima di un cavaliere malvagio.
+707|Un monaco che ha condotto numerosi rituali nel nulla e che è in grado di usare sia le armi che la magia.
+708|Una regina che governa su tutte le stelle dell'universo.
+709|Una forma serpeggiante che attacca con braccia simili a tentacoli.
+710|Una creatura con guscio di tartaruga e forbici da granchio che fornisce elevati fattori di attacco e difesa.
+711|Un drago guerriero armato con una spada a forma di mezzaluna. Si dice che provenga proprio dalla luna.
+712|Un drago che è arrivato sulla terra con una cometa caduta dallo spazio più remoto.
+713|Con l'ardente rivestimento di un meteorite, questa creatura fa evaporare tutto quello che tocca.
+714|Uno stallone celeste che vola nei cieli con le sue ali scarlatte.
+715|Una misteriosa bambola che usa una strana danza per sottrarre forza ai mostri avversari.
+716|Un abile guerriero che brandisce sei spade contro i mostri avversari.
+717|Una creatura con forbici letali che tagliano quasi tutto.
+718|Un mostro marino con un cannone montato sul dorso per scacciare i nemici dall'acqua.
+719|Un viaggiatore solitario che percorre le terre desolate, sollevando spesse nuvole di polvere.
+720|Una creatura che torce il tessuto della luce e dell'oscurità per produrre immagini che confondono gli avversari.
+721|Cerimonia di evocazione del Mago del Caos Nero. Richiede un sacrificio.
+722|Il supremo stregone, che usa il potere del c

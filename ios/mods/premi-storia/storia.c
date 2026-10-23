@@ -37,6 +37,7 @@ static const MemoriesModHost *host;
 #include "game/duel_rewards.h"
 #include "game/duel_scene_state.h"
 #include "game/duel_side_state.h"
+#include "pc/cards/tables.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,8 +54,17 @@ static struct {
     int duelist;
     long starchips;
     char what[64];
+    int any_result; /* "|fine": paid when the story moves past the duel, won or lost (the prologue's Heishin) */
 } prizes[PRIZES_MAX];
 static int prize_count;
+
+/* The "|fine" prizes paid, as "<duelist>:<the save's name in hex>" lines in
+ * mod-data (pagati.txt): one per name, also for a save that went past the
+ * duel before this version (paid the first time it is played). */
+#define PAID_FILE "pagati.txt"
+#define PAID_MAX 64
+static char paid[PAID_MAX][48];
+static int paid_count, check_wait;
 
 static void *original;
 static int menu_mode; /* the last mode outside a duel */
@@ -84,6 +94,11 @@ static void load_prizes(void)
         *nl = 0;
         prizes[prize_count].duelist = (int)id;
         prizes[prize_count].starchips = n;
+        prizes[prize_count].any_result = 0;
+        if (nl - (end + 1) >= 5 && !strcmp(nl - 5, "|fine")) {
+            nl[-5] = 0;
+            prizes[prize_count].any_result = 1;
+        }
         snprintf(prizes[prize_count].what, sizeof(prizes[prize_count].what), "%s", end + 1);
         prize_count++;
     }
@@ -120,7 +135,7 @@ static void results_screen(void)
               gDuel_bWinnerSide, D_8009B360[0], menu_mode);
     if (D_8009B360[0] >= 0 || gDuel_bOpponentID < 0 || gDuel_bWinnerSide || !campaign_duel()) return;
     for (i = 0; i < prize_count; i++) {
-        if (prizes[i].duelist != gDuel_bOpponentID) continue;
+        if (prizes[i].duelist != gDuel_bOpponentID || prizes[i].any_result) continue;
         if (paid_already(prizes[i].duelist)) {
             host->log(host, "premi-storia: %s, gia' preso su questo salvataggio", prizes[i].what);
             return;
@@ -145,12 +160,74 @@ static void starchips(MemoriesModEvent *event)
     banner = BANNER_FRAMES;
 }
 
+static void load_paid(void)
+{
+    FILE *file = host->open_data(host, PAID_FILE, "r");
+    char line[64];
+    paid_count = 0;
+    if (!file) return;
+    while (paid_count < PAID_MAX && fgets(line, sizeof(line), file)) {
+        char *end = line;
+        while (*end && *end != '\r' && *end != '\n') end++;
+        *end = 0;
+        if (line[0]) snprintf(paid[paid_count++], sizeof(paid[0]), "%s", line);
+    }
+    fclose(file);
+}
+
+static void paid_key(int duelist, char *out, size_t size)
+{
+    size_t at = (size_t)snprintf(out, size, "%d:", duelist);
+    int i;
+    for (i = 0; i < SAVE_DATA_PLAYER_NAME_SIZE && at + 2 < size; i++, at += 2)
+        snprintf(out + at, size - at, "%02X", gSaveData_aPlayerNameSjis[i]);
+}
+
+/* The "|fine" prizes: in the story (the campaign or its map), a save whose
+ * flag says the duel is behind it and whose name has not had it yet. */
+static void story_prizes(int mode)
+{
+    SaveDataState *save = (SaveDataState *)gDuel_awPlayerDeck;
+    char key[48];
+    unsigned cap, was;
+    int i, k, named = 0;
+    FILE *file;
+    if (++check_wait < 30 || shown) return;
+    check_wait = 0;
+    if (mode != MAIN_MODE_CAMPAIGN && mode != MAIN_MODE_CAMPAIGN_MAP &&
+        !(host->setting(host, "prova", 0) == 3 && mode != MAIN_MODE_DUEL))
+        return;
+    for (i = 0; i < SAVE_DATA_PLAYER_NAME_SIZE; i++) named |= gSaveData_aPlayerNameSjis[i];
+    if (!named) return;
+    for (i = 0; i < prize_count; i++) {
+        if (!prizes[i].any_result || !paid_already(prizes[i].duelist)) continue;
+        paid_key(prizes[i].duelist, key, sizeof(key));
+        for (k = 0; k < paid_count && strcmp(paid[k], key); k++) {}
+        if (k < paid_count || paid_count >= PAID_MAX) continue;
+        cap = Tables_StarchipCap();
+        was = save->starchips;
+        save->starchips = was + (unsigned)prizes[i].starchips > cap ? cap : was + (unsigned)prizes[i].starchips;
+        snprintf(paid[paid_count++], sizeof(paid[0]), "%s", key);
+        if ((file = host->open_data(host, PAID_FILE, "a"))) {
+            fwrite(key, 1, strlen(key), file);
+            fwrite("\n", 1, 1, file);
+            fclose(file);
+        }
+        shown = i + 1;
+        banner = BANNER_FRAMES;
+        host->log(host, "premi-storia: %s, +%ld starchip (da %u a %u), modo %d", prizes[i].what, prizes[i].starchips,
+                  was, (unsigned)save->starchips, mode);
+        return;
+    }
+}
+
 static void frame(void)
 {
     /* A campaign duel may run in the campaign's own mode: the mode is only
      * remembered, the prize waits for the payment (or WAIT_FRAMES). */
     int mode = D_8009B26C & MODE_MASK;
     if (mode != MAIN_MODE_DUEL) menu_mode = mode;
+    story_prizes(mode);
     if (banner < 0 && --banner < -WAIT_FRAMES) pending = shown = banner = 0;
     if (banner > 0 && --banner == 0) shown = 0;
 }
@@ -195,6 +272,7 @@ int MemoriesModInit(const MemoriesModHost *from, MemoriesMod *mod)
     mod->overlay = draw;
     mod->overlay_signature = signature;
     load_prizes();
+    load_paid();
     return host->subscribe(host, MEMORIES_EVENT_STARCHIP, 0, starchips) != 0 &&
            host->hook(host, (void *)DuelScene_UpdateResultRewards, (void *)results_screen, &original) != 0;
 }
