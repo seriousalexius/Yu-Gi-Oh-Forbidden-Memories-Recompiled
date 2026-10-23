@@ -18,9 +18,18 @@
 #include <string.h>
 #include <time.h>
 
-#define PROTOCOL 1
+#define PROTOCOL 2
 #define SAVE_SIZE 0x680
-#define RING 256                /* VBlanks of input kept; the other game is at most 2 * delay ahead */
+#define RING 256                /* VBlanks of input kept; the other game is at most 2 * GAP_FAST ahead */
+/* How far ahead of its VBlank an input goes (Netplay_Pads), which bounds
+ * how fast the two games can go: GAP_FAST VBlanks in the duel's animations,
+ * which run flat out, so that the network keeps up with them; while someone
+ * chooses, at 100%, the agreed delay, longer (up to GAP_SLOW_MAX) when the
+ * waits say the network wants it. Each game picks its own: every input says
+ * the VBlank it is for. */
+#define GAP_FAST 48
+#define GAP_SLOW_MAX 12
+#define FLUSH_MS 20 /* what is kept goes out at least this often */
 #define CHECKS 64
 #define WAIT_WARN_MS 5000
 #define WAIT_GIVE_UP_MS 60000
@@ -66,6 +75,14 @@ static int arena_mode, arena_ready, arena_deck_sent, arena_both, arena_go, arena
 static unsigned arena_go_index, test_series;
 static uint64_t arena_notice_at;
 static uint8_t local_flags[RING], remote_flags[RING];
+/* The gap (GAP_FAST): the last VBlank our input went out for, the buttons
+ * kept for the next while the gap shrinks, the gap while choosing and its
+ * window of waits; the rate the duel runs at (-1 flat out) and the phase
+ * log (MEMORIES_NETPLAY_PHASES=1). */
+static unsigned last_target, gap_slow, window_frames, phase_key = ~0u;
+static uint16_t pending_bits;
+static uint64_t last_flush_ms, window_started, window_waited;
+static int phase_log;
 
 static uint64_t now_ms(void)
 {
@@ -102,6 +119,7 @@ static void send_message(int type, const void *payload, size_t length)
  * plan counts them); a plain connection has sent it already. */
 static void flush(void)
 {
+    last_flush_ms = now_ms();
     if (!peer_gone && NetplayNet_Flush()) lost("the connection is gone");
 }
 
@@ -775,11 +793,12 @@ static void start(void)
     if (!*config) return;
     if (!strncmp(config, "ws://", 5)) {
         /* ws://host[:port]/room/side: the server (server/worker.js), which
-         * adds about 60 ms each way, hence a longer delay. */
+         * adds about 60 ms each way, more on a phone, hence a longer
+         * delay. */
         const char *rest = config + 5;
         char *end;
         websocket = 1;
-        delay = 6;
+        delay = 8;
         port = 80;
         host[0] = '\0';
         if (sscanf(rest, "%255[^:/]", host) == 1) rest += strlen(host);
@@ -868,6 +887,10 @@ static void start(void)
     }
     active = 1;
     active_since = now_ms();
+    /* The VBlanks before the delay have no input; ours go out from there. */
+    last_target = delay - 1;
+    gap_slow = delay;
+    phase_log = getenv("MEMORIES_NETPLAY_PHASES") && strcmp(getenv("MEMORIES_NETPLAY_PHASES"), "0");
     if (arena_mode) {
         arena.version = NETPLAY_ARENA_VERSION;
         arena.side = side;
@@ -1044,24 +1067,66 @@ const unsigned char *Netplay_Save(int player)
     return active && (player == 1 || player == 2) && have_save[player - 1] ? saves[player - 1] : NULL;
 }
 
-void Netplay_Pads(uint16_t local, uint16_t both[2])
+/* Our input for the VBlank target, kept and sent. */
+static void emit(unsigned target, uint16_t bits)
 {
-    unsigned index = vblank_index++, ahead = index + delay;
-    uint16_t mine, theirs = 0;
-    uint8_t theirs_flags = 0;
     unsigned char message[7];
-    /* The arena's draft and the series' notices: no buttons to the game. */
-    if (arena_mode && !arena_in_duel) local = 0;
-    local_bits[ahead % RING] = local;
-    local_flags[ahead % RING] = (uint8_t)arena_ready;
-    put32(message, ahead);
-    message[4] = (unsigned char)local, message[5] = (unsigned char)(local >> 8);
+    local_bits[target % RING] = bits;
+    local_flags[target % RING] = (uint8_t)arena_ready;
+    put32(message, target);
+    message[4] = (unsigned char)bits, message[5] = (unsigned char)(bits >> 8);
     message[6] = (unsigned char)arena_ready;
     send_message(MSG_INPUT, message, arena_mode ? 7 : 6);
-    /* Two VBlanks to a message (half the WebSocket messages; the check of
-     * Netplay_Point rides along): the even one waits for the odd one, which
-     * the delay of 2 or more leaves time for. */
-    if (ahead % 2) flush();
+}
+
+/* The duel's animations, where nobody chooses (the draw, the battle, the
+ * field turning at the turn's end, the results): flat out in both games.
+ * The choices, the phases the turn timer counts, at 100%, so that the
+ * cursor moves as it always has. The same in both games, which are at the
+ * same state at the same VBlank. */
+static int animation_now(void)
+{
+    int phase, sub;
+    if (!turn_duel()) return 0;
+    phase = *(volatile uint16_t *)(uintptr_t)0x8009B23Au & 0xF;
+    sub = *(volatile uint8_t *)(uintptr_t)0x8009B174u & 0xF;
+    if (phase_log && (unsigned)(phase << 4 | sub) != phase_key) {
+        phase_key = (unsigned)(phase << 4 | sub);
+        fprintf(stderr, "memories-pc: online: phase %d.%d at VBlank %u\n", phase, sub, vblank_index);
+    }
+    if (phase == 4 || phase == 6 || phase == 7 || phase == 8) return 0;
+    if (phase == 5) return sub >= 0xA;
+    return 1;
+}
+
+void Netplay_Pads(uint16_t local, uint16_t both[2])
+{
+    unsigned index = vblank_index++, want;
+    uint16_t mine, theirs = 0;
+    uint8_t theirs_flags = 0;
+    int animation = animation_now(), rate;
+    /* The arena's draft and the series' notices: no buttons to the game. */
+    if (arena_mode && !arena_in_duel) local = 0;
+    /* Ours for the VBlank the gap says. A longer gap fills the VBlanks in
+     * between with no buttons; a shorter one keeps the buttons for the next
+     * VBlank still free, so that no press is lost. */
+    want = index + (animation ? GAP_FAST : gap_slow);
+    pending_bits |= local;
+    if (want > last_target) {
+        int jumped = want > last_target + 1;
+        while (last_target + 1 < want) emit(++last_target, 0);
+        emit(++last_target, pending_bits);
+        pending_bits = 0;
+        if (jumped) flush();
+    }
+    /* What is kept goes out every FLUSH_MS (the check of Netplay_Point
+     * rides along): a VBlank or two at 100%, many flat out. */
+    if (now_ms() - last_flush_ms >= FLUSH_MS) flush();
+    /* Flat out in the animations, and on until the gap has shrunk back
+     * (choosing at 100% with the long gap would feel slow); paused stays
+     * paused. Game speed and the turbo come back after the duel. */
+    rate = animation || last_target > index + gap_slow ? -1 : 100;
+    if (Platform_ClockRate() != 0 && Platform_ClockRate() != rate) Platform_SetClockRate(rate);
     mine = index < delay ? 0 : local_bits[index % RING];
     if (index >= delay && !peer_gone) {
         uint64_t started = 0, entered = now_ms();
@@ -1094,6 +1159,20 @@ void Netplay_Pads(uint16_t local, uint16_t both[2])
             uint64_t waited = now_ms() - entered;
             waits++, waited_ms += waited;
             if (waited > longest_wait_ms) longest_wait_ms = waited;
+        }
+        /* Choosing, every 240 VBlanks: waits over an eighth of the time
+         * say the network is slower than the gap, which grows by one. */
+        if (animation || !window_started) {
+            window_frames = 0, window_started = now_ms(), window_waited = waited_ms;
+        } else if (++window_frames >= 240) {
+            uint64_t now = now_ms();
+            if (gap_slow < GAP_SLOW_MAX && (waited_ms - window_waited) * 8 > now - window_started) {
+                gap_slow++;
+                fprintf(stderr, "memories-pc: online: waited %llu ms of %llu, the input goes %u VBlanks ahead\n",
+                        (unsigned long long)(waited_ms - window_waited), (unsigned long long)(now - window_started),
+                        gap_slow);
+            }
+            window_frames = 0, window_started = now, window_waited = waited_ms;
         }
         if (remote_have[index % RING] && remote_index[index % RING] == index) {
             theirs = remote_bits[index % RING];

@@ -32,6 +32,16 @@ void Main_RunTwoPlayerDuelSetup(void)
 {
     s32 result;
 
+#ifdef MEMORIES_PC
+    /* Online both sides start at NETPLAY_LIFE_POINTS, which nobody chooses:
+       no setup screen, straight to the duel, as its Start would. */
+    if (Netplay_Active()) {
+        D_8009B236 = D_8009B234 = NETPLAY_LIFE_POINTS;
+        func_80024DC8(-1, -1, 0, 0);
+        D_8009B368 = 8;
+        return;
+    }
+#endif
     if ((D_8009B26C & 0x40) == 0) {
         D_8009B26C = D_8009B26C | 0x40;
 #ifdef MEMORIES_PC
