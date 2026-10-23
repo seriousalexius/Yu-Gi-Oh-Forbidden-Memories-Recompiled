@@ -23,6 +23,7 @@
 #include "pc/debug/log.h"
 #include "pc/guest/state.h"
 #include "pc/mods/mods.h"
+#include "pc/cards/deck_rules.h"
 #include "pc/cards/tables.h"
 #include "pc/render/texture_pack.h"
 #include "paths.h"
@@ -102,6 +103,7 @@ enum {
     ACT_CHECK_UPDATES, ACT_RELEASES, ACT_VERSION, ACT_SET_STARCHIPS, RADIO_LANGUAGE, ACT_SYSTEM_INFO, ACT_JUMP,
     ACT_ONLINE,
     ACT_ACCOUNT,
+    ACT_DECK_RULES,
     CHECK_TRACE = 300  /* value is a LogChannel */
 };
 
@@ -178,7 +180,8 @@ static Menu menus[MENU_COUNT] = {
               {"Language", 0, ITEM_SUBMENU, 0, -1, SUB_LANGUAGE},
               {"Restart game...", 0, ITEM_ACTION, MENU_ITEM_RESTART, -1, 0, ITEM_GROUP_BREAK | ITEM_DISABLED},
               {"Online...", 0, ITEM_ACTION, ACT_ONLINE, -1, 0, ITEM_GROUP_BREAK},
-              {"Account...", 0, ITEM_ACTION, ACT_ACCOUNT, -1}}, 13},
+              {"Account...", 0, ITEM_ACTION, ACT_ACCOUNT, -1},
+              {"Regole del mazzo...", 0, ITEM_ACTION, ACT_DECK_RULES, -1}}, 14},
     {"View", {{"Fusion helper", 0, ITEM_CHECK, 0, SET_FUSION_HELPER},
               {"Card passwords", 0, ITEM_CHECK, 0, SET_CARD_PASSWORDS},
               {"Library: show every card", 0, ITEM_CHECK, 0, SET_LIBRARY_ALL_CARDS},
@@ -2013,6 +2016,7 @@ static void activate(const Item *item, int *quit)
     case ACT_SYSTEM_INFO: show_system_info(); break;
     case ACT_ONLINE: Lobby_Open(); break;
     case ACT_ACCOUNT: Lobby_Account(); break;
+    case ACT_DECK_RULES: DeckRules_ShowPanel(); break;
     case MENU_ITEM_TITLE: TitleJump_Request(); break;
     case ACT_JUMP: {
         char why[120];

@@ -16,7 +16,9 @@
 #include "pc/compat/signal.h"
 #include "pc/debug/netplay.h"
 #include "pc/debug/netplay_net.h"
+#include "pc/cards/deck_rules.h"
 #include "pc/mods/json.h"
+#include "pc/saves/online_deck.h"
 #include "pc/saves/save_menu.h"
 #include "pc/saves/save_slots.h"
 #include <ctype.h>
@@ -33,7 +35,7 @@
 #define LOBBY_HOST "yfm-online.alessio-scuola.workers.dev"
 #define PING_MS 30000
 #define SILENCE_MS 75000 /* the server answers every ping: this long without a word, the link is gone */
-#define PLAYERS (MENU_NOTICE_GRID - 2) /* then "Salvataggi" and "Chiudi" */
+#define PLAYERS (MENU_NOTICE_GRID - 4) /* then "Salvataggi", "Account", "Mazzo 1v1" and "Chiudi" */
 #define NAME 13
 
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -208,7 +210,8 @@ typedef struct {
 #define RESULTS 8
 
 static char my_name[NAME], token[40];
-static char results[RESULTS][NAME + 1]; /* lobby.txt's duels not told yet: 'v' or 'p', then the other's name */
+static char results[RESULTS][NAME + 16]; /* lobby.txt's duels not told yet: 'v' or 'p', then the other's name
+                                         * (and, for a 1v1, ";<my legendary cards>;<theirs>") */
 static int result_count;
 static char accepted[NAME];             /* the player whose challenge this one accepted */
 static Player players[PLAYERS];
@@ -220,7 +223,7 @@ static int test_accept;
 
 enum { SCREEN_NONE, SCREEN_NAME, SCREEN_INVITE, SCREEN_JOINING, SCREEN_LIST, SCREEN_PLAYER, SCREEN_WAIT,
        SCREEN_INCOMING, SCREEN_INFO, SCREEN_START, SCREEN_PASSWORD, SCREEN_ASK_PASSWORD, SCREEN_SAVES,
-       SCREEN_ACCOUNT, SCREEN_LOGOUT };
+       SCREEN_ACCOUNT, SCREEN_LOGOUT, SCREEN_DECK };
 static int screen;
 static char typed[16], typed_name[NAME], typed_invite[16], picked[NAME];
 static int grid_focus;
@@ -248,11 +251,11 @@ static void read_account(void)
         /* The online duels' results (pc/debug/netplay.c); a duel still
          * "in_corso" never got to its end here: lost. */
         else if (result_count < RESULTS && !strncmp(line, "in_corso=", 9))
-            snprintf(results[result_count++], NAME + 1, "p%s", line + 9);
+            snprintf(results[result_count++], sizeof(results[0]), "p%s", line + 9);
         else if (result_count < RESULTS && !strncmp(line, "risultato=vinto,", 16))
-            snprintf(results[result_count++], NAME + 1, "v%s", line + 16);
+            snprintf(results[result_count++], sizeof(results[0]), "v%s", line + 16);
         else if (result_count < RESULTS && !strncmp(line, "risultato=perso,", 16))
-            snprintf(results[result_count++], NAME + 1, "p%s", line + 16);
+            snprintf(results[result_count++], sizeof(results[0]), "p%s", line + 16);
     }
     fclose(file);
     if (!my_name[0]) token[0] = '\0';
@@ -308,14 +311,20 @@ static void send_to(const char *type, const char *name, const char *rest)
  * account's wins and losses, then out of lobby.txt. */
 static void tell_results(void)
 {
-    char line[160], who[NAME];
+    char line[200], who[NAME], extra[64];
     int i;
     if (!result_count) return;
     for (i = 0; i < result_count; i++) {
-        int won = results[i][0] == 'v';
+        int won = results[i][0] == 'v', mine, theirs;
+        char *counts = strchr(results[i], ';');
+        /* fork: a 1v1's legendary cards, for the server's statistics */
+        extra[0] = '\0';
+        if (counts && sscanf(counts, ";%d;%d", &mine, &theirs) == 2)
+            snprintf(extra, sizeof(extra), ",\"modo\":\"1v1\",\"mieL\":%d,\"loroL\":%d", mine, theirs);
+        if (counts) *counts = '\0';
         clean(who, sizeof(who), results[i] + 1);
-        snprintf(line, sizeof(line), "{\"t\":\"risultato\",\"contro\":\"%s\",\"esito\":\"%s\"}", who,
-                 won ? "vinto" : "perso");
+        snprintf(line, sizeof(line), "{\"t\":\"risultato\",\"contro\":\"%s\",\"esito\":\"%s\"%s}", who,
+                 won ? "vinto" : "perso", extra);
         send_line(line);
         fprintf(stderr, "memories-pc: lobby: result sent: %s against %s\n", won ? "won" : "lost", results[i] + 1);
     }
@@ -534,6 +543,128 @@ static void show_saves(void)
     Menu_ShowNotice("Salvataggi sull'account", text, back, 1, 0, saves_closed);
 }
 
+/* --- the 1v1 deck (fork: pc/saves/online_deck.h, pc/cards/deck_rules.h) --- */
+
+static int deck_warned; /* the deck's problems said once an opening of Online... */
+
+/* The save the duel loads: the game's slot, else the first (go). */
+static int duel_save(char *path, size_t size)
+{
+    int slot = SaveMenu_CurrentSlot();
+    return SaveSlots_Path(slot < 0 ? 0 : slot, path, size);
+}
+
+/* The 1v1 deck's broken rules, "- ...\n" lines into `out`: how many (0
+ * when it keeps them), -1 when the save has no whole deck. *slot: the deck
+ * slot it takes, 0 for the save's own. */
+static int deck_problems(char *out, size_t size, int *slot)
+{
+    char path[1024];
+    unsigned short deck[DECK_SLOT_CARDS];
+    int used;
+    out[0] = '\0';
+    *slot = 0;
+    if (duel_save(path, sizeof(path)) || (used = OnlineDeck_Read(path, deck)) < 0) {
+        snprintf(out, size, "- Nel salvataggio non c'e' un mazzo di 40 carte: salva la partita.\n");
+        return -1;
+    }
+    *slot = used;
+    return DeckRules_Problems(DECK_RULES_ONLINE, deck, out, size);
+}
+
+static void deck_label(int slot, char *out, size_t size)
+{
+    if (slot) snprintf(out, size, "lo slot %d di Decks", slot);
+    else snprintf(out, size, "il mazzo della partita salvata");
+}
+
+static void show_deck(void);
+
+static void deck_rules_closed(int button, int *quit)
+{
+    (void)button, (void)quit;
+    screen = SCREEN_NONE;
+    show_deck();
+}
+
+static void deck_chosen(int button, int *quit)
+{
+    static const char *const back[] = {"Indietro"};
+    (void)quit;
+    screen = SCREEN_NONE;
+    if (button >= 0 && button <= DECK_SLOT_COUNT) {
+        OnlineDeck_SetSlot(button);
+        fprintf(stderr, "memories-pc: lobby: 1v1 deck: %s %d\n", button ? "slot" : "the save's", button);
+        show_deck();
+    } else if (button == DECK_SLOT_COUNT + 1) {
+        screen = SCREEN_DECK;
+        Menu_ShowNotice("Regole del mazzo 1v1", DeckRules_Text(DECK_RULES_ONLINE), back, 1, 0, deck_rules_closed);
+    } else {
+        show_list();
+    }
+}
+
+/* Which deck goes to the 1v1: the save's or one of its deck slots, with
+ * what the chosen one breaks of the 1v1's rules. */
+static void show_deck(void)
+{
+    static char labels[DECK_SLOT_COUNT + 1][24];
+    static unsigned char state[ONLINE_DECK_SAVE_SIZE];
+    const char *names[DECK_SLOT_COUNT + 3];
+    signed char styles[DECK_SLOT_COUNT + 3];
+    char path[1024], problems[768], label[48], text[1024];
+    int used[DECK_SLOT_COUNT] = {0}, chosen = OnlineDeck_Slot(), slot, count, i;
+    if (!duel_save(path, sizeof(path)) && !OnlineDeck_ReadSave(path, state)) OnlineDeck_UsedSlots(state, used);
+    count = deck_problems(problems, sizeof(problems), &slot);
+    for (i = 0; i <= DECK_SLOT_COUNT; i++) {
+        if (i) snprintf(labels[i], sizeof(labels[i]), "Slot %d", i);
+        else snprintf(labels[i], sizeof(labels[i]), "Partita");
+        names[i] = labels[i];
+        styles[i] = i == chosen ? MENU_NOTICE_GREEN : !i || used[i - 1] ? MENU_NOTICE_PLAIN : MENU_NOTICE_DIM;
+    }
+    names[DECK_SLOT_COUNT + 1] = "Regole 1v1";
+    styles[DECK_SLOT_COUNT + 1] = MENU_NOTICE_PLAIN;
+    names[DECK_SLOT_COUNT + 2] = "Indietro";
+    styles[DECK_SLOT_COUNT + 2] = MENU_NOTICE_PLAIN;
+    deck_label(slot, label, sizeof(label));
+    if (chosen && !slot)
+        snprintf(text, sizeof(text), "Lo slot %d e' vuoto: nell'1v1 porti %s.\n", chosen, label);
+    else
+        snprintf(text, sizeof(text), "Nell'1v1 porti %s (in verde).\n", label);
+    if (!count)
+        snprintf(text + strlen(text), sizeof(text) - strlen(text), "Rispetta le regole 1v1.\n");
+    else
+        snprintf(text + strlen(text), sizeof(text) - strlen(text), "Da sistemare per l'1v1:\n%s", problems);
+    snprintf(text + strlen(text), sizeof(text) - strlen(text),
+             "Partita = il mazzo salvato; gli slot si riempiono da Decks.");
+    screen = SCREEN_DECK;
+    Menu_ShowNoticeGrid("Online - mazzo 1v1", text, names, DECK_SLOT_COUNT + 3, 4, styles, chosen, deck_chosen);
+}
+
+static void deck_ready_closed(int button, int *quit)
+{
+    (void)quit;
+    screen = SCREEN_NONE;
+    if (button == 0) show_deck();
+    else show_list();
+}
+
+/* Before a 1v1 goes: whether this player's deck keeps the rules; when not,
+ * a notice says what to fix, after `before` (what was stopped, or ""). */
+static int deck_ready(const char *before)
+{
+    static const char *const buttons[] = {"Mazzo 1v1", "Indietro"};
+    char problems[768], text[1024], label[48];
+    int slot, count = deck_problems(problems, sizeof(problems), &slot);
+    if (!count) return 1;
+    deck_label(slot, label, sizeof(label));
+    snprintf(text, sizeof(text), "%sIl mazzo per l'1v1 (%s) non rispetta le regole:\n%s", before, label, problems);
+    fprintf(stderr, "memories-pc: lobby: the 1v1 deck breaks %d rule(s)\n", count);
+    screen = SCREEN_DECK;
+    Menu_ShowNotice("Regole del mazzo 1v1", text, buttons, 2, 0, deck_ready_closed);
+    return 0;
+}
+
 static void wait_chosen(int button, int *quit)
 {
     (void)button, (void)quit;
@@ -567,8 +698,9 @@ static void player_chosen(int button, int *quit)
 {
     (void)quit;
     screen = SCREEN_NONE;
-    if (button == 0) challenge(picked, "1v1");
-    else if (button == 1) challenge(picked, "arena");
+    if (button == 0) {
+        if (deck_ready("")) challenge(picked, "1v1");
+    } else if (button == 1) challenge(picked, "arena");
     else show_list();
 }
 
@@ -589,6 +721,11 @@ static void list_chosen(int button, int *quit)
         Lobby_Account();
         return;
     }
+    if (button == player_count + 2) {
+        grid_focus = button;
+        show_deck();
+        return;
+    }
     if (button < 0 || button >= player_count) return; /* Chiudi */
     snprintf(picked, sizeof(picked), "%s", players[button].name);
     grid_focus = button;
@@ -600,10 +737,10 @@ static void list_chosen(int button, int *quit)
 static void show_list(void)
 {
     static char labels[PLAYERS][40];
-    const char *names[PLAYERS + 3];
-    signed char styles[PLAYERS + 3];
-    char text[256];
-    int i, online = 0, columns = 3;
+    const char *names[PLAYERS + 4];
+    signed char styles[PLAYERS + 4];
+    char text[320], problems[768];
+    int i, online = 0, columns = 3, slot, broken;
     if (!in_lobby) {
         static const char *const cancel[] = {"Chiudi"};
         screen = SCREEN_JOINING;
@@ -611,6 +748,12 @@ static void show_list(void)
                         info_closed);
         return;
     }
+    /* fork: once an opening, a 1v1 deck out of the rules is said first */
+    if (!deck_warned) {
+        deck_warned = 1;
+        if (!deck_ready("")) return;
+    }
+    broken = deck_problems(problems, sizeof(problems), &slot);
     for (i = 0; i < player_count; i++) {
         int me = !strcmp(players[i].name, my_name);
         /* The wins (V) and losses (S) the server counts, once there are some;
@@ -628,13 +771,16 @@ static void show_list(void)
     styles[player_count] = MENU_NOTICE_PLAIN;
     names[player_count + 1] = "Account";
     styles[player_count + 1] = MENU_NOTICE_PLAIN;
-    names[player_count + 2] = "Chiudi";
-    styles[player_count + 2] = MENU_NOTICE_PLAIN;
-    snprintf(text, sizeof(text), "Sei %s. Online: %d di %d.\nVerde = online: scegline uno per sfidarlo.", my_name,
-             online, player_count);
+    names[player_count + 2] = "Mazzo 1v1";
+    styles[player_count + 2] = broken ? MENU_NOTICE_PLAIN : MENU_NOTICE_GREEN;
+    names[player_count + 3] = "Chiudi";
+    styles[player_count + 3] = MENU_NOTICE_PLAIN;
+    snprintf(text, sizeof(text), "Sei %s. Online: %d di %d.\nVerde = online: scegline uno per sfidarlo.\n%s", my_name,
+             online, player_count,
+             broken ? "Mazzo 1v1: da sistemare (Mazzo 1v1 per vedere cosa)" : "Mazzo 1v1: rispetta le regole");
     screen = SCREEN_LIST;
-    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 3, columns, styles,
-                        grid_focus <= player_count + 1 ? grid_focus : player_count + 2, list_chosen);
+    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 4, columns, styles,
+                        grid_focus <= player_count + 2 ? grid_focus : player_count + 3, list_chosen);
 }
 
 /* "via": the duel's room. online.cfg for pc/debug/netplay.c, then a
@@ -690,6 +836,18 @@ static void incoming(const char *from, const char *mode)
         send_to("risposta", from, ",\"si\":false");
         fprintf(stderr, "memories-pc: lobby: challenge from %s (%s) refused: busy\n", from, mode);
         return;
+    }
+    if (!strcmp(mode, "1v1")) {
+        /* fork: a deck out of the 1v1's rules cannot accept; the other hears why */
+        char said[160];
+        int slot;
+        if (deck_problems(said, sizeof(said), &slot)) {
+            send_to("risposta", from, ",\"si\":false,\"motivo\":\"mazzo\"");
+            fprintf(stderr, "memories-pc: lobby: challenge from %s (1v1) refused: the deck breaks the rules\n", from);
+            snprintf(said, sizeof(said), "%s ti ha sfidato (1v1), ma non puoi accettare.\n\n", from);
+            deck_ready(said);
+            return;
+        }
     }
     snprintf(challenger, sizeof(challenger), "%s", from);
     fprintf(stderr, "memories-pc: lobby: challenge from %s (%s)\n", from, mode);
@@ -801,7 +959,10 @@ static void handle(const char *line)
         if (!strcmp(challenged, from)) {
             fprintf(stderr, "memories-pc: lobby: %s refused\n", from);
             challenged[0] = '\0';
-            snprintf(text, sizeof(text), "%s ha rifiutato la sfida.", from);
+            if (!strcmp(Json_String(Json_Member(root, "motivo"), ""), "mazzo"))
+                snprintf(text, sizeof(text), "%s non puo' accettare: il suo mazzo non rispetta le regole 1v1.", from);
+            else
+                snprintf(text, sizeof(text), "%s ha rifiutato la sfida.", from);
             info(text);
         }
     } else if (!strcmp(type, "via")) {
@@ -1054,5 +1215,6 @@ void Lobby_Open(void)
         return;
     }
     Cloud_Start(my_name);
+    deck_warned = 0;
     show_list();
 }

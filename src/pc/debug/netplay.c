@@ -2,6 +2,7 @@
 #include "pc/compat/fs.h"
 #include "netplay.h"
 #include "netplay_net.h"
+#include "pc/cards/deck_rules.h"
 #include "pc/cards/fusion_helper.h"
 #include "pc/debug/monitor.h"
 #include "pc/guest/state.h"
@@ -11,6 +12,7 @@
 #include "pc/platform/paths.h"
 #include "pc/platform/platform.h"
 #include "pc/platform/title_jump.h"
+#include "pc/saves/online_deck.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +20,6 @@
 
 #define PROTOCOL 1
 #define SAVE_SIZE 0x680
-#define SLOT_STATE_OFFSET 0x200 /* save_slots.h: the header, then the state and its duplicate */
 #define RING 256                /* VBlanks of input kept; the other game is at most 2 * delay ahead */
 #define CHECKS 64
 #define WAIT_WARN_MS 5000
@@ -419,6 +420,15 @@ static void duel_over(int won, const char *how)
     fprintf(stderr, "memories-pc: online: duel over: you %s (%s)%s\n", won ? "won" : "lost", how,
             arena_mode ? " (the arena's series)" : "");
     snprintf(line, sizeof(line), "risultato=%s,%s", won ? "vinto" : "perso", opponent);
+    if (!arena_mode) {
+        /* fork: the legendary cards each deck had, for the server's 1v1
+         * statistics (how much they weigh in who wins) */
+        unsigned short decks[2][40];
+        size_t at = strlen(line);
+        memcpy(decks[0], saves[side - 1], sizeof(decks[0]));
+        memcpy(decks[1], saves[2 - side], sizeof(decks[1]));
+        snprintf(line + at, sizeof(line) - at, ";%d;%d", DeckRules_Legendary(decks[0]), DeckRules_Legendary(decks[1]));
+    }
     note_result(line);
     if (arena_mode)
         snprintf(text, sizeof(text), "%s la serie d'arena contro %s%s (%s; serie %d-%d)%s",
@@ -632,27 +642,17 @@ static int wait_for_pair(void)
 
 static int read_save(const char *path)
 {
-    unsigned char slot[SLOT_STATE_OFFSET + 2 * SAVE_SIZE];
-    FILE *file = path && *path ? fopen(path, "rb") : NULL;
-    size_t got = file ? fread(slot, 1, sizeof(slot), file) : 0;
-    int copy, card;
-    if (file) fclose(file);
-    if (got != sizeof(slot)) {
-        fprintf(stderr, "memories-pc: online: cannot read the save %s\n", path ? path : "(none)");
+    int slot;
+    if (OnlineDeck_ReadSave(path, saves[side - 1])) {
+        fprintf(stderr, "memories-pc: online: cannot read the save %s, or it has no whole deck\n",
+                path ? path : "(none)");
         return -1;
     }
-    /* The first copy whose deck is whole (40 cards, as the 2P load wants). */
-    for (copy = 0; copy < 2; copy++) {
-        const unsigned char *state = slot + SLOT_STATE_OFFSET + copy * SAVE_SIZE;
-        for (card = 0; card < 40 && (state[2 * card] | state[2 * card + 1]); card++) {}
-        if (card == 40) {
-            memcpy(saves[side - 1], state, SAVE_SIZE);
-            have_save[side - 1] = 1;
-            return 0;
-        }
-    }
-    fprintf(stderr, "memories-pc: online: the save %s has no whole deck\n", path);
-    return -1;
+    have_save[side - 1] = 1;
+    /* fork: the 1v1 may take one of the save's deck slots (online_deck.h) */
+    if (!arena_mode && (slot = OnlineDeck_Apply(saves[side - 1])) > 0)
+        fprintf(stderr, "memories-pc: online: the deck of slot %d\n", slot);
+    return 0;
 }
 
 static void start(void)
