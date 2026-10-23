@@ -742,8 +742,6 @@ static void handle(const char *line)
     if (!document) return;
     if (Cloud_Handle(type, root)) {
         /* the saves' (cloud.c) */
-    } else if (!strcmp(type, "versione")) {
-        News_Version(root); /* fork: the update notice (news.h) */
     } else if (!strcmp(type, "_up")) {
         connected = 1;
     } else if (!strcmp(type, "_down") || !strcmp(type, "_none")) {
@@ -868,6 +866,7 @@ void Lobby_Frame(void)
     static size_t kept;
     char *line, *end;
     size_t length;
+    News_Frame(); /* fork: the update notice, with or without an account (news.h) */
     if (!thread_running) return;
     pthread_mutex_lock(&lock);
     length = inbox_length;
@@ -891,7 +890,6 @@ void Lobby_Frame(void)
         (!Menu_NoticeShown() || screen == SCREEN_LIST || screen == SCREEN_JOINING))
         ask_for_password();
     Cloud_Frame();
-    News_Frame();
 }
 
 /* --- start ----------------------------------------------------------- */
@@ -921,6 +919,7 @@ void Lobby_Start(void)
     /* Scripted runs are tests: online only when told. */
     if (!(on && !strcmp(on, "1")) && (getenv("MEMORIES_SDL_SCRIPT") || getenv("MEMORIES_INPUT"))) return;
     read_host();
+    News_Start(host, port);
     test_accept = getenv("MEMORIES_LOBBY_ACCEPT") && !strcmp(getenv("MEMORIES_LOBBY_ACCEPT"), "1");
     read_account();
     /* The test's challenge once: not again when back from its duel (a

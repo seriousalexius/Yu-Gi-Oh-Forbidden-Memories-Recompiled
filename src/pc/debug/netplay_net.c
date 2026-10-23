@@ -74,17 +74,19 @@ static int ready(Socket socket, int for_write, int timeout_ms)
     return select((int)socket + 1, for_write ? NULL : &set, for_write ? &set : NULL, NULL, &wait);
 }
 
-int NetplayNet_Connect(const char *host, unsigned port, int timeout_ms)
+/* A socket connected to host:port within timeout_ms (non-blocking), or
+ * NO_SOCKET with the reason on stderr. */
+static Socket open_socket(const char *host, unsigned port, int timeout_ms)
 {
     struct addrinfo hints, *found = NULL, *at;
     char service[16];
+    Socket connected = NO_SOCKET;
     int error;
 #ifdef _WIN32
     static int started;
     WSADATA data;
     if (!started && WSAStartup(MAKEWORD(2, 2), &data) == 0) started = 1;
 #endif
-    NetplayNet_Close();
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -92,9 +94,9 @@ int NetplayNet_Connect(const char *host, unsigned port, int timeout_ms)
     error = getaddrinfo(host, service, &hints, &found);
     if (error || !found) {
         fprintf(stderr, "memories-pc: online: cannot find %s (%d)\n", host, error);
-        return -1;
+        return NO_SOCKET;
     }
-    for (at = found; at && peer == NO_SOCKET; at = at->ai_next) {
+    for (at = found; at && connected == NO_SOCKET; at = at->ai_next) {
         Socket socket_ = socket(at->ai_family, at->ai_socktype, at->ai_protocol);
         int one = 1;
         if (socket_ == NO_SOCKET) continue;
@@ -116,18 +118,61 @@ int NetplayNet_Connect(const char *host, unsigned port, int timeout_ms)
 #ifdef SO_NOSIGPIPE
                 setsockopt(socket_, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
 #endif
-                peer = socket_;
+                connected = socket_;
                 break;
             }
         }
         close_socket(socket_);
     }
     freeaddrinfo(found);
-    if (peer == NO_SOCKET) {
+    if (connected == NO_SOCKET)
         fprintf(stderr, "memories-pc: online: cannot connect to %s:%u (%d)\n", host, port, last_error());
+    return connected;
+}
+
+int NetplayNet_Connect(const char *host, unsigned port, int timeout_ms)
+{
+    NetplayNet_Close();
+    peer = open_socket(host, port, timeout_ms);
+    return peer == NO_SOCKET ? -1 : 0;
+}
+
+long NetplayNet_HttpGet(const char *host, unsigned port, const char *path, char *body, size_t size, int timeout_ms)
+{
+    char request[600], head[64];
+    size_t got = 0, i = 0, line;
+    long sent;
+    int status = 0, length;
+    Socket socket_ = open_socket(host, port, timeout_ms);
+    if (socket_ == NO_SOCKET) return -1;
+    if (size < 2) {
+        close_socket(socket_);
         return -1;
     }
-    return 0;
+    /* HTTP/1.0: the body as it is, and its end is the connection's. */
+    length = snprintf(request, sizeof(request), "GET %s HTTP/1.0\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
+    while (length > 0 && i < (size_t)length) {
+        sent = (long)send(socket_, request + i, (int)((size_t)length - i), SEND_FLAGS);
+        if (sent > 0) i += (size_t)sent;
+        else if (!(sent < 0 && would_block()) || ready(socket_, 1, timeout_ms) != 1) break;
+    }
+    while (length > 0 && i == (size_t)length && got < size - 1 && ready(socket_, 0, timeout_ms) == 1) {
+        long in = (long)recv(socket_, body + got, (int)(size - 1 - got), 0);
+        if (in > 0) got += (size_t)in;
+        else if (!(in < 0 && would_block())) break;
+    }
+    close_socket(socket_);
+    body[got] = '\0';
+    for (line = 0; line < got && line + 1 < sizeof(head) && body[line] != '\r'; line++) head[line] = body[line];
+    head[line] = '\0';
+    sscanf(head, "HTTP/%*s %d", &status);
+    for (i = 0; status == 200 && i + 4 <= got; i++)
+        if (!memcmp(body + i, "\r\n\r\n", 4)) {
+            memmove(body, body + i + 4, got - i - 4 + 1);
+            return (long)(got - i - 4);
+        }
+    fprintf(stderr, "memories-pc: online: GET %s from %s: %s\n", path, host, head[0] ? head : "no answer");
+    return -1;
 }
 
 /* All of the bytes on the socket, whatever the mode. */

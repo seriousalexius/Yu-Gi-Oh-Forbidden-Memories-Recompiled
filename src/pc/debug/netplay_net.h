@@ -26,5 +26,9 @@ int NetplayNet_SendText(const char *text);
  * in time, -1 when the connection is gone. */
 long NetplayNet_Receive(void *buffer, size_t size, int timeout_ms);
 void NetplayNet_Close(void);
+/* fork: one HTTP GET of `path` on a connection of its own (not the one
+ * above), each wait up to timeout_ms: the body of a 200 answer in `body`,
+ * ended by a zero; its length, or -1. Blocks: a thread's (news.c). */
+long NetplayNet_HttpGet(const char *host, unsigned port, const char *path, char *body, size_t size, int timeout_ms);
 
 #endif
