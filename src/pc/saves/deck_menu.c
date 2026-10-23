@@ -93,7 +93,7 @@ static struct {
     int32_t dirty;   /* the file does not have it yet */
     DeckSlot slots[DECK_SLOT_COUNT];
 } draft;
-static unsigned seen_saves, seen_loads;
+static unsigned seen_saves, seen_loads, seen_writes;
 
 /* Build Deck asks for a deck as it is entered (DeckMenu_BuildDeckEntry). */
 enum { PICK_NONE, PICK_OPEN, PICK_CHOSEN };
@@ -321,6 +321,17 @@ static void follow_saves(void)
             fprintf(stderr, "memories-pc: deck slots saved with the game\n");
         }
     }
+    /* Any other save (an autosave mod's, the account's copy): the slots
+     * changed since go with it too, or the next start finds the deck in no
+     * slot and copies it into the first empty one. */
+    if (SaveSlots_WriteCount() != seen_writes) {
+        seen_writes = SaveSlots_WriteCount();
+        if (draft.dirty && draft.code && draft.code == (uint32_t)workspace()->state.duelist_code &&
+            Settings_Get(SET_DECK_SLOTS) && game_loaded() && !store()) {
+            draft.dirty = 0;
+            fprintf(stderr, "memories-pc: deck slots saved with the game (another save)\n");
+        }
+    }
 }
 
 void DeckMenu_State(MemoriesState *state)
@@ -332,6 +343,7 @@ void DeckMenu_State(MemoriesState *state)
         else draft.dirty = 1; /* the file may have changed since this snapshot */
         seen_saves = SaveMenu_SaveCount();
         seen_loads = SaveMenu_LoadCount();
+        seen_writes = SaveSlots_WriteCount();
         picking = PICK_NONE;
         list_after_build_deck = duel_list = duel_pick = 0;
         requested = allowed = holding = 0;
@@ -482,6 +494,13 @@ void DeckMenu_Close(void)
 }
 
 int DeckMenu_Active(void) { return menu.view != VIEW_CLOSED; }
+
+void DeckMenu_FileReplaced(void)
+{
+    draft.code = 0; /* the next look reads the file */
+    draft.dirty = 0;
+    changed();
+}
 int DeckMenu_HoldsPads(void) { return menu.view != VIEW_CLOSED || holding; }
 
 void DeckMenu_Request(void)

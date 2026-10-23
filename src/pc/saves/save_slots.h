@@ -86,6 +86,9 @@ int SaveSlots_WriteAt(int slot, long offset, const unsigned char *data, size_t b
 /* Replace both state copies together, preserving the existing header and
  * padding. Used after a trade so backup recovery retains the traded cards. */
 int SaveSlots_WriteState(int slot, const unsigned char state[SAVE_SLOT_STATE_SIZE]);
+/* Slot files written so far, by any path: the menu, an autosave, the
+ * account's copy. */
+unsigned SaveSlots_WriteCount(void);
 /* Why the last write failed, "<path>: <reason>." (Paths_WriteError). */
 const char *SaveSlots_LastError(void);
 /* Why the last unreadable slot SaveSlots_Scan met could not be read,
