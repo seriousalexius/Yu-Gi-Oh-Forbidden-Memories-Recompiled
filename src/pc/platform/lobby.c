@@ -40,6 +40,7 @@ static char outbox[65536], inbox[65536]; /* lines; under lock (a slot file in ba
 static size_t outbox_length, inbox_length;
 static char shared_token[40];           /* under lock: what the thread says "entra" with */
 static int thread_running, paused, wake; /* paused and wake: atomic */
+static int redial; /* atomic: a logout, the connection made again with no token */
 
 static char host[256];
 static unsigned port = 80;
@@ -136,6 +137,7 @@ static void *run(void *unused)
         while (!__atomic_load_n(&paused, __ATOMIC_ACQUIRE)) {
             long got;
             uint64_t now;
+            if (__atomic_exchange_n(&redial, 0, __ATOMIC_ACQ_REL)) break;
             if (send_queued()) break;
             got = NetplayNet_Receive(buffer, sizeof(buffer), 200);
             if (got < 0) break;
@@ -216,7 +218,8 @@ static char test_challenge[NAME];
 static int test_accept;
 
 enum { SCREEN_NONE, SCREEN_NAME, SCREEN_INVITE, SCREEN_JOINING, SCREEN_LIST, SCREEN_PLAYER, SCREEN_WAIT,
-       SCREEN_INCOMING, SCREEN_INFO, SCREEN_START, SCREEN_PASSWORD, SCREEN_ASK_PASSWORD, SCREEN_SAVES };
+       SCREEN_INCOMING, SCREEN_INFO, SCREEN_START, SCREEN_PASSWORD, SCREEN_ASK_PASSWORD, SCREEN_SAVES,
+       SCREEN_ACCOUNT, SCREEN_LOGOUT };
 static int screen;
 static char typed[16], typed_name[NAME], typed_invite[16], picked[NAME];
 static int grid_focus;
@@ -467,15 +470,21 @@ static void start_chosen(int button, int *quit)
     show_grid(GRID_NAME);
 }
 
-static void show_start(void)
+/* before: what the screen says first (Game > Account..., a logout), or NULL. */
+static void show_start_after(const char *before)
 {
-    static const char *const buttons[] = {"Crea account", "Ho gia' un account", "Annulla"};
+    static const char *const buttons[] = {"Registrati", "Entra (ho gia' un account)", "Annulla"};
+    char text[384];
+    snprintf(text, sizeof(text), "%s%sPer giocare online serve un account. I tuoi salvataggi stanno anche li': "
+             "cambiando telefono, passando dal PC al telefono o reinstallando il gioco non perdi niente.",
+             before ? before : "", before ? "
+
+" : "");
     screen = SCREEN_START;
-    Menu_ShowNotice("Online",
-                    "Per giocare online serve un account. I tuoi salvataggi stanno anche li': cambiando telefono, "
-                    "passando dal PC al telefono o reinstallando il gioco non perdi niente.",
-                    buttons, 3, 0, start_chosen);
+    Menu_ShowNotice(before ? "Account" : "Online", text, buttons, 3, 0, start_chosen);
 }
+
+static void show_start(void) { show_start_after(NULL); }
 
 /* An account made before the passwords: one, now or the next time. */
 static void ask_password_chosen(int button, int *quit)
@@ -576,6 +585,11 @@ static void list_chosen(int button, int *quit)
         show_saves();
         return;
     }
+    if (button == player_count + 1) {
+        grid_focus = button;
+        Lobby_Account();
+        return;
+    }
     if (button < 0 || button >= player_count) return; /* Chiudi */
     snprintf(picked, sizeof(picked), "%s", players[button].name);
     grid_focus = button;
@@ -587,8 +601,8 @@ static void list_chosen(int button, int *quit)
 static void show_list(void)
 {
     static char labels[PLAYERS][40];
-    const char *names[PLAYERS + 2];
-    signed char styles[PLAYERS + 2];
+    const char *names[PLAYERS + 3];
+    signed char styles[PLAYERS + 3];
     char text[256];
     int i, online = 0, columns = 3;
     if (!in_lobby) {
@@ -613,13 +627,15 @@ static void show_list(void)
     }
     names[player_count] = "Salvataggi";
     styles[player_count] = MENU_NOTICE_PLAIN;
-    names[player_count + 1] = "Chiudi";
+    names[player_count + 1] = "Account";
     styles[player_count + 1] = MENU_NOTICE_PLAIN;
+    names[player_count + 2] = "Chiudi";
+    styles[player_count + 2] = MENU_NOTICE_PLAIN;
     snprintf(text, sizeof(text), "Sei %s. Online: %d di %d.\nVerde = online: scegline uno per sfidarlo.", my_name,
              online, player_count);
     screen = SCREEN_LIST;
-    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 2, columns, styles,
-                        grid_focus <= player_count ? grid_focus : player_count + 1, list_chosen);
+    Menu_ShowNoticeGrid("Online - giocatori", text, names, player_count + 3, columns, styles,
+                        grid_focus <= player_count + 1 ? grid_focus : player_count + 2, list_chosen);
 }
 
 /* "via": the duel's room. online.cfg for pc/debug/netplay.c, then a
@@ -936,16 +952,13 @@ void Lobby_Start(void)
     start_thread();
 }
 
-void Lobby_Open(void)
+/* Game > Online... and Game > Account...: the lobby's thread running; 1
+ * when it cannot (a notice says why). */
+static int wake_lobby(void)
 {
-    if (Netplay_Asked()) {
-        if (Netplay_AskResign()) return; /* the duel runs: Game > Online... is the way to resign by touch */
-        info("Sei in un duello online: la lobby torna quando riavvii il gioco.");
-        return;
-    }
     if (flag_off("MEMORIES_LOBBY")) {
         info("La lobby online e' spenta (MEMORIES_LOBBY=0).");
-        return;
+        return 1;
     }
     if (!host[0]) {
         read_host();
@@ -956,8 +969,95 @@ void Lobby_Open(void)
     __atomic_store_n(&wake, 1, __ATOMIC_RELEASE);
     if (start_thread()) {
         info("La lobby online non parte su questo dispositivo.");
+        return 1;
+    }
+    return 0;
+}
+
+/* Logout: the account out of lobby.txt and the saves' sync stopped; the
+ * saves themselves stay here. Then the start screen, for another one. */
+static void logout_chosen(int button, int *quit)
+{
+    char text[128];
+    (void)quit;
+    screen = SCREEN_NONE;
+    if (button != 0) {
+        Lobby_Account();
         return;
     }
+    if (challenged[0]) send_to("annulla", challenged, "");
+    challenged[0] = challenger[0] = '\0';
+    fprintf(stderr, "memories-pc: lobby: logout from %s
+", my_name);
+    snprintf(text, sizeof(text), "Sei uscito dall'account %s.", my_name);
+    Cloud_Stop();
+    forget_account();
+    in_lobby = connected = 0;
+    ask_password = password_asked = 0;
+    player_count = 0;
+    /* A new connection with no token: the server forgets this game. */
+    __atomic_store_n(&redial, 1, __ATOMIC_RELEASE);
+    show_start_after(text);
+}
+
+static void account_chosen(int button, int *quit)
+{
+    static const char *const buttons[] = {"Esci", "Annulla"};
+    char text[512];
+    (void)quit;
+    screen = SCREEN_NONE;
+    if (button != 1) return; /* Tieni questo account */
+    snprintf(text, sizeof(text),
+             "Vuoi uscire dall'account %s?
+
+%s"
+             "I salvataggi di questo telefono restano qui. Se poi entri in un altro account, da li' in avanti "
+             "si salvano su quello.",
+             my_name,
+             ask_password ? "ATTENZIONE: questo account non ha una password, quindi dopo NON potrai piu' "
+                            "rientrarci. Prima sceglila (Online te la chiede).
+
+"
+                          : "Per rientrare ti serviranno il nome e la password.
+
+");
+    screen = SCREEN_LOGOUT;
+    Menu_ShowNotice("Account - esci", text, buttons, 2, 1, logout_chosen);
+}
+
+void Lobby_Account(void)
+{
+    static const char *const buttons[] = {"Tieni questo account", "Esci dall'account"};
+    char text[384];
+    if (Netplay_Asked()) {
+        info("Sei in un duello online: l'account si cambia quando riavvii il gioco.");
+        return;
+    }
+    if (wake_lobby()) return;
+    if (!token[0]) {
+        show_start_after("Non sei entrato in nessun account.");
+        return;
+    }
+    Cloud_Start(my_name);
+    snprintf(text, sizeof(text), "Sei entrato come: %s
+%s
+
+Puoi tenerlo o uscire per entrare con un altro "
+             "account.", my_name,
+             in_lobby ? "Collegato alla lobby." : connected ? "Mi sto collegando alla lobby..." :
+                                                             "Non collegato alla lobby (manca internet?).");
+    screen = SCREEN_ACCOUNT;
+    Menu_ShowNotice("Account", text, buttons, 2, 0, account_chosen);
+}
+
+void Lobby_Open(void)
+{
+    if (Netplay_Asked()) {
+        if (Netplay_AskResign()) return; /* the duel runs: Game > Online... is the way to resign by touch */
+        info("Sei in un duello online: la lobby torna quando riavvii il gioco.");
+        return;
+    }
+    if (wake_lobby()) return;
     if (!token[0]) {
         show_start();
         return;

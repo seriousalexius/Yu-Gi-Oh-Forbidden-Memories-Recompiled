@@ -101,6 +101,7 @@ enum {
     CHECK_HUD, CHECK_HUD_FULL, RADIO_STATE_SLOT, ACT_UNLOCK_FREE_DUELISTS, ACT_RESET_COLOR,
     ACT_CHECK_UPDATES, ACT_RELEASES, ACT_VERSION, ACT_SET_STARCHIPS, RADIO_LANGUAGE, ACT_SYSTEM_INFO, ACT_JUMP,
     ACT_ONLINE,
+    ACT_ACCOUNT,
     CHECK_TRACE = 300  /* value is a LogChannel */
 };
 
@@ -176,7 +177,8 @@ static Menu menus[MENU_COUNT] = {
               {"Cheats", 0, ITEM_SUBMENU, 0, -1, SUB_CHEATS, ITEM_GROUP_BREAK},
               {"Language", 0, ITEM_SUBMENU, 0, -1, SUB_LANGUAGE},
               {"Restart game...", 0, ITEM_ACTION, MENU_ITEM_RESTART, -1, 0, ITEM_GROUP_BREAK | ITEM_DISABLED},
-              {"Online...", 0, ITEM_ACTION, ACT_ONLINE, -1, 0, ITEM_GROUP_BREAK}}, 12},
+              {"Online...", 0, ITEM_ACTION, ACT_ONLINE, -1, 0, ITEM_GROUP_BREAK},
+              {"Account...", 0, ITEM_ACTION, ACT_ACCOUNT, -1}}, 13},
     {"View", {{"Fusion helper", 0, ITEM_CHECK, 0, SET_FUSION_HELPER},
               {"Card passwords", 0, ITEM_CHECK, 0, SET_CARD_PASSWORDS},
               {"Library: show every card", 0, ITEM_CHECK, 0, SET_LIBRARY_ALL_CARDS},
@@ -2010,6 +2012,7 @@ static void activate(const Item *item, int *quit)
     case ACT_RELEASES: Update_OpenReleases(); break;
     case ACT_SYSTEM_INFO: show_system_info(); break;
     case ACT_ONLINE: Lobby_Open(); break;
+    case ACT_ACCOUNT: Lobby_Account(); break;
     case MENU_ITEM_TITLE: TitleJump_Request(); break;
     case ACT_JUMP: {
         char why[120];

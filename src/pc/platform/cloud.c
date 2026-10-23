@@ -444,6 +444,13 @@ void Cloud_Lost(void)
     busy = -1;
 }
 
+void Cloud_Stop(void)
+{
+    Cloud_Lost();
+    started = 0;
+    account[0] = ' ';
+}
+
 static void read_copy(const JsonValue *from, Copy *copy)
 {
     copy->version = (int)Json_Number(Json_Member(from, "versione"), 0);

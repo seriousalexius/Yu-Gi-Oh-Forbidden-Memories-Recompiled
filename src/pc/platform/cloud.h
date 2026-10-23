@@ -24,6 +24,9 @@ void Cloud_Start(const char *name);
 /* The lobby joined (its first player list on a connection), or lost it. */
 void Cloud_Joined(void);
 void Cloud_Lost(void);
+/* Logout (Game > Account...): nothing more to or from the account until
+ * the next Cloud_Start. */
+void Cloud_Stop(void);
 /* One of the server's messages of the saves; 1 when it was one. */
 int Cloud_Handle(const char *type, const JsonValue *root);
 /* Every frame, on the main thread, while the lobby runs. */
