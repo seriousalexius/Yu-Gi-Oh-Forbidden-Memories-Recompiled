@@ -224,12 +224,15 @@ static void wish_toggle(int card)
     wishes_save();
 }
 
+/* Il Draft dei drop offre sempre 3 carte (regola bloccata, draft-drops 0.3). */
+#define DRAFT_CHOICES 3
+
 /* About how many won duels, with the draft offering `choices` cards each
  * time (1: the game's single card), until a card of weight `weight` out of
  * 2048 is among them. */
 static int duels_for(unsigned weight)
 {
-    int choices = fv_clamp(host->setting(host, "draft_choices", 5), 1, 10), i;
+    int choices = DRAFT_CHOICES, i;
     double miss = 1.0, single = 1.0 - (double)weight / DUEL_DROP_WEIGHT_TOTAL;
     if (!weight) return 0;
     for (i = 0; i < choices; i++) miss *= single;
@@ -1319,7 +1322,7 @@ static void draw_wishes(const View *view)
 {
     char subtitle[96], a[80], b[80], every[24];
     int i, top, height, x, w, cw = 0, ch, zoom, w_where, w_chance, w_every, name_w;
-    int choices = fv_clamp(host->setting(host, "draft_choices", 5), 1, 10);
+    int choices = DRAFT_CHOICES;
     Panel p;
 
     if (choices > 1) snprintf(subtitle, sizeof(subtitle), "%d carte - dove farmarle: duelli vinti stimati (draft da %d)",
@@ -1480,7 +1483,7 @@ static void draw_farm(const View *view)
 {
     char title[96], subtitle[128], a[80], b[80], every[24], draft[32];
     int i, top, height, x, w, cw = 0, ch, zoom, w_pool, w_chance, w_every, w_count, name_w, card = shown_card(view);
-    int choices = fv_clamp(host->setting(host, "draft_choices", 5), 1, 10), cards = view->screen == SCREEN_FARM_CARDS;
+    int choices = DRAFT_CHOICES, cards = view->screen == SCREEN_FARM_CARDS;
     Panel p;
 
     if (choices > 1) snprintf(draft, sizeof(draft), " (draft da %d)", choices);
@@ -1548,10 +1551,26 @@ static void draw_farm(const View *view)
                            : "Su/Giu scorri  X le carte di questo duellante  O indietro  Start chiudi");
 }
 
+/* In the Library, before anything is open: which buttons open what. */
+static const char *library_hint(void)
+{
+    static char text[96];
+    if (!library_card()) return NULL;
+    snprintf(text, sizeof(text), "%s scheda della carta   %s cerca",
+             fv_key_name((unsigned)host->setting(host, "open_key", FV_TRIANGLE)),
+             fv_key_name((unsigned)host->setting(host, "search_key", FV_R2)));
+    return text;
+}
+
 static void draw(void)
 {
     const View *view = top_view();
-    if (!view || built.screen != view->screen) return;
+    if (!view) {
+        const char *hint = library_hint();
+        if (hint) fv_hint(hint);
+        return;
+    }
+    if (built.screen != view->screen) return;
     if (view->screen == SCREEN_SHEET) draw_sheet(view);
     else if (view->screen == SCREEN_WISHES) draw_wishes(view);
     else if (view->screen == SCREEN_SEARCH) draw_search(view, NULL);
@@ -1565,7 +1584,10 @@ static unsigned signature(void)
     int left = 0, right = 0, card;
     unsigned hash;
 
-    if (!view) return 1;
+    if (!view) {
+        const char *hint = library_hint();
+        return hint ? fv_hint_signature(hint) : 1;
+    }
     card = shown_card(view);
     TouchPad_FreeSpan(&left, &right);
     hash = 2u + (unsigned)depth;

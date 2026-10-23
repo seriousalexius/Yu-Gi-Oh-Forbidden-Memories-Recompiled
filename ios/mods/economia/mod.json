@@ -1,0 +1,2181 @@
+{
+ "id": "economia",
+ "name": "Economia: prezzi nuovi delle password",
+ "version": "0.1",
+ "author": "Alessio",
+ "description": "Con le starchip compri QUALSIASI carta nella schermata PASSWORD, anche quelle che costavano 999999 (tranne Blue-eyes Ultimate Dragon). I prezzi li fa un programma (tools/prezzi.py) in base alla fascia della carta (Comune, Rara, Epica, Leggendaria), alle sue statistiche e a quanto e' facile trovarla nei drop: una Comune costa circa una corsa d'arena, una Rara 2-4 corse, un'Epica 10-15, una Leggendaria (Raigeki, Buco Nero, Spada Rivelatrice...) circa 50. La stessa password si puo' usare piu' volte finche' hai meno di 3 copie della carta (baule + mazzo). Le starchip si guadagnano soprattutto nell'arena. Spenta: prezzi originali e ogni password una volta sola.",
+ "min_api": 13,
+ "game": "slus_01411",
+ "enabled": true,
+ "limits": {
+  "password_copies": 3
+ },
+ "passwords": {
+  "Blue-eyes White Dragon": {
+   "starchips": 6200
+  },
+  "Mystical Elf": {
+   "starchips": 55
+  },
+  "Hitotsu-me Giant": {
+   "starchips": 45
+  },
+  "Baby Dragon": {
+   "starchips": 45
+  },
+  "Ryu-kishin": {
+   "starchips": 45
+  },
+  "Feral Imp": {
+   "starchips": 50
+  },
+  "Winged Dragon #1": {
+   "starchips": 55
+  },
+  "Mushroom Man": {
+   "starchips": 45
+  },
+  "Shadow Specter": {
+   "starchips": 35
+  },
+  "Blackland Fire Dragon": {
+   "starchips": 50
+  },
+  "Sword Arm of Dragon": {
+   "starchips": 55
+  },
+  "Swamp Battleguard": {
+   "starchips": 330
+  },
+  "Tyhone": {
+   "starchips": 45
+  },
+  "Battle Steer": {
+   "starchips": 340
+  },
+  "Flame Swordsman": {
+   "starchips": 330
+  },
+  "Time Wizard": {
+   "starchips": 40
+  },
+  "Right Leg of the Forbidden One": {
+   "starchips": 45
+  },
+  "Left Leg of the Forbidden One": {
+   "starchips": 45
+  },
+  "Right Arm of the Forbidden One": {
+   "starchips": 50
+  },
+  "Left Arm of the Forbidden One": {
+   "starchips": 50
+  },
+  "Exodia the Forbidden": {
+   "starchips": 75
+  },
+  "Summoned Skull": {
+   "starchips": 1650
+  },
+  "The Wicked Worm Beast": {
+   "starchips": 50
+  },
+  "Skull Servant": {
+   "starchips": 35
+  },
+  "Horn Imp": {
+   "starchips": 50
+  },
+  "Battle Ox": {
+   "starchips": 55
+  },
+  "Beaver Warrior": {
+   "starchips": 50
+  },
+  "Rock Ogre Grotto #1": {
+   "starchips": 45
+  },
+  "Mountain Warrior": {
+   "starchips": 45
+  },
+  "Zombie Warrior": {
+   "starchips": 50
+  },
+  "Koumori Dragon": {
+   "starchips": 50
+  },
+  "Two-headed King Rex": {
+   "starchips": 50
+  },
+  "Judge Man": {
+   "starchips": 400
+  },
+  "Saggi the Dark Clown": {
+   "starchips": 45
+  },
+  "Dark Magician": {
+   "starchips": 1350
+  },
+  "The Snake Hair": {
+   "starchips": 50
+  },
+  "Gaia the Dragon Champion": {
+   "starchips": 1950
+  },
+  "Gaia the Fierce Knight": {
+   "starchips": 450
+  },
+  "Curse of Dragon": {
+   "starchips": 340
+  },
+  "Dragon Piper": {
+   "starchips": 45
+  },
+  "Celtic Guardian": {
+   "starchips": 50
+  },
+  "Illusionist Faceless Mage": {
+   "starchips": 55
+  },
+  "Karbonala Warrior": {
+   "starchips": 60
+  },
+  "Rogue Doll": {
+   "starchips": 55
+  },
+  "Oscillo Hero #2": {
+   "starchips": 45
+  },
+  "Griffore": {
+   "starchips": 50
+  },
+  "Torike": {
+   "starchips": 50
+  },
+  "Sangan": {
+   "starchips": 45
+  },
+  "Big Insect": {
+   "starchips": 45
+  },
+  "Basic Insect": {
+   "starchips": 35
+  },
+  "Armored Lizard": {
+   "starchips": 60
+  },
+  "Hercules Beetle": {
+   "starchips": 60
+  },
+  "Killer Needle": {
+   "starchips": 45
+  },
+  "Gokibore": {
+   "starchips": 45
+  },
+  "Giant Flea": {
+   "starchips": 50
+  },
+  "Larvae Moth": {
+   "starchips": 50
+  },
+  "Great Moth": {
+   "starchips": 2300
+  },
+  "Kuriboh": {
+   "starchips": 35
+  },
+  "Mammoth Graveyard": {
+   "starchips": 50
+  },
+  "Great White": {
+   "starchips": 65
+  },
+  "Wolf": {
+   "starchips": 55
+  },
+  "Harpie Lady": {
+   "starchips": 55
+  },
+  "Harpie Lady Sisters": {
+   "starchips": 450
+  },
+  "Tiger Axe": {
+   "starchips": 55
+  },
+  "Silver Fang": {
+   "starchips": 50
+  },
+  "Kojikocy": {
+   "starchips": 80
+  },
+  "Perfectly Ultimate Great Moth": {
+   "starchips": 11350
+  },
+  "Garoozis": {
+   "starchips": 330
+  },
+  "Thousand Dragon": {
+   "starchips": 740
+  },
+  "Fiend Kraken": {
+   "starchips": 50
+  },
+  "Jellyfish": {
+   "starchips": 50
+  },
+  "Cocoon of Evolution": {
+   "starchips": 75
+  },
+  "Kairyu-shin": {
+   "starchips": 310
+  },
+  "Giant Soldier of Stone": {
+   "starchips": 55
+  },
+  "Man-eating Plant": {
+   "starchips": 40
+  },
+  "Krokodilus": {
+   "starchips": 50
+  },
+  "Grappler": {
+   "starchips": 45
+  },
+  "Axe Raider": {
+   "starchips": 60
+  },
+  "Megazowler": {
+   "starchips": 280
+  },
+  "Uraby": {
+   "starchips": 50
+  },
+  "Crawling Dragon #2": {
+   "starchips": 50
+  },
+  "Red-eyes B. Dragon": {
+   "starchips": 600
+  },
+  "Castle of Dark Illusions": {
+   "starchips": 50
+  },
+  "Reaper of the Cards": {
+   "starchips": 50
+  },
+  "King of Yamimakai": {
+   "starchips": 350
+  },
+  "Barox": {
+   "starchips": 50
+  },
+  "Dark Chimera": {
+   "starchips": 55
+  },
+  "Metal Guardian": {
+   "starchips": 55
+  },
+  "Catapult Turtle": {
+   "starchips": 55
+  },
+  "Gyakutenno Megami": {
+   "starchips": 280
+  },
+  "Mystic Horseman": {
+   "starchips": 45
+  },
+  "Rabid Horseman": {
+   "starchips": 470
+  },
+  "Zanki": {
+   "starchips": 50
+  },
+  "Crawling Dragon": {
+   "starchips": 70
+  },
+  "Crass Clown": {
+   "starchips": 50
+  },
+  "Armored Zombie": {
+   "starchips": 50
+  },
+  "Dragon Zombie": {
+   "starchips": 50
+  },
+  "Clown Zombie": {
+   "starchips": 50
+  },
+  "Pumpking the King of Ghosts": {
+   "starchips": 280
+  },
+  "Battle Warrior": {
+   "starchips": 50
+  },
+  "Wings of Wicked Flame": {
+   "starchips": 45
+  },
+  "Mask of Darkness": {
+   "starchips": 55
+  },
+  "Job-change Mirror": {
+   "starchips": 45
+  },
+  "Curtain of the Dark Ones": {
+   "starchips": 40
+  },
+  "Tomozaurus": {
+   "starchips": 40
+  },
+  "Spirit of the Winds": {
+   "starchips": 55
+  },
+  "Kageningen": {
+   "starchips": 55
+  },
+  "Graveyard and the Hand of Invitation": {
+   "starchips": 45
+  },
+  "Goddess with the Third Eye": {
+   "starchips": 50
+  },
+  "Hero of the East": {
+   "starchips": 65
+  },
+  "Doma The Angel of Silence": {
+   "starchips": 70
+  },
+  "That Which Feeds on Life": {
+   "starchips": 70
+  },
+  "Dark Gray": {
+   "starchips": 50
+  },
+  "White Magical Hat": {
+   "starchips": 50
+  },
+  "Kamion Wizard": {
+   "starchips": 55
+  },
+  "Nightmare Scorpion": {
+   "starchips": 50
+  },
+  "Spirit of the Books": {
+   "starchips": 75
+  },
+  "Supporter in the Shadows": {
+   "starchips": 55
+  },
+  "Trial of Nightmares": {
+   "starchips": 55
+  },
+  "Dream Clown": {
+   "starchips": 65
+  },
+  "Sleeping Lion": {
+   "starchips": 55
+  },
+  "Yamatano Dragon Scroll": {
+   "starchips": 40
+  },
+  "Dark Plant": {
+   "starchips": 35
+  },
+  "Ancient Tool": {
+   "starchips": 60
+  },
+  "Faith Bird": {
+   "starchips": 50
+  },
+  "Orion the Battle King": {
+   "starchips": 310
+  },
+  "Ansatsu": {
+   "starchips": 65
+  },
+  "LaMoon": {
+   "starchips": 70
+  },
+  "Nemuriko": {
+   "starchips": 45
+  },
+  "Weather Control": {
+   "starchips": 40
+  },
+  "Octoberser": {
+   "starchips": 55
+  },
+  "The 13th Grave": {
+   "starchips": 55
+  },
+  "Charubin the Fire Knight": {
+   "starchips": 60
+  },
+  "Mystical Capture Chain": {
+   "starchips": 45
+  },
+  "Fiend's Hand": {
+   "starchips": 40
+  },
+  "Witty Phantom": {
+   "starchips": 55
+  },
+  "Mystery Hand": {
+   "starchips": 40
+  },
+  "Dragon Statue": {
+   "starchips": 60
+  },
+  "Blue-eyed Silver Zombie": {
+   "starchips": 50
+  },
+  "Toad Master": {
+   "starchips": 45
+  },
+  "Spiked Snail": {
+   "starchips": 45
+  },
+  "Flame Manipulator": {
+   "starchips": 45
+  },
+  "Necrolancer the Timelord": {
+   "starchips": 45
+  },
+  "Djinn the Watcher of the Wind": {
+   "starchips": 45
+  },
+  "The Bewitching Phantom Thief": {
+   "starchips": 45
+  },
+  "Temple of Skulls": {
+   "starchips": 65
+  },
+  "Monster Egg": {
+   "starchips": 50
+  },
+  "The Shadow Who Controls the Dark": {
+   "starchips": 50
+  },
+  "Lord of the Lamp": {
+   "starchips": 55
+  },
+  "Akihiron": {
+   "starchips": 60
+  },
+  "Rhaimundos of the Red Sword": {
+   "starchips": 70
+  },
+  "The Melting Red Shadow": {
+   "starchips": 35
+  },
+  "Dokuroizo the Grim Reaper": {
+   "starchips": 65
+  },
+  "Fire Reaper": {
+   "starchips": 45
+  },
+  "Larvas": {
+   "starchips": 50
+  },
+  "Hard Armor": {
+   "starchips": 55
+  },
+  "Firegrass": {
+   "starchips": 45
+  },
+  "Man Eater": {
+   "starchips": 45
+  },
+  "Dig Beak": {
+   "starchips": 45
+  },
+  "M-warrior #1": {
+   "starchips": 60
+  },
+  "M-warrior #2": {
+   "starchips": 50
+  },
+  "Tainted Wisdom": {
+   "starchips": 55
+  },
+  "Lisark": {
+   "starchips": 75
+  },
+  "Lord of Zemia": {
+   "starchips": 55
+  },
+  "The Judgement Hand": {
+   "starchips": 75
+  },
+  "Mysterious Puppeteer": {
+   "starchips": 55
+  },
+  "Ancient Jar": {
+   "starchips": 35
+  },
+  "Darkfire Dragon": {
+   "starchips": 50
+  },
+  "Dark King of the Abyss": {
+   "starchips": 55
+  },
+  "Spirit of the Harp": {
+   "starchips": 55
+  },
+  "Big Eye": {
+   "starchips": 55
+  },
+  "Armaill": {
+   "starchips": 50
+  },
+  "Dark Prisoner": {
+   "starchips": 45
+  },
+  "Hurricail": {
+   "starchips": 45
+  },
+  "Ancient Brain": {
+   "starchips": 50
+  },
+  "Fire Eye": {
+   "starchips": 45
+  },
+  "Monsturtle": {
+   "starchips": 40
+  },
+  "Claw Reacher": {
+   "starchips": 50
+  },
+  "Phantom Dewan": {
+   "starchips": 45
+  },
+  "Arlownay": {
+   "starchips": 45
+  },
+  "Dark Shade": {
+   "starchips": 50
+  },
+  "Masked Clown": {
+   "starchips": 40
+  },
+  "Lucky Trinket": {
+   "starchips": 40
+  },
+  "Genin": {
+   "starchips": 40
+  },
+  "Eyearmor": {
+   "starchips": 40
+  },
+  "Fiend Refrection #2": {
+   "starchips": 45
+  },
+  "Gate Deeg": {
+   "starchips": 45
+  },
+  "Synchar": {
+   "starchips": 50
+  },
+  "Fusionist": {
+   "starchips": 50
+  },
+  "Akakieisu": {
+   "starchips": 50
+  },
+  "LaLa Li-oon": {
+   "starchips": 40
+  },
+  "Key Mace": {
+   "starchips": 35
+  },
+  "Turtle Tiger": {
+   "starchips": 45
+  },
+  "Terra the Terrible": {
+   "starchips": 50
+  },
+  "Doron": {
+   "starchips": 55
+  },
+  "Arma Knight": {
+   "starchips": 45
+  },
+  "Mech Mole Zombie": {
+   "starchips": 40
+  },
+  "Happy Lover": {
+   "starchips": 45
+  },
+  "Penguin Knight": {
+   "starchips": 45
+  },
+  "Petit Dragon": {
+   "starchips": 40
+  },
+  "Frenzied Panda": {
+   "starchips": 55
+  },
+  "Air Marmot of Nefariousness": {
+   "starchips": 35
+  },
+  "Phantom Ghost": {
+   "starchips": 45
+  },
+  "Mabarrel": {
+   "starchips": 65
+  },
+  "Dorover": {
+   "starchips": 45
+  },
+  "Twin Long Rods #1": {
+   "starchips": 45
+  },
+  "Droll Bird": {
+   "starchips": 40
+  },
+  "Petit Angel": {
+   "starchips": 40
+  },
+  "Winged Cleaver": {
+   "starchips": 45
+  },
+  "Hinotama Soul": {
+   "starchips": 40
+  },
+  "Kaminarikozou": {
+   "starchips": 50
+  },
+  "Meotoko": {
+   "starchips": 45
+  },
+  "Aqua Madoor": {
+   "starchips": 50
+  },
+  "Kagemusha of the Blue Flame": {
+   "starchips": 45
+  },
+  "Flame Ghost": {
+   "starchips": 50
+  },
+  "Dryad": {
+   "starchips": 70
+  },
+  "B. Skull Dragon": {
+   "starchips": 9250
+  },
+  "Two-mouth Darkruler": {
+   "starchips": 45
+  },
+  "Solitude": {
+   "starchips": 50
+  },
+  "Masked Sorcerer": {
+   "starchips": 45
+  },
+  "Kumootoko": {
+   "starchips": 55
+  },
+  "Midnight Fiend": {
+   "starchips": 50
+  },
+  "Roaring Ocean Snake": {
+   "starchips": 380
+  },
+  "Trap Master": {
+   "starchips": 50
+  },
+  "Fiend Sword": {
+   "starchips": 65
+  },
+  "Skull Stalker": {
+   "starchips": 60
+  },
+  "Hitodenchak": {
+   "starchips": 40
+  },
+  "Wood Remains": {
+   "starchips": 50
+  },
+  "Hourglass of Life": {
+   "starchips": 45
+  },
+  "Rare Fish": {
+   "starchips": 55
+  },
+  "Wood Clown": {
+   "starchips": 50
+  },
+  "Madjinn Gunn": {
+   "starchips": 45
+  },
+  "Dark Titan of Terror": {
+   "starchips": 55
+  },
+  "Beautiful Headhuntress": {
+   "starchips": 80
+  },
+  "Wodan the Resident of the Forest": {
+   "starchips": 50
+  },
+  "Guardian of the Labyrinth": {
+   "starchips": 55
+  },
+  "Haniwa": {
+   "starchips": 40
+  },
+  "Yashinoki": {
+   "starchips": 55
+  },
+  "Vishwar Randi": {
+   "starchips": 60
+  },
+  "The Drdek": {
+   "starchips": 45
+  },
+  "Dark Assailant": {
+   "starchips": 70
+  },
+  "Candle of Fate": {
+   "starchips": 45
+  },
+  "Water Element": {
+   "starchips": 45
+  },
+  "Dissolverock": {
+   "starchips": 50
+  },
+  "Meda Bat": {
+   "starchips": 45
+  },
+  "One Who Hunts Souls": {
+   "starchips": 50
+  },
+  "Root Water": {
+   "starchips": 45
+  },
+  "Master & Expert": {
+   "starchips": 55
+  },
+  "Water Omotics": {
+   "starchips": 75
+  },
+  "Hyo": {
+   "starchips": 50
+  },
+  "Enchanting Mermaid": {
+   "starchips": 50
+  },
+  "Nekogal #1": {
+   "starchips": 50
+  },
+  "Angelwitch": {
+   "starchips": 45
+  },
+  "Embryonic Beast": {
+   "starchips": 45
+  },
+  "Prevent Rat": {
+   "starchips": 60
+  },
+  "Dimensional Warrior": {
+   "starchips": 60
+  },
+  "Stone Armadiller": {
+   "starchips": 50
+  },
+  "Beastking of the Swamps": {
+   "starchips": 45
+  },
+  "Ancient Sorcerer": {
+   "starchips": 50
+  },
+  "Lunar Queen Elzaim": {
+   "starchips": 45
+  },
+  "Wicked Mirror": {
+   "starchips": 45
+  },
+  "The Little Swordsman of Aile": {
+   "starchips": 50
+  },
+  "Rock Ogre Grotto #2": {
+   "starchips": 50
+  },
+  "Wing Egg Elf": {
+   "starchips": 45
+  },
+  "The Furious Sea King": {
+   "starchips": 45
+  },
+  "Princess of Tsurugi": {
+   "starchips": 60
+  },
+  "Unknown Warrior of Fiend": {
+   "starchips": 60
+  },
+  "Sectarian of Secrets": {
+   "starchips": 45
+  },
+  "Versago the Destroyer": {
+   "starchips": 55
+  },
+  "Wetha": {
+   "starchips": 45
+  },
+  "Megirus Light": {
+   "starchips": 50
+  },
+  "Mavelus": {
+   "starchips": 45
+  },
+  "Ancient Tree of Enlightenment": {
+   "starchips": 55
+  },
+  "Green Phantom King": {
+   "starchips": 60
+  },
+  "Ground Attacker Bugroth": {
+   "starchips": 75
+  },
+  "Ray & Temperature": {
+   "starchips": 50
+  },
+  "Gorgon Egg": {
+   "starchips": 50
+  },
+  "Petit Moth": {
+   "starchips": 40
+  },
+  "King Fog": {
+   "starchips": 50
+  },
+  "Protector of the Throne": {
+   "starchips": 55
+  },
+  "Mystic Clown": {
+   "starchips": 75
+  },
+  "Mystical Sheep #2": {
+   "starchips": 50
+  },
+  "Holograh": {
+   "starchips": 50
+  },
+  "Tao the Chanter": {
+   "starchips": 55
+  },
+  "Serpent Marauder": {
+   "starchips": 45
+  },
+  "Gatekeeper": {
+   "starchips": 60
+  },
+  "Ogre of the Black Shadow": {
+   "starchips": 70
+  },
+  "Dark Artist": {
+   "starchips": 50
+  },
+  "Change Slime": {
+   "starchips": 35
+  },
+  "Moon Envoy": {
+   "starchips": 65
+  },
+  "Fireyarou": {
+   "starchips": 60
+  },
+  "Psychic Kappa": {
+   "starchips": 40
+  },
+  "Masaki the Legendary Swordsman": {
+   "starchips": 60
+  },
+  "Dragoness the Wicked Knight": {
+   "starchips": 65
+  },
+  "Bio Plant": {
+   "starchips": 50
+  },
+  "One-eyed Shield Dragon": {
+   "starchips": 40
+  },
+  "Cyber Soldier of Darkworld": {
+   "starchips": 75
+  },
+  "Wicked Dragon with the Ersatz Head": {
+   "starchips": 40
+  },
+  "Sonic Maid": {
+   "starchips": 55
+  },
+  "Kurama": {
+   "starchips": 40
+  },
+  "Legendary Sword": {
+   "starchips": 45
+  },
+  "Sword of Dark Destruction": {
+   "starchips": 45
+  },
+  "Dark Energy": {
+   "starchips": 380
+  },
+  "Axe of Despair": {
+   "starchips": 45
+  },
+  "Laser Cannon Armor": {
+   "starchips": 400
+  },
+  "Insect Armor with Laser Cannon": {
+   "starchips": 400
+  },
+  "Elf's Light": {
+   "starchips": 50
+  },
+  "Beast Fangs": {
+   "starchips": 450
+  },
+  "Steel Shell": {
+   "starchips": 35
+  },
+  "Vile Germs": {
+   "starchips": 30
+  },
+  "Black Pendant": {
+   "starchips": 450
+  },
+  "Silver Bow and Arrow": {
+   "starchips": 50
+  },
+  "Horn of Light": {
+   "starchips": 45
+  },
+  "Horn of the Unicorn": {
+   "starchips": 45
+  },
+  "Dragon Treasure": {
+   "starchips": 50
+  },
+  "Electro-whip": {
+   "starchips": 390
+  },
+  "Cyber Shield": {
+   "starchips": 45
+  },
+  "Elegant Egotist": {
+   "starchips": 35
+  },
+  "Mystical Moon": {
+   "starchips": 45
+  },
+  "Stop Defense": {
+   "starchips": 390
+  },
+  "Malevolent Nuzzler": {
+   "starchips": 440
+  },
+  "Violet Crystal": {
+   "starchips": 50
+  },
+  "Book of Secret Arts": {
+   "starchips": 50
+  },
+  "Invigoration": {
+   "starchips": 450
+  },
+  "Machine Conversion Factory": {
+   "starchips": 50
+  },
+  "Raise Body Heat": {
+   "starchips": 450
+  },
+  "Follow Wind": {
+   "starchips": 460
+  },
+  "Power of Kaishin": {
+   "starchips": 450
+  },
+  "Dragon Capture Jar": {
+   "starchips": 390
+  },
+  "Forest": {
+   "starchips": 390
+  },
+  "Wasteland": {
+   "starchips": 390
+  },
+  "Mountain": {
+   "starchips": 390
+  },
+  "Sogen": {
+   "starchips": 370
+  },
+  "Umi": {
+   "starchips": 390
+  },
+  "Yami": {
+   "starchips": 380
+  },
+  "Dark Hole": {
+   "starchips": 1650
+  },
+  "Raigeki": {
+   "starchips": 7650
+  },
+  "Mooyan Curry": {
+   "starchips": 30
+  },
+  "Red Medicine": {
+   "starchips": 30
+  },
+  "Goblin's Secret Remedy": {
+   "starchips": 30
+  },
+  "Soul of the Pure": {
+   "starchips": 50
+  },
+  "Dian Keto the Cure Master": {
+   "starchips": 470
+  },
+  "Sparks": {
+   "starchips": 30
+  },
+  "Hinotama": {
+   "starchips": 30
+  },
+  "Final Flame": {
+   "starchips": 25
+  },
+  "Ookazi": {
+   "starchips": 35
+  },
+  "Tremendous Fire": {
+   "starchips": 45
+  },
+  "Swords of Revealing Light": {
+   "starchips": 7100
+  },
+  "Spellbinding Circle": {
+   "starchips": 390
+  },
+  "Dark-piercing Light": {
+   "starchips": 30
+  },
+  "Yaranzo": {
+   "starchips": 55
+  },
+  "Kanan the Swordmistress": {
+   "starchips": 55
+  },
+  "Takriminos": {
+   "starchips": 60
+  },
+  "Stuffed Animal": {
+   "starchips": 55
+  },
+  "Megasonic Eye": {
+   "starchips": 60
+  },
+  "Super War-lion": {
+   "starchips": 580
+  },
+  "Yamadron": {
+   "starchips": 65
+  },
+  "Seiyaryu": {
+   "starchips": 1650
+  },
+  "Three-legged Zombies": {
+   "starchips": 50
+  },
+  "Zera The Mant": {
+   "starchips": 2950
+  },
+  "Flying Penguin": {
+   "starchips": 55
+  },
+  "Millennium Shield": {
+   "starchips": 1950
+  },
+  "Fairy's Gift": {
+   "starchips": 55
+  },
+  "Black Luster Soldier": {
+   "starchips": 7850
+  },
+  "Fiend's Mirror": {
+   "starchips": 510
+  },
+  "Labyrinth Wall": {
+   "starchips": 1450
+  },
+  "Jirai Gumo": {
+   "starchips": 780
+  },
+  "Shadow Ghoul": {
+   "starchips": 55
+  },
+  "Wall Shadow": {
+   "starchips": 1500
+  },
+  "Labyrinth Tank": {
+   "starchips": 900
+  },
+  "Sanga of the Thunder": {
+   "starchips": 2900
+  },
+  "Kazejin": {
+   "starchips": 900
+  },
+  "Suijin": {
+   "starchips": 2500
+  },
+  "Gate Guardian": {
+   "starchips": 13100
+  },
+  "Dungeon Worm": {
+   "starchips": 600
+  },
+  "Monster Tamer": {
+   "starchips": 330
+  },
+  "Ryu-kishin Powered": {
+   "starchips": 110
+  },
+  "Swordstalker": {
+   "starchips": 630
+  },
+  "La Jinn the Mystical Genie": {
+   "starchips": 280
+  },
+  "Blue-eyes Ultimate Dragon": {
+   "starchips": 999999
+  },
+  "Toon Alligator": {
+   "starchips": 95
+  },
+  "Rude Kaiser": {
+   "starchips": 600
+  },
+  "Parrot Dragon": {
+   "starchips": 720
+  },
+  "Dark Rabbit": {
+   "starchips": 70
+  },
+  "Bickuribox": {
+   "starchips": 870
+  },
+  "Harpie's Pet Dragon": {
+   "starchips": 700
+  },
+  "Mystic Lamp": {
+   "starchips": 35
+  },
+  "Pendulum Machine": {
+   "starchips": 55
+  },
+  "Giltia the D. Knight": {
+   "starchips": 610
+  },
+  "Launcher Spider": {
+   "starchips": 820
+  },
+  "Zoa": {
+   "starchips": 1550
+  },
+  "Metalzoa": {
+   "starchips": 9950
+  },
+  "Zone Eater": {
+   "starchips": 35
+  },
+  "Steel Scorpion": {
+   "starchips": 50
+  },
+  "Dancing Elf": {
+   "starchips": 35
+  },
+  "Ocubeam": {
+   "starchips": 70
+  },
+  "Leghul": {
+   "starchips": 35
+  },
+  "Ooguchi": {
+   "starchips": 35
+  },
+  "Swordsman from a Foreign Land": {
+   "starchips": 35
+  },
+  "Emperor of the Land and Sea": {
+   "starchips": 330
+  },
+  "Ushi Oni": {
+   "starchips": 420
+  },
+  "Monster Eye": {
+   "starchips": 35
+  },
+  "Leogun": {
+   "starchips": 60
+  },
+  "Tatsunootoshigo": {
+   "starchips": 75
+  },
+  "Saber Slasher": {
+   "starchips": 55
+  },
+  "Yaiba Robo": {
+   "starchips": 50
+  },
+  "Machine King": {
+   "starchips": 490
+  },
+  "Giant Mech-soldier": {
+   "starchips": 70
+  },
+  "Metal Dragon": {
+   "starchips": 400
+  },
+  "Mechanical Spider": {
+   "starchips": 35
+  },
+  "Bat": {
+   "starchips": 35
+  },
+  "Giga-tech Wolf": {
+   "starchips": 50
+  },
+  "Cyber Soldier": {
+   "starchips": 55
+  },
+  "Shovel Crusher": {
+   "starchips": 50
+  },
+  "Mechanicalchacer": {
+   "starchips": 330
+  },
+  "Blocker": {
+   "starchips": 55
+  },
+  "Blast Juggler": {
+   "starchips": 45
+  },
+  "Golgoil": {
+   "starchips": 70
+  },
+  "Giganto": {
+   "starchips": 65
+  },
+  "Cyber-Stein": {
+   "starchips": 45
+  },
+  "Cyber Commander": {
+   "starchips": 45
+  },
+  "Jinzo #7": {
+   "starchips": 35
+  },
+  "Dice Armadillo": {
+   "starchips": 60
+  },
+  "Sky Dragon": {
+   "starchips": 450
+  },
+  "Thunder Dragon": {
+   "starchips": 65
+  },
+  "Stone D.": {
+   "starchips": 380
+  },
+  "Kaiser Dragon": {
+   "starchips": 870
+  },
+  "Magician of Faith": {
+   "starchips": 40
+  },
+  "Goddess of Whim": {
+   "starchips": 50
+  },
+  "Water Magician": {
+   "starchips": 50
+  },
+  "Ice Water": {
+   "starchips": 45
+  },
+  "Waterdragon Fairy": {
+   "starchips": 55
+  },
+  "Ancient Elf": {
+   "starchips": 80
+  },
+  "Beautiful Beast Trainer": {
+   "starchips": 80
+  },
+  "Water Girl": {
+   "starchips": 75
+  },
+  "White Dolphin": {
+   "starchips": 35
+  },
+  "Deepsea Shark": {
+   "starchips": 420
+  },
+  "Metal Fish": {
+   "starchips": 60
+  },
+  "Bottom Dweller": {
+   "starchips": 70
+  },
+  "7 Colored Fish": {
+   "starchips": 310
+  },
+  "Mech Bass": {
+   "starchips": 330
+  },
+  "Aqua Dragon": {
+   "starchips": 840
+  },
+  "Sea King Dragon": {
+   "starchips": 450
+  },
+  "Turu-Purun": {
+   "starchips": 35
+  },
+  "Guardian of the Sea": {
+   "starchips": 50
+  },
+  "Aqua Snake": {
+   "starchips": 50
+  },
+  "Giant Red Seasnake": {
+   "starchips": 340
+  },
+  "Spike Seadra": {
+   "starchips": 80
+  },
+  "30,000-Year White Turtle": {
+   "starchips": 80
+  },
+  "Kappa Avenger": {
+   "starchips": 70
+  },
+  "Kanikabuto": {
+   "starchips": 45
+  },
+  "Zarigun": {
+   "starchips": 45
+  },
+  "Millennium Golem": {
+   "starchips": 380
+  },
+  "Destroyer Golem": {
+   "starchips": 75
+  },
+  "Barrel Rock": {
+   "starchips": 45
+  },
+  "Minomushi Warrior": {
+   "starchips": 75
+  },
+  "Stone Ghost": {
+   "starchips": 45
+  },
+  "Kaminari Attack": {
+   "starchips": 420
+  },
+  "Tripwire Beast": {
+   "starchips": 60
+  },
+  "Bolt Escargot": {
+   "starchips": 60
+  },
+  "Bolt Penguin": {
+   "starchips": 55
+  },
+  "The Immortal of Thunder": {
+   "starchips": 60
+  },
+  "Electric Snake": {
+   "starchips": 50
+  },
+  "Wing Eagle": {
+   "starchips": 300
+  },
+  "Punished Eagle": {
+   "starchips": 400
+  },
+  "Skull Red Bird": {
+   "starchips": 50
+  },
+  "Crimson Sunbird": {
+   "starchips": 460
+  },
+  "Queen Bird": {
+   "starchips": 55
+  },
+  "Armed Ninja": {
+   "starchips": 35
+  },
+  "Magical Ghost": {
+   "starchips": 60
+  },
+  "Soul Hunter": {
+   "starchips": 440
+  },
+  "Air Eater": {
+   "starchips": 480
+  },
+  "Vermillion Sparrow": {
+   "starchips": 420
+  },
+  "Sea Kamen": {
+   "starchips": 50
+  },
+  "Sinister Serpent": {
+   "starchips": 35
+  },
+  "Ganigumo": {
+   "starchips": 45
+  },
+  "Alinsection": {
+   "starchips": 50
+  },
+  "Insect Soldiers of the Sky": {
+   "starchips": 50
+  },
+  "Cockroach Knight": {
+   "starchips": 45
+  },
+  "Kuwagata α": {
+   "starchips": 75
+  },
+  "Burglar": {
+   "starchips": 50
+  },
+  "Pragtical": {
+   "starchips": 420
+  },
+  "Garvas": {
+   "starchips": 380
+  },
+  "Ameba": {
+   "starchips": 35
+  },
+  "Korogashi": {
+   "starchips": 35
+  },
+  "Boo Koo": {
+   "starchips": 40
+  },
+  "Flower Wolf": {
+   "starchips": 380
+  },
+  "Rainbow Flower": {
+   "starchips": 35
+  },
+  "Barrel Lily": {
+   "starchips": 50
+  },
+  "Needle Ball": {
+   "starchips": 45
+  },
+  "Peacock": {
+   "starchips": 55
+  },
+  "Hoshiningen": {
+   "starchips": 40
+  },
+  "Maha Vailo": {
+   "starchips": 60
+  },
+  "Rainbow Marine Mermaid": {
+   "starchips": 75
+  },
+  "Musician King": {
+   "starchips": 85
+  },
+  "Wilmee": {
+   "starchips": 50
+  },
+  "Yado Karu": {
+   "starchips": 55
+  },
+  "Morinphen": {
+   "starchips": 80
+  },
+  "Kattapillar": {
+   "starchips": 40
+  },
+  "Dragon Seeker": {
+   "starchips": 380
+  },
+  "Man-eater Bug": {
+   "starchips": 40
+  },
+  "D. Human": {
+   "starchips": 75
+  },
+  "Turtle Raccoon": {
+   "starchips": 45
+  },
+  "Fungi of the Musk": {
+   "starchips": 35
+  },
+  "Prisman": {
+   "starchips": 40
+  },
+  "Gale Dogra": {
+   "starchips": 45
+  },
+  "Crazy Fish": {
+   "starchips": 65
+  },
+  "Cyber Saurus": {
+   "starchips": 310
+  },
+  "Bracchio-raidus": {
+   "starchips": 550
+  },
+  "Laughing Flower": {
+   "starchips": 45
+  },
+  "Bean Soldier": {
+   "starchips": 55
+  },
+  "Cannon Soldier": {
+   "starchips": 55
+  },
+  "Guardian of the Throne Room": {
+   "starchips": 60
+  },
+  "Brave Scizzar": {
+   "starchips": 55
+  },
+  "The Statue of Easter Island": {
+   "starchips": 55
+  },
+  "Muka Muka": {
+   "starchips": 40
+  },
+  "Sand Stone": {
+   "starchips": 75
+  },
+  "Boulder Tortoise": {
+   "starchips": 85
+  },
+  "Fire Kraken": {
+   "starchips": 75
+  },
+  "Turtle Bird": {
+   "starchips": 470
+  },
+  "Skullbird": {
+   "starchips": 430
+  },
+  "Monstrous Bird": {
+   "starchips": 370
+  },
+  "The Bistro Butcher": {
+   "starchips": 340
+  },
+  "Star Boy": {
+   "starchips": 40
+  },
+  "Spirit of the Mountain": {
+   "starchips": 70
+  },
+  "Neck Hunter": {
+   "starchips": 70
+  },
+  "Milus Radiant": {
+   "starchips": 35
+  },
+  "Togex": {
+   "starchips": 60
+  },
+  "Flame Cerebrus": {
+   "starchips": 570
+  },
+  "Eldeen": {
+   "starchips": 45
+  },
+  "Mystical Sand": {
+   "starchips": 410
+  },
+  "Gemini Elf": {
+   "starchips": 380
+  },
+  "Kwagar Hercules": {
+   "starchips": 430
+  },
+  "Minar": {
+   "starchips": 45
+  },
+  "Kamakiriman": {
+   "starchips": 55
+  },
+  "Mechaleon": {
+   "starchips": 45
+  },
+  "Mega Thunderball": {
+   "starchips": 45
+  },
+  "Niwatori": {
+   "starchips": 40
+  },
+  "Corroding Shark": {
+   "starchips": 50
+  },
+  "Skelengel": {
+   "starchips": 45
+  },
+  "Hane-Hane": {
+   "starchips": 45
+  },
+  "Misairuzame": {
+   "starchips": 65
+  },
+  "Tongyo": {
+   "starchips": 75
+  },
+  "Dharma Cannon": {
+   "starchips": 50
+  },
+  "Skelgon": {
+   "starchips": 65
+  },
+  "Wow Warrior": {
+   "starchips": 50
+  },
+  "Griggle": {
+   "starchips": 35
+  },
+  "Bone Mouse": {
+   "starchips": 35
+  },
+  "Frog The Jam": {
+   "starchips": 45
+  },
+  "Behegon": {
+   "starchips": 50
+  },
+  "Dark Elf": {
+   "starchips": 410
+  },
+  "Winged Dragon #2": {
+   "starchips": 45
+  },
+  "Mushroom Man #2": {
+   "starchips": 50
+  },
+  "Lava Battleguard": {
+   "starchips": 65
+  },
+  "Tyhone #2": {
+   "starchips": 65
+  },
+  "The Wandering Doomed": {
+   "starchips": 50
+  },
+  "Steel Ogre Grotto #1": {
+   "starchips": 65
+  },
+  "Pot the Trick": {
+   "starchips": 35
+  },
+  "Oscillo Hero": {
+   "starchips": 50
+  },
+  "Invader from Another Dimension": {
+   "starchips": 45
+  },
+  "Lesser Dragon": {
+   "starchips": 50
+  },
+  "Needle Worm": {
+   "starchips": 55
+  },
+  "Wretched Ghost of the Attic": {
+   "starchips": 35
+  },
+  "Great Mammoth of Goldfine": {
+   "starchips": 440
+  },
+  "Man-eating Black Shark": {
+   "starchips": 570
+  },
+  "Yormungarde": {
+   "starchips": 75
+  },
+  "Darkworld Thorns": {
+   "starchips": 60
+  },
+  "Anthrosaurus": {
+   "starchips": 50
+  },
+  "Drooling Lizard": {
+   "starchips": 55
+  },
+  "Trakadon": {
+   "starchips": 75
+  },
+  "B. Dragon Jungle King": {
+   "starchips": 380
+  },
+  "Empress Judge": {
+   "starchips": 450
+  },
+  "Little D": {
+   "starchips": 50
+  },
+  "Witch of the Black Forest": {
+   "starchips": 50
+  },
+  "Ancient One of the Deep Forest": {
+   "starchips": 310
+  },
+  "Giant Scorpion of the Tundra": {
+   "starchips": 60
+  },
+  "Crow Goblin": {
+   "starchips": 320
+  },
+  "Leo Wizard": {
+   "starchips": 75
+  },
+  "Abyss Flower": {
+   "starchips": 45
+  },
+  "Patrol Robo": {
+   "starchips": 70
+  },
+  "Takuhee": {
+   "starchips": 110
+  },
+  "Dark Witch": {
+   "starchips": 350
+  },
+  "Weather Report": {
+   "starchips": 55
+  },
+  "Binding Chain": {
+   "starchips": 50
+  },
+  "Mechanical Snail": {
+   "starchips": 50
+  },
+  "Greenkappa": {
+   "starchips": 60
+  },
+  "Mon Larvas": {
+   "starchips": 75
+  },
+  "Living Vase": {
+   "starchips": 60
+  },
+  "Tentacle Plant": {
+   "starchips": 40
+  },
+  "Beaked Snake": {
+   "starchips": 55
+  },
+  "Morphing Jar": {
+   "starchips": 50
+  },
+  "Muse-A": {
+   "starchips": 60
+  },
+  "Giant Turtle Who Feeds on Flames": {
+   "starchips": 70
+  },
+  "Rose Spectre of Dunn": {
+   "starchips": 420
+  },
+  "Fiend Refrection #1": {
+   "starchips": 75
+  },
+  "Ghoul with an Appetite": {
+   "starchips": 55
+  },
+  "Pale Beast": {
+   "starchips": 60
+  },
+  "Little Chimera": {
+   "starchips": 45
+  },
+  "Violent Rain": {
+   "starchips": 50
+  },
+  "Key Mace #2": {
+   "starchips": 45
+  },
+  "Tenderness": {
+   "starchips": 45
+  },
+  "Penguin Soldier": {
+   "starchips": 45
+  },
+  "Fairy Dragon": {
+   "starchips": 50
+  },
+  "Obese Marmot of Nefariousness": {
+   "starchips": 45
+  },
+  "Liquid Beast": {
+   "starchips": 55
+  },
+  "Twin Long Rods #2": {
+   "starchips": 45
+  },
+  "Great Bill": {
+   "starchips": 100
+  },
+  "Shining Friendship": {
+   "starchips": 55
+  },
+  "Bladefly": {
+   "starchips": 45
+  },
+  "Electric Lizard": {
+   "starchips": 90
+  },
+  "Hiro's Shadow Scout": {
+   "starchips": 45
+  },
+  "Lady of Faith": {
+   "starchips": 50
+  },
+  "Twin-headed Thunder Dragon": {
+   "starchips": 2200
+  },
+  "Hunter Spider": {
+   "starchips": 80
+  },
+  "Armored Starfish": {
+   "starchips": 45
+  },
+  "Hourglass of Courage": {
+   "starchips": 95
+  },
+  "Marine Beast": {
+   "starchips": 80
+  },
+  "Warrior of Tradition": {
+   "starchips": 430
+  },
+  "Rock Spirit": {
+   "starchips": 75
+  },
+  "Snakeyashi": {
+   "starchips": 50
+  },
+  "Succubus Knight": {
+   "starchips": 80
+  },
+  "Ill Witch": {
+   "starchips": 80
+  },
+  "The Thing That Hides in the Mud": {
+   "starchips": 60
+  },
+  "High Tide Gyojin": {
+   "starchips": 80
+  },
+  "Fairy of the Fountain": {
+   "starchips": 55
+  },
+  "Amazon of the Seas": {
+   "starchips": 50
+  },
+  "Nekogal #2": {
+   "starchips": 380
+  },
+  "Witch's Apprentice": {
+   "starchips": 45
+  },
+  "Armored Rat": {
+   "starchips": 50
+  },
+  "Ancient Lizard Warrior": {
+   "starchips": 75
+  },
+  "Maiden of the Moonlight": {
+   "starchips": 60
+  },
+  "Stone Ogre Grotto": {
+   "starchips": 75
+  },
+  "Winged Egg of New Life": {
+   "starchips": 50
+  },
+  "Night Lizard": {
+   "starchips": 55
+  },
+  "Queen's Double": {
+   "starchips": 35
+  },
+  "Blue-winged Crown": {
+   "starchips": 50
+  },
+  "Trent": {
+   "starchips": 65
+  },
+  "Queen of Autumn Leaves": {
+   "starchips": 330
+  },
+  "Amphibious Bugroth": {
+   "starchips": 430
+  },
+  "Acid Crawler": {
+   "starchips": 50
+  },
+  "Invader of the Throne": {
+   "starchips": 70
+  },
+  "Mystical Sheep #1": {
+   "starchips": 55
+  },
+  "Disk Magician": {
+   "starchips": 55
+  },
+  "Flame Viper": {
+   "starchips": 45
+  },
+  "Royal Guard": {
+   "starchips": 480
+  },
+  "Gruesome Goo": {
+   "starchips": 50
+  },
+  "Hyosube": {
+   "starchips": 60
+  },
+  "Machine Attacker": {
+   "starchips": 55
+  },
+  "Hibikime": {
+   "starchips": 55
+  },
+  "Whiptail Crow": {
+   "starchips": 60
+  },
+  "Kunai with Chain": {
+   "starchips": 450
+  },
+  "Magical Labyrinth": {
+   "starchips": 30
+  },
+  "Warrior Elimination": {
+   "starchips": 45
+  },
+  "Salamandra": {
+   "starchips": 30
+  },
+  "Cursebreaker": {
+   "starchips": 30
+  },
+  "Eternal Rest": {
+   "starchips": 30
+  },
+  "Megamorph": {
+   "starchips": 6650
+  },
+  "Metalmorph": {
+   "starchips": 25
+  },
+  "Winged Trumpeter": {
+   "starchips": 35
+  },
+  "Stain Storm": {
+   "starchips": 45
+  },
+  "Crush Card": {
+   "starchips": 7100
+  },
+  "Eradicating Aerosol": {
+   "starchips": 25
+  },
+  "Breath of Light": {
+   "starchips": 25
+  },
+  "Eternal Draught": {
+   "starchips": 30
+  },
+  "Curse of Millennium Shield": {
+   "starchips": 260
+  },
+  "Yamadron Ritual": {
+   "starchips": 25
+  },
+  "Gate Guardian Ritual": {
+   "starchips": 1300
+  },
+  "Bright Castle": {
+   "starchips": 1650
+  },
+  "Shadow Spell": {
+   "starchips": 390
+  },
+  "Black Luster Ritual": {
+   "starchips": 1000
+  },
+  "Zera Ritual": {
+   "starchips": 350
+  },
+  "Harpie's Feather Duster": {
+   "starchips": 1650
+  },
+  "War-lion Ritual": {
+   "starchips": 40
+  },
+  "Beastry Mirror Ritual": {
+   "starchips": 40
+  },
+  "Ultimate Dragon": {
+   "starchips": 999999
+  },
+  "Commencement Dance": {
+   "starchips": 30
+  },
+  "Hamburger Recipe": {
+   "starchips": 30
+  },
+  "Revival of Sennen Genjin": {
+   "starchips": 350
+  },
+  "Novox's Prayer": {
+   "starchips": 30
+  },
+  "Curse of Tri-Horned Dragon": {
+   "starchips": 350
+  },
+  "House of Adhesive Tape": {
+   "starchips": 25
+  },
+  "Eatgaboon": {
+   "starchips": 25
+  },
+  "Bear Trap": {
+   "starchips": 45
+  },
+  "Invisible Wire": {
+   "starchips": 430
+  },
+  "Acid Trap Hole": {
+   "starchips": 1600
+  },
+  "Widespread Ruin": {
+   "starchips": 6400
+  },
+  "Goblin Fan": {
+   "starchips": 25
+  },
+  "Bad Reaction to Simochi": {
+   "starchips": 25
+  },
+  "Reverse Trap": {
+   "starchips": 25
+  },
+  "Fake Trap": {
+   "starchips": 30
+  },
+  "Revived of Serpent Night Dragon": {
+   "starchips": 40
+  },
+  "Turtle Oath": {
+   "starchips": 350
+  },
+  "Contruct of Mask": {
+   "starchips": 30
+  },
+  "Resurrection of Chakra": {
+   "starchips": 40
+  },
+  "Puppet Ritual": {
+   "starchips": 30
+  },
+  "Javelin Beetle Pact": {
+   "starchips": 25
+  },
+  "Garma Sword Oath": {
+   "starchips": 350
+  },
+  "Cosmo Queen's Prayer": {
+   "starchips": 350
+  },
+  "Revival of Skeleton Rider": {
+   "starchips": 30
+  },
+  "Fortress Whale's Oath": {
+   "starchips": 40
+  },
+  "Performance of Sword": {
+   "starchips": 400
+  },
+  "Hungry Burger": {
+   "starchips": 470
+  },
+  "Sengenjin": {
+   "starchips": 2800
+  },
+  "Skull Guardian": {
+   "starchips": 490
+  },
+  "Tri-horned Dragon": {
+   "starchips": 2600
+  },
+  "Serpent Night Dragon": {
+   "starchips": 600
+  },
+  "Skull Knight": {
+   "starchips": 2100
+  },
+  "Cosmo Queen": {
+   "starchips": 2750
+  },
+  "Chakra": {
+   "starchips": 640
+  },
+  "Crab Turtle": {
+   "starchips": 1800
+  },
+  "Mikazukinoyaiba": {
+   "starchips": 540
+  },
+  "Meteor Dragon": {
+   "starchips": 390
+  },
+  "Meteor B. Dragon": {
+   "starchips": 9600
+  },
+  "Firewing Pegasus": {
+   "starchips": 570
+  },
+  "Psycho-Puppet": {
+   "starchips": 470
+  },
+  "Garma Sword": {
+   "starchips": 1800
+  },
+  "Javelin Beetle": {
+   "starchips": 640
+  },
+  "Fortress Whale": {
+   "starchips": 600
+  },
+  "Dokurorider": {
+   "starchips": 390
+  },
+  "Mask of Shine & Dark": {
+   "starchips": 470
+  },
+  "Dark Magic Ritual": {
+   "starchips": 230
+  },
+  "Magician of Black Chaos": {
+   "starchips": 2950
+  }
+ }
+}

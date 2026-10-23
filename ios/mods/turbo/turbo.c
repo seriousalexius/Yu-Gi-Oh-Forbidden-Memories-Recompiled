@@ -7,13 +7,18 @@
  * rate of 0), which is left alone.
  *
  * The button is kept from the game while the mod is on, so pressing it does
- * nothing else. A small ">> MAX" in the corner says it is on.
+ * nothing else. A small ">> MAX" in the corner says it is on; in a duel with
+ * it off, "L2 = veloce" there says which button it is.
  *
  * In a duel (main mode 3, up to the result screen: scene phase 12 on) the
  * opponent's turns, told apart by D_8009B1D5 (the acting side, 1 the
  * opponent), run flat out by themselves unless "avversario" says Game speed.
  * The player's own turns, and everything out of a duel, are Game > Game
  * speed unless the button is on.
+ *
+ * Online (the fork's Netplay_Active) the mod stands aside: the game itself
+ * runs the duel's animations flat out and the choices at 100%, the same in
+ * both games (pc/debug/netplay.c), and the button reaches the game.
  *
  * Flat out is measured, not assumed. The game moves everything by its
  * per-frame step (D_8009B0D8, graphics_frame.h), which counts the VBlanks
@@ -37,6 +42,7 @@ extern unsigned char D_8009B26C;      /* main_mode_state.h: the running mode */
 extern unsigned char D_8009B1D5;      /* duel_side_state.h: the acting side, 1 the opponent */
 extern unsigned short gDuel_wSceneStateFlags; /* duel_scene_state.h: the phase in the low nibble */
 extern int D_8009B0D8;                /* graphics_frame.h: the per-frame step */
+extern signed char D_8009B360[2];     /* the sides' duelists: negative for a person (two-player duels) */
 
 enum { MODE_MASK = 0x1F, MODE_DUEL = 3, PHASE_RESULT = 12 };
 enum { FLAT_OUT = -1, TOP_FIXED = 400 };
@@ -48,6 +54,7 @@ static int level, applied_rate;     /* level: 1 while the button has it on; appl
 static int target, target_by;       /* this frame's wanted rate (flat out resolved) and what asked for it */
 static unsigned short was;
 static volatile unsigned key_bits;  /* read by the INPUT hook, which may run from VBlank */
+static int (*online_fn)(void);      /* the fork's Netplay_Active, else none */
 
 /* Flat out's measuring: the rate it runs (FLAT_OUT or TOP_FIXED), whether the
  * other is being tried, and the steps a second each gave last ([1] 400%). */
@@ -111,7 +118,8 @@ static void choose(void)
     if (level) {
         rate = FLAT_OUT;
         target_by = BY_BUTTON;
-    } else if (in_duel() && D_8009B1D5 == 1) {
+    } else if (in_duel() && D_8009B1D5 == 1 && D_8009B360[1] >= 0) {
+        /* the computer's turn only: in a two-player duel (online) side 2 is a person */
         rate = opponent_rate();
         target_by = rate ? BY_OPPONENT : BY_NONE;
     }
@@ -147,6 +155,14 @@ static void frame(void)
     unsigned short pad = host->pad(host, 0);
     int down = key && (pad & key) == key, held_before = key && (was & key) == key;
 
+    if (online_fn && online_fn()) {
+        level = target = 0;
+        target_by = BY_NONE;
+        flat_on = 0;
+        key_bits = 0;
+        was = pad;
+        return;
+    }
     key_bits = key;
     if (host->setting(host, "uso", 0) == 1) level = down;
     else if (down && !held_before) level = !level;
@@ -171,12 +187,39 @@ static void applied(int is_on)
     }
 }
 
-/* The label: the button's, or the opponent's turn. Game speed has none. */
+/* In a duel with the turbo off: the button that turns it on, said small
+ * (Alessio's rule: a new button shows itself before it is used). */
+static int hint_shown(void) { return target_by == BY_NONE && in_duel() && key_bits; }
+
+static const char *key_name(unsigned key)
+{
+    static const char *const names[16] = {"Select", "L3", "R3", "Start", "Su", "Destra", "Giu", "Sinistra",
+                                          "L2", "R2", "L1", "R1", "Triangolo", "Cerchio", "X", "Quadrato"};
+    int bit;
+    for (bit = 0; bit < 16; bit++)
+        if (key & (1u << bit)) return names[bit];
+    return "?";
+}
+
+/* The label: the button's, or the opponent's turn; Game speed has only the
+ * hint, in a duel. */
 static void draw(void)
 {
     int width, height, scale, left = 0, right, w, rate = shown_rate();
-    char text[16];
+    char text[40];
 
+    if (hint_shown()) {
+        host->overlay_size(host, &width, &height, &scale);
+        if (scale < 1) scale = 1;
+        right = width;
+        if (!TouchPad_FreeSpan(&left, &right) || right <= left) right = width;
+        snprintf(text, sizeof(text), "%s = veloce", key_name(key_bits));
+        scale *= 2; /* a phone's menu text is small */
+        w = host->text_width(host, text, scale) + 8 * scale;
+        host->fill(host, right - w - 4 * scale, Menu_Height() + 4 * scale, w, 16 * scale, 0x000000, 110);
+        host->draw_text(host, right - w, Menu_Height() + 12 * scale, text, 0xB0A070, scale);
+        return;
+    }
     if (target_by != BY_BUTTON && target_by != BY_OPPONENT) return;
     host->overlay_size(host, &width, &height, &scale);
     if (scale < 1) scale = 1;
@@ -194,6 +237,7 @@ static unsigned signature(void)
 {
     int left = 0, right = 0, rate = shown_rate();
     TouchPad_FreeSpan(&left, &right);
+    if (hint_shown()) return 3u + (unsigned)right * 131u + (unsigned)Menu_Height() + key_bits * 7u;
     if (target_by != BY_BUTTON && target_by != BY_OPPONENT) return 1u;
     return (unsigned)target_by + (unsigned)(rate + 1) * 7u + (unsigned)right * 131u + (unsigned)Menu_Height();
 }
@@ -203,6 +247,7 @@ int MemoriesModInit(const MemoriesModHost *from, MemoriesMod *mod)
     if (from->api < 13) return 0;
     host = from;
     mod->api = 13;
+    online_fn = (int (*)(void))host->symbol(host, "Netplay_Active");
     mod->frame = frame;
     mod->applied = applied;
     mod->overlay = draw;

@@ -1,0 +1,10 @@
+# Eroi dell'arena: una riga per eroe, "nome|descrizione|10 numeri di carta".
+# Ogni eroe: 3 Rare + 7 Comuni (shared/fasce.h), tutte carte dell'arena.
+# L'ordine dei numeri e' quello mostrato: Rare, Comuni.
+# Equilibrati con tools/eroi.py (compito 06): punteggi entro +-5%, nessuna fusione tra le sue carte oltre 2400.
+Il Fusionista - Heishin|Draghi e Piante da fondere.|39 424 571 10 168 555 637 511 567 489
+L'Equipaggiatore - Mai Valentine|Equip buoni per quasi tutti e mostri che li portano.|303 308 63 314 319 301 62 26 41 41
+Il Signore del Campo - Mountain Mage|La Montagna potenzia Draghi, Bestie Alate e Tuoni.|332 82 383 94 31 357 7 4 491 636
+Il Trappolista - Bandit Keith|Trappole e magie per fermare i mostri avversari.|684 329 669 683 660 347 403 84 91 91
+La Muraglia - Labyrinth Mage|Mostri con DEF alta e magie per resistere.|349 386 711 341 518 42 88 449 74 74
+L'Incantatore - Simon Muran|Incantatori forti e magie che li sostengono.|372 551 342 495 106 44 2 323 347 347

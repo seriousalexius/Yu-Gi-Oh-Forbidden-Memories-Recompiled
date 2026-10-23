@@ -535,10 +535,25 @@ static void draw_index(const View *view)
     panel_footer(&p, "Su/Giu scorri  Sx/Dx 10  L1/R1 100  X carta  O indietro");
 }
 
+/* On the Free Duel grid, before anything is open: the button that opens it. */
+static const char *grid_hint(void)
+{
+    static char text[64];
+    if (!grid_duelist()) return NULL;
+    snprintf(text, sizeof(text), "%s tabella dei drop",
+             fv_key_name((unsigned)host->setting(host, "open_key", FV_TRIANGLE)));
+    return text;
+}
+
 static void draw(void)
 {
     const View *view = top_view();
-    if (!view || built.screen != view->screen) return;
+    if (!view) {
+        const char *hint = grid_hint();
+        if (hint) fv_hint(hint);
+        return;
+    }
+    if (built.screen != view->screen) return;
     switch (view->screen) {
     case SCREEN_TABLE: draw_table(view); break;
     case SCREEN_CARD: draw_card(view); break;
@@ -552,7 +567,10 @@ static unsigned signature(void)
     int left = 0, right = 0;
     unsigned hash;
 
-    if (!view) return 1;
+    if (!view) {
+        const char *hint = grid_hint();
+        return hint ? fv_hint_signature(hint) : 1;
+    }
     TouchPad_FreeSpan(&left, &right);
     hash = 2u + (unsigned)depth;
     hash = hash * 31u + (unsigned)view->screen;

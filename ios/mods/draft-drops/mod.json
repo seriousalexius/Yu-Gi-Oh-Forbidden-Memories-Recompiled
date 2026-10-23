@@ -1,32 +1,12 @@
 {
     "id": "draft-drops",
     "name": "Draft dei drop",
-    "version": "0.2.1",
+    "version": "0.4.0",
     "author": "Alessio",
-    "description": "Dopo una vittoria il gioco tira piu carte dalla tabella di drop dell'avversario (stesso rank, stesse probabilita del gioco originale) e tu ne scegli una, vedendo la carta disegnata, la probabilita di ognuna e quante ne hai. Le altre non vengono date. Spenta, il gioco e identico all'originale.",
+    "description": "Dopo una vittoria il gioco tira 3 carte dalla tabella di drop dell'avversario (stesso rank, stesse probabilita del gioco originale, doppioni possibili) e tu ne scegli una, vedendo la carta disegnata, la probabilita di ognuna e quante ne hai. Le altre non vengono date. Spenta, il gioco e identico all'originale.",
     "min_api": 13,
     "game": "slus_01411",
     "library": "draft",
     "enabled": true,
-    "limits": {"card_drops": 1},
-    "settings": [
-        {
-            "key": "choices",
-            "label": "Carte tra cui scegliere",
-            "type": "int",
-            "default": 5,
-            "min": 2,
-            "max": 10,
-            "step": 1,
-            "description": "Quante carte tira il gioco a fine duello; ne tieni una."
-        },
-        {
-            "key": "duplicates",
-            "label": "Doppioni tra le scelte",
-            "type": "choice",
-            "default": 0,
-            "choices": ["Tieni (come il gioco)", "Ritira"],
-            "description": "Tieni: ogni carta e un tiro indipendente, come nel gioco originale, quindi la stessa carta puo uscire piu volte. Ritira: le carte sono tutte diverse, e le carte rare escono piu spesso."
-        }
-    ]
+    "limits": {"card_drops": 1}
 }

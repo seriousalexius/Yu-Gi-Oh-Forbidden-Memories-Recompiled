@@ -80,7 +80,8 @@ static int keep_old(int slot)
     return fclose(file) == 0 && done == sizeof(backup) ? 0 : -1;
 }
 
-static void autosave(void)
+/* 1 when the game is in its slot, 0 when it is not (the message says why). */
+static int autosave(void)
 {
     SaveDataPayload *payload = (SaveDataPayload *)image;
     int slot = SaveMenu_CurrentSlot(), had_old = 0;
@@ -89,16 +90,16 @@ static void autosave(void)
     if (slot < 0) slot = host->setting(host, "prova_slot", 0) - 1;
     if (slot < 0) {
         say("Autosalvataggio: salva una volta a mano per scegliere lo slot", slot);
-        return;
+        return 0;
     }
     if (SaveSlots_ReadState(slot, old, check) == 0) {
         if (((SaveDataState *)old)->duelist_code != live()->duelist_code) {
             say("Autosalvataggio: lo slot %d e' di un'altra partita, non salvo", slot);
-            return;
+            return 0;
         }
         if (keep_old(slot)) {
             say("Autosalvataggio: copia di riserva non riuscita, non salvo", slot);
-            return;
+            return 0;
         }
         had_old = 1;
     }
@@ -109,18 +110,26 @@ static void autosave(void)
     if (SaveSlots_WriteFile(slot, image, SAVE_DATA_HEADER_SIZE + SAVE_DATA_REPLICATED_STATE_SIZE)) {
         say("Autosalvataggio NON riuscito (slot %d)", slot);
         host->log(host, "%s\n", SaveSlots_LastError());
-        return;
+        return 0;
     }
     /* Read back through the game's own check, as the slot menu will read it;
      * anything amiss and the save that was there goes back. */
     if (SaveSlots_ReadState(slot, old, check) || memcmp(old, &payload->state, SAVE_DATA_STATE_SIZE)) {
         if (had_old) SaveSlots_WriteFile(slot, backup, SAVE_DATA_HEADER_SIZE + SAVE_DATA_REPLICATED_STATE_SIZE);
         say("Autosalvataggio NON riuscito (slot %d): tenuto quello di prima", slot);
-        return;
+        return 0;
     }
     gSaveDataSequence = (s32)((u32)gSaveDataSequence + 1);
     SaveCards_Saved(&payload->state, payload->state.save_sequence);
     say("Salvato nello slot %d", slot);
+    return 1;
+}
+
+/* For other mods (autosalvataggio:salva, the arena after its prizes): saves
+ * as after a duel, when this mod is applied; 1 when it saved. */
+static int save_for_mods(void)
+{
+    return host->applied(host) ? autosave() : 0;
 }
 
 static void frame(void)
@@ -190,5 +199,5 @@ int MemoriesModInit(const MemoriesModHost *from, MemoriesMod *mod)
     mod->applied = applied;
     mod->overlay = draw;
     mod->overlay_signature = signature;
-    return 1;
+    return host->provide(host, "salva", (void *)save_for_mods);
 }

@@ -1,9 +1,9 @@
 {
     "id": "turbo",
     "name": "Turbo",
-    "version": "0.7",
+    "version": "0.9",
     "author": "Alessio",
-    "description": "Fa andare il gioco piu veloce. Il tasto del turbo (L2 se non ne scegli un altro) mette la velocita MASSIMA (in alto compare >> MAX): premi per accenderla e ripremi per spegnerla, oppure, se scegli 'Tieni premuto', va al massimo solo finche lo tieni premuto. Spento il turbo, il gioco va alla velocita di Game > Game speed. Nel turno dell'AVVERSARIO la velocita e gia MASSIMA da sola (in alto compare >> AVVERSARIO); se vuoi guardarlo con calma metti 'Come Game speed'. La MASSIMA si regola da sola: ogni pochi secondi prova se il tuo telefono va piu veloce senza limite o al 400% e tiene la piu veloce. Spenta, il gioco e identico all'originale.",
+    "description": "Fa andare il gioco piu veloce. Il tasto del turbo (L2 se non ne scegli un altro) mette la velocita MASSIMA (in alto compare >> MAX): premi per accenderla e ripremi per spegnerla, oppure, se scegli 'Tieni premuto', va al massimo solo finche lo tieni premuto. Spento il turbo, il gioco va alla velocita di Game > Game speed. Nel turno del COMPUTER la velocita e gia MASSIMA da sola (in alto compare >> AVVERSARIO); se vuoi guardarlo con calma metti 'Come Game speed'. Online il turbo non serve: le animazioni vanno gia al massimo da sole, uguali per tutti e due. La MASSIMA si regola da sola: ogni pochi secondi prova se il tuo telefono va piu veloce senza limite o al 400% e tiene la piu veloce. Spenta, il gioco e identico all'originale.",
     "min_api": 13,
     "game": "slus_01411",
     "library": "turbo",

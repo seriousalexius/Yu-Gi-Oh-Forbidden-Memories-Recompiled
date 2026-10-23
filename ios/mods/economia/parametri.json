@@ -1,0 +1,21 @@
+{
+ "_nota": "Numeri dell'economia letti da tools/prezzi.py. Si cambiano qui, poi: python tools/prezzi.py (e 'scrivi').",
+ "starchip_vittoria_free_duel": 4,
+ "minuti_duello_free_duel": 5,
+ "minuti_duello_arena": 7,
+ "prob_vittoria_arena": 0.6,
+ "obiettivo_rapporto": [3, 4],
+ "premi_arena": [15, 30, 55, 80, 110, 140, 180, 220, 270, 320, 380, 450, 750],
+ "corse_per_fascia": {"C": 0.4, "R": 3.5, "E": 15, "L": 60},
+ "forbice_fascia": {"C": [10, 150], "R": [150, 900], "E": [1000, 4000], "L": [5000, 15000]},
+ "forbice_stat": [0.75, 1.25],
+ "offerte_per_vittoria": 3,
+ "vittorie_riferimento_drop": 40,
+ "esponente_drop": 0.25,
+ "forbice_drop": [0.7, 1.5],
+ "sconto_fuori_arena": 0.6,
+ "non_comprabili": ["Blue-eyes Ultimate Dragon"],
+ "esempi": ["Blue-eyes White Dragon", "Raigeki", "Dark Hole", "Megamorph", "Swords of Revealing Light",
+            "Dark Magician", "Summoned Skull", "Twin-headed Thunder Dragon", "Red-eyes B. Dragon", "Kuriboh",
+            "Mystical Elf", "Labyrinth Wall", "Harpie's Feather Duster"]
+}

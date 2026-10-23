@@ -117,13 +117,20 @@ static int player_won(void)
     return D_8009B360[0] < 0 && gDuel_bOpponentID >= 0 && !gDuel_bWinnerSide;
 }
 
+/* A duel of the arena mod does not count in the diary (arena:duello). */
+static int arena_duel(void)
+{
+    volatile int *duel = (volatile int *)host->find(host, "arena:duello");
+    return duel && *duel;
+}
+
 static void results_screen(void)
 {
     int started = gDuel_wSceneStateFlags & SCENE_STARTED;
     ((void (*)(void))original)();
     if (started || !(gDuel_wSceneStateFlags & SCENE_STARTED)) return;
     flush_pending();
-    if (!player_won()) return;
+    if (!player_won() || arena_duel()) return;
     memset(&pending, 0, sizeof(pending));
     pending.active = 1;
     pending.entry.duelist = (short)gDuel_bOpponentID;

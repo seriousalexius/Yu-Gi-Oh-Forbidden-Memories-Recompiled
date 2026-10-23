@@ -533,6 +533,22 @@ static uint32_t fv_rarity_rgb(unsigned weight)
     return 0xFFC830;
 }
 
+/* The power tier of a card (shared/fasce.h, made by tools/numeri.py): the
+ * draft's colours, same palette as the drop rarities: gold Legendary, purple
+ * Epic, blue Rare, white Common, red banned from decks. */
+#include "fasce.h"
+static uint32_t fv_tier_rgb(int card)
+{
+    if (card < 1 || card >= (int)sizeof(fv_fasce) - 1) return FV_RARITY_NONE;
+    switch (fv_fasce[card]) {
+    case 'L': return 0xFFC830;
+    case 'E': return 0xC47CFF;
+    case 'R': return 0x58A8FF;
+    case 'V': return 0xFF6060;
+    default: return 0xF4F4F4;
+    }
+}
+
 /* The wish list the Enciclopedia mod keeps (one byte a card id, nonzero for
  * a card the player wants), shared with host->provide; NULL while that mod
  * is not loaded. */
@@ -582,6 +598,46 @@ static void fv_box(int x, int y, int w, int h, int s)
     host->fill(host, x, y, w, h, 0x10183A, 238);
     host->fill(host, x, y, w, 2 * s, 0xC8A040, 255);
     host->fill(host, x, y + h - 2 * s, w, 2 * s, 0xC8A040, 255);
+}
+
+/* --- key hints (Alessio's rule: a mod's new button says itself on screen,
+ * where it opens from, before anyone has to know it) -------------------------- */
+
+/* A button's name as the panels write it ("/\", "[]", "R2"...). */
+static const char *fv_key_name(unsigned key)
+{
+    static const char *const names[16] = {"Select", "L3", "R3", "Start", "Su", "Destra", "Giu", "Sinistra",
+                                          "L2", "R2", "L1", "R1", "/\\", "O", "X", "[]"};
+    int bit;
+    for (bit = 0; bit < 16; bit++)
+        if (key & (1u << bit)) return names[bit];
+    return "?";
+}
+
+/* `text` small in the bottom left corner of the picture, over a dark strip. */
+static void fv_hint(const char *text)
+{
+    FvArea area;
+    int s, w, h;
+    fv_area(&area, 160);
+    /* twice the menus' text when it fits: a phone's is small */
+    for (s = 2 * area.s; s > area.s && host->text_width(host, text, s) + 8 * s > area.w; s--) {}
+    w = host->text_width(host, text, s) + 8 * s;
+    h = 14 * s;
+    /* inside the area: lower, a phone's screen edge cut the text */
+    host->fill(host, area.x - 2 * s, area.y + area.h - h, w, h, 0x000000, 160);
+    host->draw_text(host, area.x + 2 * s, area.y + area.h - h / 2, text, 0xF0D070, s);
+}
+
+/* What fv_hint draws depends on: for an overlay_signature. */
+static unsigned fv_hint_signature(const char *text)
+{
+    int left = 0, right = 0, width = 0, height = 0, scale = 0;
+    unsigned hash = 5381u;
+    TouchPad_FreeSpan(&left, &right);
+    host->overlay_size(host, &width, &height, &scale);
+    while (*text) hash = hash * 33u + (unsigned char)*text++;
+    return hash ^ ((unsigned)right * 131u + (unsigned)width * 17u + (unsigned)height * 13u + (unsigned)scale);
 }
 
 /* Pressed this frame, and held long enough to repeat (every 70 ms after

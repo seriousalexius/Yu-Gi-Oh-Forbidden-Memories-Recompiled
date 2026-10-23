@@ -11,7 +11,7 @@
  * always when the player leaves the screen.
  *
  * The panel lists the cards with their chance in that pool and how many the
- * player owns, each name in its rarity's color and with a star when it is on
+ * player owns, each name in its power tier's color and with a star when it is on
  * the Enciclopedia's wish list, and draws the one under the cursor
  * (shared/fmview.h). */
 #define D_8009B360_AS_SIDE_ARRAY
@@ -32,6 +32,8 @@ static const MemoriesModHost *host;
 #include "game/input.h"
 
 #define DRAFT_MAX 10
+/* Regola bloccata (22/10): 1 carta su 3, doppioni tenuti come nel gioco. */
+#define DRAFT_CHOICES 3
 #define SCENE_STARTED 0x8000 /* gDuel_wSceneStateFlags: the results screen's first frame ran */
 
 static void *original;
@@ -76,8 +78,8 @@ static int player_won(void)
 
 static void start_draft(void)
 {
-    int wanted = fv_clamp(host->setting(host, "choices", 5), 2, DRAFT_MAX);
-    int no_repeats = host->setting(host, "duplicates", 0) == 1;
+    int wanted = DRAFT_CHOICES;
+    int no_repeats = 0;
     int spoils = D_8009B1E8->dropped_card_id, pool = drop_pool(), i, tries;
 
     state.count = 0;
@@ -126,6 +128,13 @@ static void read_input(void)
     if (pressed & PAD_BUTTON_CROSS) choose(state.cursor);
 }
 
+/* A duel of the arena mod gives nothing of the normal game (arena:duello). */
+static int arena_duel(void)
+{
+    volatile int *duel = (volatile int *)host->find(host, "arena:duello");
+    return duel && *duel;
+}
+
 static void results_screen(void)
 {
     int started = gDuel_wSceneStateFlags & SCENE_STARTED;
@@ -134,7 +143,7 @@ static void results_screen(void)
     ((void (*)(void))original)();
     if (!started && (gDuel_wSceneStateFlags & SCENE_STARTED)) {
         state.picking = 0;
-        if (player_won()) start_draft();
+        if (player_won() && !arena_duel()) start_draft();
     }
     /* A state loaded on this screen has the cards but not their pictures. */
     if (state.picking) fv_art_load(state.cards[state.cursor]);
@@ -211,8 +220,7 @@ static void draw_panel(void)
         if (chosen) host->fill(host, at - pad / 2, mid - line / 2, list_w + pad, line, FV_CURSOR_RGB, 230);
         row_texts(i, name, sizeof(name), stat, sizeof(stat), chance, sizeof(chance), own, sizeof(own));
         fv_fit(name, name_w - fv_icon_room(s), s);
-        fv_icon_text(state.cards[i], at, mid, name,
-                     fv_rarity_rgb(fv_weight(gDuel_bOpponentID, drop_pool(), state.cards[i])), s);
+        fv_icon_text(state.cards[i], at, mid, name, fv_tier_rgb(state.cards[i]), s);
         at += name_w + gap;
         host->draw_text(host, at, mid, stat, color, s);
         at += stat_w + gap;

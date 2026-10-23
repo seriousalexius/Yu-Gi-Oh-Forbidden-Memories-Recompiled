@@ -3,14 +3,15 @@
     "name": "Statistiche (diario del duellista)",
     "version": "0.1",
     "author": "Alessio",
-    "description": "Tiene il diario dei tuoi duelli: ogni duello vinto (Free Duel e storia) con il rank (S-POW, A-POW, B/C/D, A-TEC, S-TEC) e la carta che hai preso. Si apre dal menu del gioco (quello con CAMPAIGN, FREE DUEL, LIBRARY... SAVE) con il nuovo bottone STATISTICHE: pagina AVVERSARI con vittorie e sconfitte del Free Duel (quelle che il gioco conta da sempre, anche di prima della mod), le vittorie per rank e le carte prese contro ognuno (X: le sue carte); Sx/Dx: CARTE PRESE, tutte le carte vinte dall'ultima, con avversario, rank e probabilita, nei colori di rarita. Cerchio indietro, Start chiude. Il diario e in mod-data/diario/diario.txt (rank e carte contano da quando c'e la mod). Non cambia niente del gioco: spenta, il gioco e identico all'originale.",
+    "description": "Tiene il diario dei tuoi duelli: ogni duello vinto (Free Duel e storia) con il rank (S-POW, A-POW, B/C/D, A-TEC, S-TEC) e la carta che hai preso. Si apre dal menu del gioco (quello con CAMPAIGN, FREE DUEL, LIBRARY... SAVE) con il nuovo bottone STATISTICHE: pagina AVVERSARI con vittorie e sconfitte del Free Duel (quelle che il gioco conta da sempre, anche di prima della mod), le vittorie per rank e le carte prese contro ognuno (X: le sue carte); Sx/Dx: CARTE PRESE, tutte le carte vinte dall'ultima, con avversario, rank e probabilita, nei colori di rarita. Cerchio indietro, Start chiude. Il diario e in mod-data/diario/diario.txt (rank e carte contano da quando c'e la mod). Nello stesso menu mette anche il bottone ONLINE: la lista degli amici online da sfidare (la stessa di Game > Online...). Non cambia niente del gioco: spenta, il gioco e identico all'originale.",
     "min_api": 13,
     "game": "slus_01411",
     "library": "diario",
     "enabled": true,
     "menu": {
         "buttons": [
-            {"id": "statistiche", "menu": "second", "label": "STATISTICHE", "action": "event", "value": 1}
+            {"id": "statistiche", "menu": "second", "label": "STATISTICHE", "action": "event", "value": 1},
+            {"id": "online", "menu": "second", "label": "ONLINE", "action": "online"}
         ]
     }
 }

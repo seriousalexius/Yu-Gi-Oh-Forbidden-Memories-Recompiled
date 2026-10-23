@@ -1,0 +1,11 @@
+{
+    "id": "regole-mazzo",
+    "name": "Regole del mazzo",
+    "version": "0.1",
+    "author": "Alessio",
+    "description": "In Build Deck, in alto a sinistra, una striscia dice se il mazzo rispetta le regole della campagna e quelle dell'1v1 online (OK / NO con quante cose da sistemare) e quante carte ha (38/40). Premi Select: si apre il pannello con le regole di ogni modalita, cosa togliere e quante carte mancano per 40. Select o Cerchio lo chiude. In Build Deck Select non cambia piu l'ordine all'indietro: Start lo cambia ancora. Spenta, il gioco e identico all'originale.",
+    "min_api": 13,
+    "game": "slus_01411",
+    "library": "regole",
+    "enabled": true
+}
