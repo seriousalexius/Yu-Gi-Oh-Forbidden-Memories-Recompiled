@@ -18,6 +18,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef MEMORIES_IOS
+#include <unistd.h>
+#define BACK_LABEL "Chiudi il gioco" /* the app closes: restart_or_close */
+#else
+#define BACK_LABEL "Torna al gioco"
+#endif
 
 #define PROTOCOL 2
 #define SAVE_SIZE 0x680
@@ -237,7 +243,7 @@ static void lost(const char *why)
     }
     if (from_lobby) {
         /* From the lobby: a restart is the way back to the game as it was. */
-        static const char *const buttons[] = {"Torna al gioco", "Resta qui"};
+        static const char *const buttons[] = {BACK_LABEL, "Resta qui"};
         Menu_ShowNotice("Online", "L'altro giocatore si e' disconnesso.\nTorna al gioco normale (il gioco si riavvia)?",
                         buttons, 2, 0, lobby_failed_closed);
         return;
@@ -365,10 +371,23 @@ static void read_asked(void)
 
 /* The duel from the lobby did not start: the game goes on, with the game's
  * own title (the mods' comes back on a restart). */
+/* An iPhone app cannot start itself again (guest/main.c): it closes, and
+ * opening it again is the restart (what the game keeps is on disk). */
+static int restart_or_close(void)
+{
+    if (Platform_RestartGame() >= 0) return 0;
+#ifdef MEMORIES_IOS
+    fprintf(stderr, "memories-pc: online: closing the app (an iPhone app cannot restart itself)\n");
+    fflush(NULL);
+    _exit(0);
+#endif
+    return -1;
+}
+
 static void lobby_failed_closed(int button, int *quit)
 {
     (void)quit;
-    if (button == 0) Platform_RestartGame();
+    if (button == 0) restart_or_close();
 }
 
 static void lobby_failed(void)
@@ -412,7 +431,7 @@ static void back_to_game(void)
 {
     fprintf(stderr, "memories-pc: online: back to the game\n");
     fflush(stderr);
-    if (Platform_RestartGame() < 0) fprintf(stderr, "memories-pc: online: the game did not restart\n");
+    if (restart_or_close() < 0) fprintf(stderr, "memories-pc: online: the game did not restart\n");
 }
 
 static void over_closed(int button, int *quit)
@@ -426,7 +445,7 @@ static void over_closed(int button, int *quit)
  * the game, which comes back as it was (online.cfg is gone). */
 static void duel_over(int won, const char *how)
 {
-    static const char *const back[] = {"Torna al gioco"}, *const ok[] = {"OK"};
+    static const char *const back[] = {BACK_LABEL}, *const ok[] = {"OK"};
     char text[700], line[96], wager[300];
     const char *said = !strcmp(how, "exodia") ? "Exodia" : !strcmp(how, "deck") ? "mazzo finito"
                      : !strcmp(how, "resign") ? (won ? "si e' arreso" : "ti sei arreso")

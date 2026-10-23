@@ -790,6 +790,20 @@ static void show_list(void)
                         grid_focus <= player_count + 2 ? grid_focus : player_count + 3, list_chosen);
 }
 
+#ifdef MEMORIES_IOS
+#include <unistd.h>
+/* An iPhone app cannot start itself again (guest/main.c): online.cfg stays,
+ * the app closes, and opening it again goes into the duel, which the other
+ * game waits 90 s for (pc/debug/netplay.c). */
+static void close_for_duel(int button, int *quit)
+{
+    (void)button, (void)quit;
+    fprintf(stderr, "memories-pc: lobby: closing the app for the duel\n");
+    fflush(NULL);
+    _exit(0);
+}
+#endif
+
 /* "via": the duel's room. online.cfg for pc/debug/netplay.c, then a
  * restart into it. The save: the game's slot, else the first; "contro=",
  * the other player, for the result. */
@@ -812,6 +826,17 @@ static void go(const char *room, int side, const char *rival, const char *mode)
     fclose(file);
     fprintf(stderr, "memories-pc: lobby: wrote online.cfg (slot %d), restarting\n", slot + 1);
     fflush(stderr);
+#ifdef MEMORIES_IOS
+    {
+        static const char *const close_button[] = {"Chiudi il gioco"};
+        screen = SCREEN_INFO;
+        Menu_ShowNotice("Online",
+                        "Su iPhone il gioco non si riavvia da solo: ora si chiude.\n"
+                        "Riaprilo SUBITO (entro un minuto) e il duello parte.",
+                        close_button, 1, 0, close_for_duel);
+        return;
+    }
+#endif
     Platform_RestartGame();
     remove(path);
     info("Il gioco non si e' riavviato: il duello non parte.");
