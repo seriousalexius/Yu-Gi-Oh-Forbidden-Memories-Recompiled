@@ -33,7 +33,7 @@
 /* fork: the choices run at CHOICE_RATE (Alessio's, 23/10), not 100%: the
  * gap while choosing is gap_slow times CHOICE_RATE / 100 VBlanks, the same
  * time ahead as at 100%, and the turn timer counts VBLANKS_PER_S a second. */
-#define CHOICE_RATE 400
+#define CHOICE_RATE 250
 #define CHOICE_GAP(gap) ((gap) * CHOICE_RATE / 100)
 #define VBLANKS_PER_S (60u * CHOICE_RATE / 100)
 #define FLUSH_MS 20 /* what is kept goes out at least this often */
