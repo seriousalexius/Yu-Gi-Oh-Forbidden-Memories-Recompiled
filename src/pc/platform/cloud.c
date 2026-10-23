@@ -37,6 +37,7 @@
 #define FILE_BASE64 ((FILE_MAX + 2) / 3 * 4)
 #define FILE_LOOK 300 /* frames between looks at the files */
 #define DIARY "mod-data/diario/diario.txt"
+#define ARENA "mod-data/arena/arena.txt"
 
 typedef struct {
     int version; /* 0: none */
@@ -54,8 +55,9 @@ static struct {
 } slots[SAVE_SLOT_COUNT];
 
 /* The other files on the account (decks/<code>.txt, online-deck.txt, the
- * diary), sent and taken like the slots. A conflict asks nothing: the diary's
- * lines are joined (it only grows), the rest goes to the newer one. */
+ * diary, the arena's run), sent and taken like the slots. A conflict asks
+ * nothing: the diary's lines are joined (it only grows), the rest goes to
+ * the newer one. */
 typedef struct {
     char name[40];
     int synced;
@@ -340,7 +342,7 @@ static void take(int slot, int version, long long when, const char *from, const 
 static int valid_name(const char *name)
 {
     int i;
-    if (!strcmp(name, "online-deck.txt") || !strcmp(name, DIARY)) return 1;
+    if (!strcmp(name, "online-deck.txt") || !strcmp(name, DIARY) || !strcmp(name, ARENA)) return 1;
     if (strncmp(name, "decks/", 6) || strlen(name) != 18 || strcmp(name + 14, ".txt")) return 0;
     for (i = 6; i < 14; i++)
         if (!name[i] || !strchr("0123456789ABCDEF", name[i])) return 0;
@@ -389,6 +391,7 @@ static void look_files(int all)
     int i;
     find_file("online-deck.txt");
     find_file(DIARY);
+    find_file(ARENA);
     if (!Paths_User(path, sizeof(path), "decks") && (folder = opendir(path))) {
         while ((item = readdir(folder)) != NULL) {
             char name[300];
