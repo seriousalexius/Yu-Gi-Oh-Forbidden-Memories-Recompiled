@@ -510,7 +510,8 @@ no mod sets it, so without one nothing changes:
     "rank_score": {"start": 50, "exodia": 40, "deck_out": -40},
     "starchip_prize": {"S": 8, "A": 6, "B": 4, "C": 2, "D": 1},
     "new_game_starchips": 500,
-    "card_drops": 5
+    "card_drops": 5,
+    "password_copies": 3
 }
 ```
 
@@ -527,6 +528,7 @@ no mod sets it, so without one nothing changes:
 | `starchip_prize` `S` to `D` | the starchips a win against the CPU gives at that rank, POW or TEC; the results show a starchip each, or past 8 one starchip with "xN" beside it | 5, 4, 3, 2, 1 | 0-1000 |
 | `new_game_starchips` | the starchips a new game's save starts with (at most the `starchips` cap) | 0 | 0-99999999 |
 | `card_drops` | the cards every won duel deals, locked: the player's Game > Card drops shows this number, greyed and named after the mod, and comes back as it was when the mod is removed ([card drops](card-drops.md#a-mod-that-sets-it); `min_api` 13) | the player's (1 on the console) | 1-99 |
+| `password_copies` | the Password screen sells a card again, password and all, while the player owns fewer copies than this, chest and deck together; at that many EXCHANGE is red, as when the starchips fall short | each password once a save | 1-255 |
 
 **What holds them back.** Build Deck counts a card's copies up to the forty
 a deck holds. The field's card bar shows the Swords' turns as one digit.
@@ -597,6 +599,9 @@ the pair beside the mod that set the password, once the Password screen
 has loaded its table.
 View > Card passwords shows the passwords the mods set. The latest mod that
 sets a card's password or price wins.
+A disc card's password works once a save, as on the console;
+`"limits": {"password_copies": 3}` sells it again while the player owns
+fewer than three copies, chest and deck together ([other values](#other-values)).
 
 For an added card, use `copy` and a stable ID (a `replace` keeps the original
 card number). The same password is accepted by the shop and printed by

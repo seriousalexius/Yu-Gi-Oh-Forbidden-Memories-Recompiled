@@ -1883,7 +1883,8 @@ static void read_life_points(const char *mod, const JsonValue *value)
  *     "rank_score": {"start": n, "exodia": n, "deck_out": n},
  *     "starchip_prize": {"S": n, "A": n, "B": n, "C": n, "D": n},
  *     "new_game_starchips": n,
- *     "card_drops": n
+ *     "card_drops": n,
+ *     "password_copies": n
  *
  * Each key's latest mod wins. A section is the key, a "." and the member.
  * "card_drops" locks the cards a won duel deals over the player's Game >
@@ -1910,6 +1911,7 @@ static const struct {
     {"starchip_prize.S", 5, 0, TABLES_VALUE_PRIZE_MAX, "a win gives"},
     {"new_game_starchips", 0, 0, TABLES_LIMIT_STARCHIPS_MAX, "the game shows (eight digits)"},
     {"card_drops", 0, 1, TABLES_VALUE_CARD_DROPS_MAX, NULL},
+    {"password_copies", 0, 1, TABLES_LIMIT_CHEST_MAX, NULL},
 };
 static long value_set[TABLES_VALUE_COUNT];
 static unsigned char value_given[TABLES_VALUE_COUNT];
@@ -2019,14 +2021,16 @@ static void read_limits(const char *mod, const JsonValue *limits)
         static const char *const keys[] = {"stats", "attack", "defense", "life_points", "two_player", "starchips",
                                             "chest", "free_duel_record", "two_player_record", "deck_copies",
                                             "swords_turns", "crush_card", "spellbinding_circle", "shadow_spell",
-                                            "rank_score", "starchip_prize", "new_game_starchips", "card_drops"};
+                                            "rank_score", "starchip_prize", "new_game_starchips", "card_drops",
+                                            "password_copies"};
         const char *name = Json_Name(Json_At(limits, i));
         size_t k;
         for (k = 0; k < sizeof(keys) / sizeof(keys[0]) && strcmp(name, keys[k]); k++) {}
         if (k == sizeof(keys) / sizeof(keys[0]))
             Mods_Note(mod, "limits: no limit \"%s\" (stats, attack, defense, life_points, two_player, starchips, chest, "
                       "free_duel_record, two_player_record, deck_copies, swords_turns, crush_card, "
-                      "spellbinding_circle, shadow_spell, rank_score, starchip_prize, new_game_starchips, card_drops)",
+                      "spellbinding_circle, shadow_spell, rank_score, starchip_prize, new_game_starchips, card_drops, "
+                      "password_copies)",
                       name);
     }
 #define STAT_STORAGE "the game keeps (a 16-bit number; more would mean widening every card record)"
