@@ -102,8 +102,11 @@ static struct {
     int prize_total, prize_count, prizes[2], paid, starchips, starchips_now, saved;
     unsigned rng, seed;
     int runs, best, hero_wins[HEROES_MAX], hero_runs[HEROES_MAX];
+    int free_used;            /* the first run, free for everyone, was started */
 } run;
+static int entry_refused;     /* Inizia without the starchips the entry asks: the intro says so */
 
+static int hide_results; /* the results screen covered: from its first frame to the result's record (rewards) */
 static void *original_runner, *original_shuffle, *original_run_duel, *original_init_sides, *original_rewards;
 static int active;            /* mode 13 is the arena's */
 static volatile int armed;    /* an arena duel is on (provided as "arena:duello") */
@@ -539,7 +542,7 @@ static void save_state(void)
     PUT("\nvinte=%d\nperse=%d\nultimo=%d\nduello=%d\npremi=%d %d %d %d\npagato=%d %d %d %d\ncaso=%u\nseme=%u\n",
         run.wins, run.losses, run.last, run.dueling, run.prize_total, run.prize_count, run.prizes[0], run.prizes[1],
         run.paid, run.starchips, run.starchips_now, run.saved, run.rng, run.seed);
-    PUT("corse=%d\nrecord=%d\nvittorie_eroe=", run.runs, run.best);
+    PUT("corse=%d\nrecord=%d\ngratis_usato=%d\nvittorie_eroe=", run.runs, run.best, run.free_used);
     for (i = 0; i < HEROES_MAX; i++) PUT("%s%d", i ? " " : "", run.hero_wins[i]);
     PUT("\ncorse_eroe=");
     for (i = 0; i < HEROES_MAX; i++) PUT("%s%d", i ? " " : "", run.hero_runs[i]);
@@ -610,6 +613,7 @@ static void load_state(void)
         else if (!strcmp(line, "seme")) run.seed = unumber(value);
         else if (!strcmp(line, "corse")) run.runs = atoi(value);
         else if (!strcmp(line, "record")) run.best = atoi(value);
+        else if (!strcmp(line, "gratis_usato")) run.free_used = atoi(value);
         else if (!strcmp(line, "vittorie_eroe")) numbers(value, run.hero_wins, HEROES_MAX);
         else if (!strcmp(line, "corse_eroe")) numbers(value, run.hero_runs, HEROES_MAX);
     }
@@ -669,6 +673,40 @@ static void start_run(void)
     host->log(host, "arena: corsa iniziata (seme %u), eroi proposti: %s, %s, %s", run.seed,
               heroes[run.offered[0]].name, heroes[run.offered[1]].name, heroes[run.offered[2]].name);
     save_state();
+}
+
+/* What Inizia costs now: nothing the first time, then premi.txt's entry
+ * (MEMORIES_MOD_ARENA_INGRESSO=N for the tests). */
+static long entry_cost;
+
+static long entry_now(void)
+{
+    long cost = host->setting(host, "ingresso", -1);
+    if (cost < 0) cost = entry_cost;
+    return run.free_used ? cost : 0;
+}
+
+/* Inizia offline: the entry is taken from the save (and the save written, as
+ * the prizes are, so closing the game does not give it back), then the run. */
+static void pay_entry_and_start(void)
+{
+    SaveDataState *save = (SaveDataState *)gDuel_awPlayerDeck;
+    long cost = entry_now();
+    int (*salva)(void);
+    if ((long)save->starchips < cost) {
+        entry_refused = 1;
+        host->log(host, "arena: ingresso %ld, starchip %u: non basta", cost, (unsigned)save->starchips);
+        return;
+    }
+    start_run();
+    if (run.phase != PHASE_HERO) return;
+    entry_refused = 0;
+    save->starchips -= (unsigned)cost;
+    run.free_used = 1;
+    save_state();
+    host->log(host, "arena: ingresso pagato %ld starchip, ora %u", cost, (unsigned)save->starchips);
+    salva = (int (*)(void))host->find(host, "autosalvataggio:salva");
+    if (salva && cost > 0) host->log(host, "arena: salvataggio dopo l'ingresso %s", salva() ? "fatto" : "NON fatto");
 }
 
 static void choose_hero(int i)
@@ -778,6 +816,7 @@ static void record_result(int won)
     else run.losses++;
     run.last = won ? 1 : 2;
     run.dueling = 0;
+    hide_results = 0;
     run.phase = PHASE_RESULT;
     button = 0;
     confirm = 0;
@@ -801,6 +840,7 @@ static long starchip_prize(void)
  * by tools/prezzi.py), or without it the S rank's prize a win, doubled at 12. */
 static long prize_table[MAX_WINS + 1];
 static int prize_table_ok;
+static long entry_cost; /* premi.txt's "ingresso|N": what a run costs past the first, free one */
 
 static void load_prizes(void)
 {
@@ -809,6 +849,7 @@ static void load_prizes(void)
     int got = 0, v;
     long n;
     prize_table_ok = 0;
+    entry_cost = 0;
     if (!file) {
         host->log(host, "arena: premi.txt non trovato: %ld starchip a vittoria", starchip_prize());
         return;
@@ -816,6 +857,11 @@ static void load_prizes(void)
     while (fgets(line, sizeof(line), file)) {
         char *end, *at;
         if (line[0] == '#') continue;
+        if (!strncmp(line, "ingresso|", 9)) {
+            n = strtol(line + 9, &end, 10);
+            if (end != line + 9 && n >= 0) entry_cost = n;
+            continue;
+        }
         v = (int)strtol(line, &end, 10);
         if (end == line || *end != '|') continue;
         at = end + 1;
@@ -827,7 +873,8 @@ static void load_prizes(void)
     fclose(file);
     prize_table_ok = got == (1 << (MAX_WINS + 1)) - 1;
     if (prize_table_ok)
-        host->log(host, "arena: premi.txt: %ld starchip con 12 vittorie", prize_table[MAX_WINS]);
+        host->log(host, "arena: premi.txt: %ld starchip con 12 vittorie, ingresso %ld", prize_table[MAX_WINS],
+                  entry_cost);
     else
         host->log(host, "arena: premi.txt incompleto (servono 0..12): %ld starchip a vittoria", starchip_prize());
 }
@@ -1056,11 +1103,14 @@ static void init_sides(void)
 }
 
 /* The results screen's SPOILS (a dropped card the arena does not give):
- * left at once, as X leaves it; the arena's screens tell the result. */
+ * covered (black, drawn by draw() over it, so no card is seen) and left at
+ * once, as X leaves it; the arena's screens tell the result. */
 static void rewards(void)
 {
     ((void (*)(void))original_rewards)();
-    if (armed && (gDuel_wSceneStateFlags & 0x8000) && !(gDuel_wSceneStateFlags & 0x4000)) {
+    if (!armed) return;
+    hide_results = 1;
+    if ((gDuel_wSceneStateFlags & 0x8000) && !(gDuel_wSceneStateFlags & 0x4000)) {
         gDuel_wSceneStateFlags |= 0x4000;
         Fade_SetTargetLevel(0, 6);
     }
@@ -1161,10 +1211,10 @@ static void step_input(void)
     }
     switch (run.phase) {
     case PHASE_NONE:
-        if (pressed & (FV_LEFT | FV_RIGHT)) button ^= 1;
+        if (pressed & (FV_LEFT | FV_RIGHT)) button ^= 1, entry_refused = 0;
         if (pressed & FV_CIRCLE) leave_arena();
         else if (pressed & FV_CROSS) {
-            if (button == 0) start_run();
+            if (button == 0) pay_entry_and_start();
             else leave_arena();
         }
         break;
@@ -1385,6 +1435,7 @@ static void frame(void)
 static void reset(void)
 {
     active = 0;
+    hide_results = 0;
 }
 
 /* --- drawing --------------------------------------------------------------------------- */
@@ -1615,19 +1666,28 @@ static void draw_intro(void)
     s = p.s;
     mid = p.top + p.line / 2;
     {
-        const char *lines[5];
-        char last[128];
-        snprintf(last, sizeof(last), "Premi: %ld starchip con 3 vittorie, %ld con 6, %ld con 12.",
-                 run_prize(3), run_prize(6), run_prize(MAX_WINS));
+        const char *lines[6];
+        char last[128], entry[128];
+        long cost = entry_now();
+        unsigned have = ((SaveDataState *)gDuel_awPlayerDeck)->starchips;
+        snprintf(last, sizeof(last), "Premi: %ld starchip con 1 vittoria, %ld con 3, %ld con 6, %ld con 12.",
+                 run_prize(1), run_prize(3), run_prize(6), run_prize(MAX_WINS));
+        if (entry_refused)
+            snprintf(entry, sizeof(entry), "Servono %ld starchip, ne hai %u: vinci duelli in campagna o Free Duel.",
+                     cost, have);
+        else if (!cost) snprintf(entry, sizeof(entry), "Ingresso: GRATIS, la tua prima arena! (hai %u starchip)", have);
+        else snprintf(entry, sizeof(entry), "Ingresso: %ld starchip (ne hai %u)", cost, have);
         lines[0] = "Scegli un eroe tra 3: ti da 10 carte fisse del suo stile.";
         lines[1] = "Poi 30 scelte, 1 carta su 3: ecco il tuo mazzo da 40.";
         lines[2] = "Duelli la CPU finche perdi 3 volte o vinci 12 duelli.";
         lines[3] = last;
         lines[4] = "Da 7 vittorie: 1 carta tra 3 a caso del mazzo. Con 12: anche 1 a scelta.";
-        for (i = 0; i < 5; i++, mid += p.line) {
+        lines[5] = entry;
+        for (i = 0; i < 6; i++, mid += p.line) {
             snprintf(text, sizeof(text), "%s", lines[i]);
             fv_fit(text, p.w - 2 * p.pad, s);
-            host->draw_text(host, p.x + p.pad, mid, text, 0xF4F4F4, s);
+            host->draw_text(host, p.x + p.pad, mid, text,
+                            i < 5 ? 0xF4F4F4 : entry_refused ? LOSS_RGB : GOLD_RGB, s);
         }
     }
     mid += p.line / 2;
@@ -1985,6 +2045,12 @@ static int screen_up(void)
 
 static void draw(void)
 {
+    if (hide_results) {
+        int w, h, sc;
+        host->overlay_size(host, &w, &h, &sc);
+        host->fill(host, 0, 0, w, h, 0x000000, 255);
+        return;
+    }
     if (!screen_up()) return;
     if (sheet) {
         draw_sheet();
@@ -2009,6 +2075,7 @@ static unsigned signature(void)
 {
     int left = 0, right = 0, card;
     unsigned hash;
+    if (hide_results) return 0xB1ACu;
     if (!screen_up()) return 1;
     TouchPad_FreeSpan(&left, &right);
     card = current_card();
@@ -2016,6 +2083,8 @@ static unsigned signature(void)
     hash = hash * 31u + (unsigned)run.phase;
     hash = hash * 131u + (unsigned)cursor;
     hash = hash * 131u + (unsigned)button;
+    hash = hash * 131u + (unsigned)entry_refused;
+    hash = hash * 131u + ((SaveDataState *)gDuel_awPlayerDeck)->starchips;
     hash = hash * 131u + (unsigned)confirm;
     hash = hash * 131u + (unsigned)list_top;
     hash = hash * 131u + (unsigned)in_deck;

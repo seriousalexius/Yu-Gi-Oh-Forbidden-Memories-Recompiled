@@ -1,0 +1,11 @@
+{
+    "id": "premi-storia",
+    "name": "Premi della storia",
+    "version": "0.1",
+    "author": "Alessio",
+    "description": "Starchip in premio per le tappe grandi della storia, UNA volta per salvataggio, alla prima vittoria: Heishin (fine del prologo) 100, Kaiba (torneo) 300, ognuno dei 5 Gran Maghi 200, Seto (seconda sfida) 300, Nitemare (fine del gioco) 1500. Il premio si somma agli starchip del duello e compare in alto nella schermata dei risultati. Rigiocare la storia non li ridà: vale il segno che il gioco stesso mette nel salvataggio quando batti un avversario. Free Duel, arena e duelli online non cambiano. Spenta: il gioco e identico all'originale.",
+    "min_api": 13,
+    "game": "slus_01411",
+    "library": "storia",
+    "enabled": true
+}

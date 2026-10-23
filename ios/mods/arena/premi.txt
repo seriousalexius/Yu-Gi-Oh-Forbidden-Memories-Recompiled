@@ -1,4 +1,5 @@
-# vittorie|starchip (tools/prezzi.py)
+# vittorie|starchip (tools/prezzi.py); ingresso|starchip di una corsa (la prima e' gratis)
+ingresso|30
 0|15
 1|30
 2|55

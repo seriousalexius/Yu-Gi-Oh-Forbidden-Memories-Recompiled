@@ -5,6 +5,7 @@
  "minuti_duello_arena": 7,
  "prob_vittoria_arena": 0.6,
  "obiettivo_rapporto": [3, 4],
+ "ingresso_arena": 30,
  "premi_arena": [15, 30, 55, 80, 110, 140, 180, 220, 270, 320, 380, 450, 750],
  "corse_per_fascia": {"C": 0.4, "R": 3.5, "E": 15, "L": 60},
  "forbice_fascia": {"C": [10, 150], "R": [150, 900], "E": [1000, 4000], "L": [5000, 15000]},
