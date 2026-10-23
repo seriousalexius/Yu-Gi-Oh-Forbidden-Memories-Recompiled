@@ -477,9 +477,7 @@ static void show_start_after(const char *before)
     char text[384];
     snprintf(text, sizeof(text), "%s%sPer giocare online serve un account. I tuoi salvataggi stanno anche li': "
              "cambiando telefono, passando dal PC al telefono o reinstallando il gioco non perdi niente.",
-             before ? before : "", before ? "
-
-" : "");
+             before ? before : "", before ? "\n\n" : "");
     screen = SCREEN_START;
     Menu_ShowNotice(before ? "Account" : "Online", text, buttons, 3, 0, start_chosen);
 }
@@ -987,8 +985,7 @@ static void logout_chosen(int button, int *quit)
     }
     if (challenged[0]) send_to("annulla", challenged, "");
     challenged[0] = challenger[0] = '\0';
-    fprintf(stderr, "memories-pc: lobby: logout from %s
-", my_name);
+    fprintf(stderr, "memories-pc: lobby: logout from %s\n", my_name);
     snprintf(text, sizeof(text), "Sei uscito dall'account %s.", my_name);
     Cloud_Stop();
     forget_account();
@@ -1008,19 +1005,13 @@ static void account_chosen(int button, int *quit)
     screen = SCREEN_NONE;
     if (button != 1) return; /* Tieni questo account */
     snprintf(text, sizeof(text),
-             "Vuoi uscire dall'account %s?
-
-%s"
+             "Vuoi uscire dall'account %s?\n\n%s"
              "I salvataggi di questo telefono restano qui. Se poi entri in un altro account, da li' in avanti "
              "si salvano su quello.",
              my_name,
              ask_password ? "ATTENZIONE: questo account non ha una password, quindi dopo NON potrai piu' "
-                            "rientrarci. Prima sceglila (Online te la chiede).
-
-"
-                          : "Per rientrare ti serviranno il nome e la password.
-
-");
+                            "rientrarci. Prima sceglila (Online te la chiede).\n\n"
+                          : "Per rientrare ti serviranno il nome e la password.\n\n");
     screen = SCREEN_LOGOUT;
     Menu_ShowNotice("Account - esci", text, buttons, 2, 1, logout_chosen);
 }
@@ -1039,10 +1030,7 @@ void Lobby_Account(void)
         return;
     }
     Cloud_Start(my_name);
-    snprintf(text, sizeof(text), "Sei entrato come: %s
-%s
-
-Puoi tenerlo o uscire per entrare con un altro "
+    snprintf(text, sizeof(text), "Sei entrato come: %s\n%s\n\nPuoi tenerlo o uscire per entrare con un altro "
              "account.", my_name,
              in_lobby ? "Collegato alla lobby." : connected ? "Mi sto collegando alla lobby..." :
                                                              "Non collegato alla lobby (manca internet?).");
