@@ -750,7 +750,7 @@ static int field_value(int field, char *out, size_t size)
 /* The name's keyboard: four rows of keys, then SPAZIO, CANCELLA, OK. */
 #define KEY_COLS 10
 #define KEY_ROWS 5
-static const char *const key_rows[KEY_ROWS - 1] = {"ABCDEFGHIJ", "KLMNOPQRST", "UVWXYZ-.'&", "1234567890"};
+static const char *const key_rows[KEY_ROWS - 1] = {"1234567890", "QWERTYUIOP", "ASDFGHJKL-", "ZXCVBNM.'&"};
 static const char *const key_actions[3] = {"SPAZIO", "CANCELLA", "OK"};
 
 static int key_cols(int row)

@@ -665,7 +665,7 @@ static void start_run(void)
     run.rng = net_on ? run.seed ^ (0x9E3779B9u * (unsigned)(net->side + 1)) : run.seed;
     for (i = 0; i < CHOICES; i++) run.offered[i] = random_hero(&run.rng, run.offered, i);
     run.phase = PHASE_HERO;
-    cursor = 0;
+    cursor = in_deck = deck_sel = 0;
     host->log(host, "arena: corsa iniziata (seme %u), eroi proposti: %s, %s, %s", run.seed,
               heroes[run.offered[0]].name, heroes[run.offered[1]].name, heroes[run.offered[2]].name);
     save_state();
@@ -684,6 +684,7 @@ static void choose_hero(int i)
         shuffle_order(run.order, run.seed, &run.rng);
     run.pick = 0;
     run.phase = PHASE_PICK;
+    in_deck = deck_sel = deck_top = 0;
     say("arena: eroe scelto %s", h->name);
     {
         char plan[96];
@@ -1086,6 +1087,9 @@ static int current_card(void)
     static int list[DECK_SIZE];
     if (sheet) return sheet;
     if (deck_view) return deck_card();
+    if (run.phase == PHASE_HERO)
+        return in_deck ? heroes[run.offered[fv_clamp(cursor, 0, CHOICES - 1)]].cards[fv_clamp(deck_sel, 0, HERO_CARDS - 1)]
+                       : 0;
     if (run.phase == PHASE_PICK && !in_deck) return run.offer[fv_clamp(cursor, 0, CHOICES - 1)];
     if (run.phase == PHASE_PRIZE) {
         int n = prize_list(list);
@@ -1165,8 +1169,17 @@ static void step_input(void)
         }
         break;
     case PHASE_HERO:
-        if (repeat & FV_UP) cursor = (cursor + CHOICES - 1) % CHOICES;
-        if (repeat & FV_DOWN) cursor = (cursor + 1) % CHOICES;
+        /* Right (or Triangle) goes into the hero's ten cards: Up/Down among
+           them, Triangle the card sheet, Left back to the heroes. */
+        if (in_deck) {
+            if (repeat & FV_UP) deck_sel = (deck_sel + HERO_CARDS - 1) % HERO_CARDS;
+            if (repeat & FV_DOWN) deck_sel = (deck_sel + 1) % HERO_CARDS;
+            if (pressed & FV_LEFT) in_deck = 0;
+        } else {
+            if (repeat & FV_UP) cursor = (cursor + CHOICES - 1) % CHOICES;
+            if (repeat & FV_DOWN) cursor = (cursor + 1) % CHOICES;
+            if (pressed & (FV_RIGHT | FV_TRIANGLE)) in_deck = 1, deck_sel = 0;
+        }
         if (pressed & FV_CIRCLE) leave_arena();
         else if (pressed & FV_CROSS) choose_hero(cursor);
         break;
@@ -1637,13 +1650,15 @@ static void draw_hero(void)
     char text[128];
     int s, i, left_w, mid, rx, rw;
     panel_begin(&p, "ARENA - SCEGLI L'EROE", NULL, "Ognuno ti da 10 carte fisse: 3 Rare e 7 Comuni",
-                "Su/Giu scorri   X scegli   O menu (la corsa resta)");
+                in_deck ? "Su/Giu carte   Triangolo scheda   Sinistra eroi   X scegli"
+                        : "Su/Giu scorri   Destra le sue carte   X scegli   O menu (la corsa resta)");
     s = p.s;
     left_w = (p.w - 2 * p.pad - p.gap) * 9 / 20;
     for (i = 0; i < CHOICES; i++) {
         int top = p.top + i * (3 * p.line), on = i == cursor;
         h = &heroes[run.offered[i]];
-        if (on) host->fill(host, p.x + p.pad / 2, top, left_w + p.pad, 3 * p.line - 4 * s, FV_CURSOR_RGB, 230);
+        if (on) host->fill(host, p.x + p.pad / 2, top, left_w + p.pad, 3 * p.line - 4 * s, FV_CURSOR_RGB,
+                           in_deck ? 110 : 230);
         snprintf(text, sizeof(text), "%s", h->name);
         fv_fit(text, left_w - p.pad, s);
         host->draw_text(host, p.x + p.pad, top + p.line / 2 + 2 * s, text, on ? 0xFFFFFF : GOLD_RGB, s);
@@ -1655,7 +1670,11 @@ static void draw_hero(void)
     rx = p.x + p.pad + left_w + p.gap;
     rw = p.x + p.w - p.pad - rx;
     mid = p.top + p.line / 2;
-    for (i = 0; i < HERO_CARDS && mid < p.bottom; i++, mid += p.line) card_row(h->cards[i], rx, mid, rw, s, 1);
+    for (i = 0; i < HERO_CARDS && mid < p.bottom; i++, mid += p.line) {
+        if (in_deck && i == deck_sel)
+            host->fill(host, rx - p.pad / 2, mid - p.line / 2, rw + p.pad, p.line, FV_CURSOR_RGB, 230);
+        card_row(h->cards[i], rx, mid, rw, s, 1);
+    }
 }
 
 static void draw_pick(void)

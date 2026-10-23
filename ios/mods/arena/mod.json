@@ -1,7 +1,7 @@
 {
     "id": "arena",
     "name": "Arena contro la CPU",
-    "version": "0.1",
+    "version": "0.2",
     "author": "Alessio",
     "description": "L'arena come in Hearthstone: dal menu del gioco (quello con CAMPAIGN, FREE DUEL... SAVE) il bottone ARENA. Scegli un eroe tra 3 (10 carte fisse del suo stile), poi 30 scelte di 1 carta su 3 fanno il tuo mazzo da 40 (lo vedi sempre in elenco, Triangolo apre la scheda della carta col suo testo); duelli la CPU (che gioca anche lei un mazzo d'arena) a 12000 LP finche perdi 3 volte o vinci 12 duelli; dopo ogni duello scegli se continuare o ritirarti coi premi. Premi: starchip che crescono con le vittorie (doppi a 12) e, da 7 vittorie, 1 carta tra 3 pescate a caso dal mazzo d'arena nel baule (con 12 vittorie anche 1 a scelta libera). Il tuo mazzo del gioco non viene mai toccato e i duelli d'arena non danno carte ne starchip normali. Tutto e salvato a ogni passo in mod-data/arena/arena.txt: chiudi il gioco quando vuoi e riprendi da li. Spenta: il gioco e identico all'originale.",
     "min_api": 13,
