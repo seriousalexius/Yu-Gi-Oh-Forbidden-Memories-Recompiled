@@ -36,7 +36,7 @@ void Main_RunTwoPlayerDuelSetup(void)
     /* Online both sides start at NETPLAY_LIFE_POINTS, which nobody chooses:
        no setup screen, straight to the duel, as its Start would. */
     if (Netplay_Active()) {
-        D_8009B236 = D_8009B234 = NETPLAY_LIFE_POINTS;
+        D_8009B236 = D_8009B234 = (u16)Netplay_LifePoints();
         func_80024DC8(-1, -1, 0, 0);
         D_8009B368 = 8;
         return;

@@ -54,8 +54,11 @@
 
 #define NETPLAY_CHECK_EVERY 120 /* MEMORIES_NETPLAY_CHECK_EVERY sets another */
 /* An online duel's LP: the two-player setup's choice starts there and goes
- * up to it (the arena's 12000; the hot-seat duel keeps 8000 or a mod's). */
+ * up to it (the arena's 12000; the hot-seat duel keeps 8000 or a mod's).
+ * Online the setup is skipped and both start there (Netplay_LifePoints:
+ * MEMORIES_NETPLAY_TEST_LP gives the tests another, 1 for a one-hit duel). */
 #define NETPLAY_LIFE_POINTS 12000
+unsigned Netplay_LifePoints(void);
 
 /* ResetCallback, before the timers start: connect, wait for the other
  * player, swap the saves. Blocks; on failure the game runs offline. */

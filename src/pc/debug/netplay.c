@@ -1051,6 +1051,13 @@ void Netplay_Draw(MenuCanvas *canvas, int *x, int *y, int *w, int *h)
     }
 }
 
+unsigned Netplay_LifePoints(void)
+{
+    const char *test = getenv("MEMORIES_NETPLAY_TEST_LP");
+    unsigned value = test ? (unsigned)strtoul(test, NULL, 10) : 0;
+    return value >= 1 && value <= NETPLAY_LIFE_POINTS ? value : NETPLAY_LIFE_POINTS;
+}
+
 uint32_t Netplay_Seed(void)
 {
     /* The arena: another seed for each duel of the series. */
