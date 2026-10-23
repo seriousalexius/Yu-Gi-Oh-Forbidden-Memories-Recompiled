@@ -19,8 +19,10 @@
 #include "../../pc/cards/tables.h"
 #include "../../pc/debug/netplay.h"
 /* The LP choice's top and step: 8000 by 500, or a mod's "limits"
-   (tables.h). */
-#define VALUE_SETUP_MAX Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_MAX, DUEL_STARTING_LIFE_POINTS)
+   (tables.h); online, up to NETPLAY_LIFE_POINTS. */
+#define VALUE_SETUP_MAX                                                                                                \
+    (Netplay_Active() ? NETPLAY_LIFE_POINTS                                                                            \
+                      : Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_MAX, DUEL_STARTING_LIFE_POINTS))
 #define VALUE_SETUP_STEP Tables_TwoPlayerLifePoints(TABLES_TWO_PLAYER_STEP, DUEL_LIFE_POINT_SELECTION_STEP)
 #else
 #define VALUE_SETUP_MAX DUEL_STARTING_LIFE_POINTS
