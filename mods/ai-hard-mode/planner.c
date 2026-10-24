@@ -533,17 +533,66 @@ static int power(const HmBoard *b, const HmOptions *o, const HmRules *r, HmCard 
     return field ? c.attack : c.attack + (o->effective ? r->terrain(c.type, b->terrain) : 0);
 }
 static int bonus(HmCard equip) { return equip.effect == 657 ? 1000 : 500; }
+/* fork: the attack traps spring on an attacker up to their ATK (retail
+ * thresholds; Widespread Ruin stops any). */
+static int trap_reach(int effect)
+{
+    switch (effect) {
+    case 681: return 500; case 682: return 1000; case 683: return 1500;
+    case 684: return 2000; case 685: return 3000; case 686: return 9999;
+    default: return -1;
+    }
+}
 static int kills(HmCard c, HmCard e)
 {
     int type = removal_type(c.effect);
     return c.id > 0 && !monster(c) && (c.effect == 337 || c.effect == 336 ||
-        (type >= 0 && e.type == type) || (c.effect == 661 && e.attack >= 1500));
+        (type >= 0 && e.type == type) || (c.effect == 661 && e.attack >= 1500) ||
+        e.attack <= trap_reach(c.effect));
+}
+/* fork: what Spellbinding Circle and Shadow Spell take off the player's
+ * monsters; the terrain a field spell sets. */
+static int penalty(HmCard c)
+{
+    return c.id <= 0 || monster(c) ? 0 : c.effect == 349 ? 500 : c.effect == 669 ? 1000 : 0;
+}
+static int field_spell(HmCard c)
+{
+    return c.id > 0 && !monster(c) && c.effect >= 330 && c.effect <= 335 ? c.effect - 329 : 0;
 }
 static int useful_spell(HmCard c)
 {
-    /* Traps wait face down; removal and Swords stay useful. */
+    /* Traps wait face down; removal, Swords and the weakening spells stay useful. */
     return c.id > 0 && !monster(c) && (c.type == 21 || c.effect == 348 || c.effect == 672 ||
-        c.effect == 337 || c.effect == 336 || c.effect == 661 || removal_type(c.effect) >= 0);
+        c.effect == 337 || c.effect == 336 || c.effect == 661 || removal_type(c.effect) >= 0 ||
+        penalty(c));
+}
+/* Our strongest ATK on the field or in hand, on a terrain. */
+static int ours(const HmBoard *b, const HmOptions *o, const HmRules *r, int terrain)
+{
+    int i, best = 0;
+    for (i = 0; i < 5; i++) if (monster(b->own[i]))
+        best = max(best, b->own[i].attack + (o->effective ?
+            r->terrain(b->own[i].type, terrain) - r->terrain(b->own[i].type, b->terrain) : 0));
+    for (i = 0; i < b->hand_count; i++) if (b->hand[i].id > 0 && monster(b->hand[i]))
+        best = max(best, b->hand[i].attack + (o->effective ? r->terrain(b->hand[i].type, terrain) : 0));
+    return best;
+}
+/* What e's stat (need) becomes on another terrain. */
+static int moved(const HmBoard *b, const HmOptions *o, const HmRules *r, HmCard e, int need, int terrain)
+{
+    return o->effective ? need - r->terrain(e.type, b->terrain) + r->terrain(e.type, terrain) : need;
+}
+/* fork: c answers e with what we already hold: it destroys it (removal, an
+ * attack trap that stops it), weakens it under our best, or sets a terrain
+ * that turns the fight. */
+static int answers(const HmBoard *b, const HmOptions *o, const HmRules *r, HmCard c, HmCard e, int need)
+{
+    int t = field_spell(c);
+    if (kills(c, e)) return 1;
+    if (penalty(c)) return ours(b, o, r, b->terrain) > need - penalty(c);
+    if (t && t != b->terrain) return ours(b, o, r, t) > moved(b, o, r, e, need, t);
+    return 0;
 }
 
 /* How many cards left in the deck answer e (beat need in battle, or destroy
@@ -557,7 +606,7 @@ static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
         HmCard d = r->card(b->deck[i]);
         int out;
         if (!d.id) continue;
-        out = kills(d, e) || power(b, o, r, d, 0) > need;
+        out = answers(b, o, r, d, e, need) || power(b, o, r, d, 0) > need;
         for (j = 0; j < b->hand_count + 5; j++) {
             int field = j >= b->hand_count, hit = 0;
             HmCard h = field ? b->own[j - b->hand_count] : b->hand[j];
@@ -568,6 +617,11 @@ static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
                 hit = power(b, o, r, h, field) + bonus(d) > need;
             else if (!field && h.type == 23 && monster(d) && r->equip(h.id, d.id))
                 hit = power(b, o, r, d, 0) + bonus(h) > need;
+            else if (!field && monster(d) && penalty(h))
+                hit = power(b, o, r, d, 0) > need - penalty(h);
+            else if (!field && monster(d) && field_spell(h) && field_spell(h) != b->terrain)
+                hit = d.attack + (o->effective ? r->terrain(d.type, field_spell(h)) : 0) >
+                    moved(b, o, r, e, need, field_spell(h));
             if (hit) { out = 1; if (!field) *keep |= 1u << j; }
         }
         n += out;
@@ -683,8 +737,8 @@ static unsigned field_keepers(const HmBoard *b, const HmOptions *o, const HmRule
         int stat = (e.flags & HM_DEFENSE) ? e.defense : e.attack, handled = 0, best = -1;
         if (j == threat || e.id <= 0) continue;
         for (k = 0; k < 5; k++) handled |= monster(b->own[k]) && b->own[k].attack > stat;
-        for (k = 0; k < b->hand_count; k++) handled |= kills(b->hand[k], e);
-        for (k = 0; k < 5; k++) handled |= kills(b->back[k], e);
+        for (k = 0; k < b->hand_count; k++) handled |= answers(b, o, r, b->hand[k], e, stat);
+        for (k = 0; k < 5; k++) handled |= answers(b, o, r, b->back[k], e, stat);
         if (handled) continue;
         for (i = 0; i < b->hand_count; i++)
             if (!(keep & (1u << i)) && power(b, o, r, b->hand[i], 0) > stat &&
@@ -707,8 +761,8 @@ static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
         HmCard e = b->enemy[i];
         int stat = (e.flags & HM_DEFENSE) ? e.defense : e.attack, answered = 0;
         if (e.id <= 0 || stat <= top || e.attack <= top) continue;
-        for (j = 0; j < b->hand_count; j++) answered |= kills(b->hand[j], e);
-        for (j = 0; j < 5; j++) answered |= kills(b->back[j], e);
+        for (j = 0; j < b->hand_count; j++) answered |= answers(b, o, r, b->hand[j], e, stat);
+        for (j = 0; j < 5; j++) answered |= answers(b, o, r, b->back[j], e, stat);
         if (!answered && (threat < 0 || e.attack > b->enemy[threat].attack)) { threat = i; need = stat; }
     }
     if (threat >= 0) {

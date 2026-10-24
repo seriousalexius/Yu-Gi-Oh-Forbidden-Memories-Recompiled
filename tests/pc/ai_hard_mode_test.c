@@ -229,6 +229,8 @@ static HmCard xcard(int id)
     if (id == 657) { c.type = 23; c.attack = c.defense = 0; }
     if (id == 337) { c.type = 20; c.attack = c.defense = 0; }
     if (id == 400) { c.type = 21; c.attack = c.defense = 0; }
+    if (id == 349 || id == 669 || (id >= 330 && id <= 335)) { c.type = 20; c.attack = c.defense = 0; }
+    if (id >= 681 && id <= 686) { c.type = 21; c.attack = c.defense = 0; }
     return c;
 }
 static int xfusion(int a, int b) { return (a == 10 && b == 20) || (a == 20 && b == 10) ? 40 : 0; }
@@ -314,6 +316,46 @@ static void expert_cases(void)
     b.own[0] = xcard(30);
     d = Hm_PlanHand(&b, &o, &xrules);
     assert(!thrown(d, 0) && !holds(d, 4) && Hm_Discards == 3);
+    /* fork: other answers in the deck. Shadow Spell (-1000) makes the 3500 a
+     * 2500 our 2800 beats; Spellbinding Circle (-500) brings it to 3000, not
+     * enough for a 2800. */
+    { static const int h[5] = {28, 6, 7, 8, 9}; b = xboard(h, weak, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Outs == 0 && Hm_Discards == 0);
+    { static const int h[5] = {28, 6, 7, 8, 9}; static const int sd[10] = {1, 2, 3, 669, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, sd, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Outs >= 1 && Hm_Discards >= 1);
+    { static const int h[5] = {28, 6, 7, 8, 9}; static const int sc[10] = {1, 2, 3, 349, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, sc, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Outs == 0);
+    /* Widespread Ruin stops any attacker; Acid Trap Hole only up to 3000. */
+    { static const int h[5] = {28, 6, 7, 8, 9}; static const int wr[10] = {1, 2, 3, 686, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, wr, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Outs >= 1);
+    { static const int h[5] = {28, 6, 7, 8, 9}; static const int ah[10] = {1, 2, 3, 685, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, ah, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Outs == 0);
+    /* Shadow Spell in hand with the 2800: answered, nothing to dig for, and
+     * the spell is never thrown. */
+    { static const int h[5] = {28, 6, 7, 669, 9}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Outs == 0 && !thrown(d, 3));
+    /* Shadow Spell in hand, a 2600 in the deck: the spell is never thrown
+     * (its penalty stays on the monster, so it may well go first). */
+    { static const int h[5] = {5, 6, 7, 669, 9}; static const int m[10] = {1, 2, 3, 26, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, m, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!thrown(d, 3));
+    /* A field spell (terrain 3: type 0 +500 here) lifts our 3200 over the 3500. */
+    { static const int h[5] = {32, 6, 7, 8, 9}; static const int f[10] = {1, 2, 3, 332, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, f, 30, 30); }
+    b.enemy[0].type = 1;
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Outs >= 1);
     /* A trap stays too. */
     { static const int h[5] = {5, 6, 400, 8, 10}; b = xboard(h, partner, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
