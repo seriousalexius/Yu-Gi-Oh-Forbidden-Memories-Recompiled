@@ -47,6 +47,7 @@ static const struct { const char *key; int value; } arena_setup[] = {
     {"defensive_positions", 1}, {"spell_timing", 1}, {"effective_stats", 1}, {"equal_trades", 1},
     {"preserve_hand", 1}, {"deck_access", 1}, {"hidden_cards", 1}, {"fusion_materials", 5},
     {"search_budget", 20000}, {"blind_risk", 50}, {"material_cost", 150},
+    {"expert_hand", 1},
 };
 static int setting(const char *key, int fallback, int low, int high)
 {
@@ -89,6 +90,7 @@ static HmOptions options(void)
     o.blind_risk = setting("blind_risk", 50, 0, 100);
     o.material_cost = setting("material_cost", 150, 0, 1000);
     o.trades = setting("equal_trades", 1, 0, 1);
+    o.expert = setting("expert_hand", 1, 0, 1);
     return o;
 }
 static int actual_hand(int side)
@@ -200,6 +202,13 @@ static HmBoard board(const HmOptions *o)
         b.enemy_back[i] = snapshot(61 + i, o->effective, 1);
     }
     for (i = 0; i < b.hand_count; i++) b.hand[i] = card_info(gDuel_aActiveCards[11+i].card_id);
+    /* fork: what is left of its deck, as a list (a player knows his deck,
+     * not its order), and how many cards each side has left. */
+    for (i = D_800E9FF0[side].deck_draw_cursor; i >= 0 && i < 40; i++)
+        b.deck[b.deck_count++] = gDuel_aDeckCardRecords[side * 40 + i].id;
+    b.enemy_deck_count = 40 - D_800E9FF0[side ^ 1].deck_draw_cursor;
+    if (b.enemy_deck_count < 0) b.enemy_deck_count = 0;
+    if (b.enemy_deck_count > 40) b.enemy_deck_count = 40;
     return b;
 }
 
@@ -279,9 +288,12 @@ static s32 run(void)
     if (!d.result) return ((s32 (*)(void))original_run)();
     memcpy(D_800EAE88, d.selection, 12);
     if (setting("trace", 0, 0, 1))
-        host->log(host, "opponent=%d phase=%s result=%d card=%d target=%d score=%d nodes=%d",
+        host->log(host, "opponent=%d phase=%s result=%d card=%d target=%d score=%d nodes=%d"
+                  " marked=%d,%d,%d,%d,%d discards=%d outs=%d deck=%d enemy_deck=%d",
                   gDuel_bOpponentID, hand ? "hand" : "field", d.result,
-                  hand ? d.selection[0] : d.selection[9], hand ? d.selection[6] : d.selection[10], d.score, d.nodes);
+                  hand ? d.selection[0] : d.selection[9], hand ? d.selection[6] : d.selection[10], d.score, d.nodes,
+                  d.selection[0], d.selection[1], d.selection[2], d.selection[3], d.selection[4],
+                  hand ? Hm_Discards : 0, hand ? Hm_Outs : 0, b.deck_count, b.enemy_deck_count);
     return d.result;
 }
 

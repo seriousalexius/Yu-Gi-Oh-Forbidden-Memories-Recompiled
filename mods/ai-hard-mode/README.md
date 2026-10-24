@@ -12,6 +12,7 @@ Mods window and apply to subsequent decisions.
 
 | Setting | Behavior |
 |---|---|
+| Expert hand | (fork) Facing a face-up monster no play of this turn beats or destroys, keep the hand cards that make an answer with a card still in the deck (the deck list, never its order), play the best of the others and discard the rest in failed fusions before it, to draw more next turn. Without such a monster, discard only dead monsters while the deck is long. Never thin the deck below the opponent's once the race matters; when the opponent will run out first, spend one card a turn and prefer defense. |
 | Plan hand plays | Score single cards, field upgrades, fusion chains and useful spell plays. Off uses the original hand script. |
 | Search fusion chains | Include fusion and equip chains in planned hand plays. Requires Plan hand plays. |
 | Choose guardian stars | Compare both stars for new monster plays, including when using the original hand script. |
