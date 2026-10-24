@@ -12,7 +12,7 @@
  * Accounts play no part: a game without one asks too. */
 
 /* This build's number: one more at each publication, the same then in VERSIONE. */
-#define NEWS_VERSION 7
+#define NEWS_VERSION 8
 
 /* Once, from Lobby_Start (whose host it asks, and whose test rules it keeps). */
 void News_Start(const char *host, unsigned port);
