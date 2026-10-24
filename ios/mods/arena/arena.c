@@ -781,13 +781,14 @@ static void take(int i)
 }
 
 /* The CPU's arena deck for duel k: a hero at random and thirty picks by the
- * same tiers, taken by the policy of the player's wins: at random (0-3), the
- * strongest (4-7), the strongest that fuses with a monster already taken
- * (8 and up; only with the duel's fusion table loaded). */
+ * same tiers, each pick weighed as a player would: strength plus the
+ * fusions it makes with the monsters already taken (only with the duel's
+ * fusion table loaded), from the first duel: Alessio, 24/10, the arena was
+ * too easy. The offers stay at random, as the player's. */
 static int cpu_deck(int k, int fusions_known, int out[DECK_SIZE], int *hero, int *fused)
 {
     unsigned state = run.seed * 2654435761u + (unsigned)(k + 1) * 40503u;
-    int policy = run.wins >= 8 ? 2 : run.wins >= 4 ? 1 : 0, n, p, i, j;
+    int policy = 2, n, p, i, j;
     char order[PICKS + 1];
     *hero = random_hero(&state, NULL, 0);
     *fused = 0;
@@ -801,20 +802,29 @@ static int cpu_deck(int k, int fusions_known, int out[DECK_SIZE], int *hero, int
         if (policy == 0) {
             best = roll(&state, got);
         } else {
-            int best_fusion = -1;
+            /* As a player drafts: the card's own strength, plus what it
+             * fuses into with the monsters already taken (half of what each
+             * fusion gains over its stronger material, every copy counted,
+             * up to 3000): two dragons and two thunders make a warrior worth
+             * more than a slightly stronger loner. */
+            int score[CHOICES], synergy_of_best = 0;
             for (i = 0; i < got; i++) {
-                if (power(offer[i]) > power(offer[best])) best = i;
+                int synergy = 0;
+                score[i] = power(offer[i]);
                 if (policy == 2 && fusions_known && fv_is_monster(offer[i])) {
                     for (j = 0; j < n; j++) {
-                        if (fv_is_monster(out[j]) && Duel_CheckFusion(offer[i], out[j])) break;
+                        int result = fv_is_monster(out[j]) ? Duel_CheckFusion(offer[i], out[j]) : 0;
+                        int stronger = power(offer[i]) > power(out[j]) ? power(offer[i]) : power(out[j]);
+                        if (result && fv_is_monster(result) && power(result) > stronger)
+                            synergy += (power(result) - stronger) / 2;
                     }
-                    if (j < n && (best_fusion < 0 || power(offer[i]) > power(offer[best_fusion]))) best_fusion = i;
+                    if (synergy > 3000) synergy = 3000;
                 }
+                score[i] += synergy;
+                if (score[i] > score[best]) best = i;
+                if (i == best) synergy_of_best = synergy;
             }
-            if (best_fusion >= 0) {
-                best = best_fusion;
-                (*fused)++;
-            }
+            if (synergy_of_best > 0) (*fused)++;
         }
         out[n++] = offer[best];
     }
@@ -822,7 +832,7 @@ static int cpu_deck(int k, int fusions_known, int out[DECK_SIZE], int *hero, int
     return policy;
 }
 
-static const char *const policy_names[3] = {"a caso", "la piu forte", "la piu forte + fusioni"};
+static const char *const policy_names[3] = {"a caso", "la piu forte", "forza + sinergia di fusioni"};
 
 static void log_cpu(int k, int policy, int hero, int fused, const int *deck, int fusions_known)
 {
