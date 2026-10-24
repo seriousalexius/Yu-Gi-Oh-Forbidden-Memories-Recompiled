@@ -1060,18 +1060,21 @@ static int deck_different(int *out)
     return n;
 }
 
-/* The prize list: with 12 wins the first card is free from the whole deck;
- * otherwise 3 different cards of the deck drawn by the run's seed (so the
- * same 3 after closing and opening again), not the card already taken. */
-static int prize_list(int *out)
+/* The prize list: 3 different cards of the deck drawn by the run's seed (so
+ * the same 3 after closing and opening again). With 12 wins a second pick of
+ * 3 more: other cards than the first pick's 3 when the deck has 6 different
+ * ones, never the card already taken. */
+static int prize_list_of(int pick, int *out)
 {
     int all[DECK_SIZE], n = deck_different(all), i, k, taken[DECK_SIZE] = {0}, got = 0;
-    unsigned state = run.seed * 2654435761u + 0xA11CEu;
-    if (run.wins >= MAX_WINS && run.prize_count == 0) {
-        memcpy(out, all, (size_t)n * sizeof(int));
-        return n;
+    unsigned state = run.seed * 2654435761u + 0xA11CEu + (unsigned)pick * 0x9E3779B9u;
+    if (pick > 0) {
+        int first[DECK_SIZE], m = prize_list_of(0, first), j;
+        for (i = 0; i < n; i++) {
+            taken[i] = all[i] == run.prizes[0];
+            for (j = 0; j < m && n >= 2 * CHOICES; j++) if (all[i] == first[j]) taken[i] = 1;
+        }
     }
-    for (i = 0; i < n; i++) taken[i] = run.prize_count > 0 && all[i] == run.prizes[0];
     for (k = 0; k < 64 && got < CHOICES; k++) {
         state = state * 1103515245u + 12345u;
         i = (int)((state >> 8) % (unsigned)n);
@@ -1080,6 +1083,11 @@ static int prize_list(int *out)
     for (i = 0; i < n && got < CHOICES; i++) if (!taken[i]) taken[i] = 2, got++;
     for (i = 0, k = 0; i < n; i++) if (taken[i] == 2) out[k++] = all[i];
     return k;
+}
+
+static int prize_list(int *out)
+{
+    return prize_list_of(run.prize_count, out);
 }
 
 static void log_prize_list(void)
@@ -1780,7 +1788,7 @@ static void draw_intro(void)
         lines[1] = "Poi 30 scelte, 1 carta su 3: ecco il tuo mazzo da 40.";
         lines[2] = "Duelli la CPU finche perdi 3 volte o vinci 12 duelli.";
         lines[3] = last;
-        lines[4] = "Da 7 vittorie: 1 carta tra 3 a caso del mazzo. Con 12: anche 1 a scelta.";
+        lines[4] = "Da 7 vittorie: 1 carta tra 3 a caso del mazzo. Con 12: 2 volte.";
         lines[5] = entry;
         for (i = 0; i < 6; i++, mid += p.line) {
             snprintf(text, sizeof(text), "%s", lines[i]);
@@ -1959,10 +1967,7 @@ static void draw_prize(void)
     char title[64], subtitle[96];
     int list[DECK_SIZE], n = prize_list(list), s, list_w, i, rows;
     snprintf(title, sizeof(title), "PREMIO - SCEGLI UNA CARTA (%d/%d)", run.prize_count + 1, run.prize_total);
-    if (run.wins >= MAX_WINS && run.prize_count == 0)
-        snprintf(subtitle, sizeof(subtitle), "12 vittorie: una carta a scelta dal tuo mazzo d'arena va nel baule");
-    else
-        snprintf(subtitle, sizeof(subtitle), "Una tra 3 carte a caso del tuo mazzo va nel baule (%d vittorie)", run.wins);
+    snprintf(subtitle, sizeof(subtitle), "Una tra 3 carte a caso del tuo mazzo va nel baule (%d vittorie)", run.wins);
     panel_begin(&p, title, NULL, subtitle, "Su/Giu scorri   L1/R1 pagina   X prendi   Triangolo scheda");
     s = p.s;
     list_w = draw_card_side(&p, n ? list[fv_clamp(cursor, 0, n - 1)] : 0, p.top);
