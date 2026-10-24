@@ -294,6 +294,21 @@ static s32 run(void)
                   hand ? d.selection[0] : d.selection[9], hand ? d.selection[6] : d.selection[10], d.score, d.nodes,
                   d.selection[0], d.selection[1], d.selection[2], d.selection[3], d.selection[4],
                   hand ? Hm_Discards : 0, hand ? Hm_Outs : 0, b.deck_count, b.enemy_deck_count);
+    /* fork: why the expert hand dug or not, and what it saw. */
+    if (hand && setting("trace", 0, 0, 1)) {
+        static const char *why[] = {"off", "short", "no_threat", "no_outs", "not_from_hand", "no_room", "digs"};
+        host->log(host, "expert why=%s threat=%d need=%d reach=%d,%d,%d,%d,%d keep=%x hold=%x junk=%x"
+                  " hand=%d,%d,%d,%d,%d own=%d,%d,%d,%d,%d"
+                  " enemy=%d:%d:%x,%d:%d:%x,%d:%d:%x,%d:%d:%x,%d:%d:%x back=%d,%d,%d,%d,%d",
+                  why[Hm_Why], Hm_Threat, Hm_Need, Hm_Reach[0], Hm_Reach[1], Hm_Reach[2], Hm_Reach[3], Hm_Reach[4],
+                  Hm_Keep, Hm_Hold, Hm_Junk,
+                  b.hand[0].id, b.hand[1].id, b.hand[2].id, b.hand[3].id, b.hand[4].id,
+                  b.own[0].attack, b.own[1].attack, b.own[2].attack, b.own[3].attack, b.own[4].attack,
+                  b.enemy[0].id, b.enemy[0].attack, b.enemy[0].flags, b.enemy[1].id, b.enemy[1].attack, b.enemy[1].flags,
+                  b.enemy[2].id, b.enemy[2].attack, b.enemy[2].flags, b.enemy[3].id, b.enemy[3].attack, b.enemy[3].flags,
+                  b.enemy[4].id, b.enemy[4].attack, b.enemy[4].flags,
+                  b.back[0].id, b.back[1].id, b.back[2].id, b.back[3].id, b.back[4].id);
+    }
     return d.result;
 }
 
