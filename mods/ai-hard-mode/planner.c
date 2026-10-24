@@ -605,13 +605,18 @@ static int answers(const HmBoard *b, const HmOptions *o, const HmRules *r, HmCar
     return 0;
 }
 
+static int bits(unsigned long long m) { int n = 0; for (; m; m &= m - 1) n++; return n; }
 /* How many cards left in the deck answer e (beat need in battle, or destroy
- * it), alone or with a card in hand or on the field; the hand cards that
- * take part go in keep. */
+ * it), alone or with a card in hand or on the field. fork: the hand cards
+ * that take part go in keep only for their share of those answers: the one
+ * that makes the most of them, then each that adds a third of them (two
+ * cards waiting for the same partner are one too many: the other goes, for
+ * a fresh draw). */
 static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
                 HmCard e, int need, unsigned *keep)
 {
-    int i, j, f, n = 0;
+    unsigned long long alone = 0, with[5] = {0}, covered;
+    int i, j, f, n;
     for (i = 0; i < b->deck_count; i++) {
         HmCard d = r->card(b->deck[i]);
         int out;
@@ -632,9 +637,19 @@ static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
             else if (!field && monster(d) && field_spell(h) && field_spell(h) != b->terrain)
                 hit = d.attack + (o->effective ? r->terrain(d.type, field_spell(h)) : 0) >
                     moved(b, o, r, e, need, field_spell(h));
-            if (hit) { out = 1; if (!field) *keep |= 1u << j; }
+            if (hit && field) out = 1;
+            else if (hit) with[j] |= 1ull << i;
         }
-        n += out;
+        if (out) alone |= 1ull << i;
+    }
+    for (covered = alone, j = 0; j < b->hand_count; j++) covered |= with[j];
+    n = bits(covered);
+    for (covered = alone;;) {
+        int pick = -1, gain = 0;
+        for (j = 0; j < b->hand_count; j++)
+            if (!(*keep & (1u << j)) && bits(with[j] & ~covered) > gain) { gain = bits(with[j] & ~covered); pick = j; }
+        if (pick < 0 || gain * 3 < n) break;
+        *keep |= 1u << pick; covered |= with[pick];
     }
     return n;
 }
@@ -727,6 +742,33 @@ static int prepend(const HmBoard *b, const HmRules *r, HmDecision *base, const i
     return 0;
 }
 
+/* fork: puts in front of base the most of the junk cards it can, the least
+ * valuable first when the deck allows fewer; any of them, not only the
+ * first ones in that order (one may fuse with the card played). */
+static int throw_most(const HmBoard *b, const HmRules *r, HmDecision *base, unsigned junk, int threat)
+{
+    HmDecision t, found = *base;
+    int list[5], pick[4], count = 0, n, mask, i, j, k, rank, best;
+    for (i = 0; i < b->hand_count && count < 5; i++) if ((junk & (1u << i)) && b->hand[i].id) {
+        for (j = count; j > 0 && Hm_KeepValue(b->hand[list[j-1]]) > Hm_KeepValue(b->hand[i]); j--)
+            list[j] = list[j-1];
+        list[j] = i; count++;
+    }
+    for (n = min(count, 4); n > 0; n--) {
+        int cards = marked(base) + n;
+        if (!affordable(b, cards) || (threat < 0 && b->deck_count - cards < 15)) continue;
+        for (best = -1, mask = 1; mask < 1 << count; mask++) {
+            for (i = k = rank = 0; i < count; i++)
+                if (mask & (1 << i)) { if (k < 4) pick[k] = list[i]; k++; rank += i; }
+            if (k != n || (best >= 0 && rank >= best)) continue;
+            t = *base;
+            if (prepend(b, r, &t, pick, n)) { found = t; best = rank; }
+        }
+        if (best >= 0) { *base = found; return n; }
+    }
+    return 0;
+}
+
 /* fork: a hand monster that does not answer the threat stays (it may be
  * played, it is not thrown) only when it holds the field: a wall whose DEF
  * stands the threat's ATK, or the one that beats another face-up monster of
@@ -761,9 +803,9 @@ static unsigned field_keepers(const HmBoard *b, const HmOptions *o, const HmRule
 static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
                          HmDecision best, int *reach)
 {
-    HmDecision base = best, spare;
-    unsigned keep = 0, hold = 0, junk = 0, all = (1u << b->hand_count) - 1;
-    int i, j, need = 0, threat = -1, list[5], n = 0, outs_left = 0;
+    HmDecision base = best, spare, plain;
+    unsigned keep = 0, hold = 0, junk = 0, all = (1u << b->hand_count) - 1, loose;
+    int i, j, need = 0, threat = -1, n = 0, outs_left = 0;
     Hm_Why = HM_WHY_SHORT;
     if (!b->deck_count || b->hand_count > 5) return best;
     for (i = 0; i < 5; i++) if (b->enemy[i].id > 0)
@@ -804,17 +846,18 @@ static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
             if (!(spent(&best) & (1u << i)) && monster(b->hand[i]) && potential(b, o, r, i) < 1300)
                 junk |= 1u << i;
     }
-    for (i = 0; i < b->hand_count; i++) if ((junk & (1u << i)) && b->hand[i].id) {
-        /* Least valuable first: those go when the deck allows fewer. */
-        for (j = n; j > 0 && Hm_KeepValue(b->hand[list[j-1]]) > Hm_KeepValue(b->hand[i]); j--)
-            list[j] = list[j-1];
-        list[j] = i; n++;
-    }
-    for (n = min(n, 4); n > 0; n--) {
-        int cards = marked(&base) + n;
-        if (!affordable(b, cards) || (threat < 0 && b->deck_count - cards < 15)) continue;
-        if (prepend(b, r, &base, list, n)) break;
-    }
+    plain = base;
+    n = throw_most(b, r, &base, junk, threat);
+    /* fork: a fusion or an equip with the card played can keep the junk in
+     * hand; facing the threat, another card of no use blocks in its place
+     * when more cards go that way (never instead of a wall). */
+    loose = (junk | spent(&plain)) & ~keep & ~hold;
+    if (threat >= 0 && n < bits(loose) - 1 && !(spent(&plain) & hold))
+        for (i = 0; i < b->hand_count; i++) if ((loose & (1u << i)) && monster(b->hand[i])) {
+            HmDecision alt = plan_hand(b, o, r, all & ~(1u << i), 0);
+            if (!from_hand(b, &alt) || alt.score < plain.score - 1500) continue;
+            if ((j = throw_most(b, r, &alt, loose & ~(1u << i), threat)) > n) { base = alt; n = j; }
+        }
     Hm_Discards = n; Hm_Outs = outs_left; Hm_Junk = junk;
     Hm_Why = n ? HM_WHY_DIGS : threat >= 0 ? HM_WHY_NO_ROOM : HM_WHY_NO_THREAT;
     return base;

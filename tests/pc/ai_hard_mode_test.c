@@ -234,7 +234,12 @@ static HmCard xcard(int id)
     if (id == 38) c.star = c.star2 = 2; /* Jupiter only: 500 less against a Mars */
     return c;
 }
-static int xfusion(int a, int b) { return (a == 10 && b == 20) || (a == 20 && b == 10) ? 40 : 0; }
+static int xfusion(int a, int b)
+{
+    if ((a == 12 || a == 13) && b == 14) return 2; /* weak fusions with the 1400 */
+    if (a == 14 && (b == 12 || b == 13)) return 2;
+    return (a == 10 && b == 20) || (a == 20 && b == 10) ? 40 : 0;
+}
 static int xequip(int a, int b) { return a == 657 && b > 0 && b < 100; }
 static const HmRules xrules = {xcard, xfusion, xequip, terrain, ritual};
 static HmBoard xboard(const int *hand, const int *deck, int decks, int enemy_deck)
@@ -390,6 +395,16 @@ static void expert_cases(void)
     b.own[0].star = 1;
     d = Hm_PlanHand(&b, &o, &xrules);
     assert(Hm_Threat < 0);
+    /* Two 10s wait for the same 20: one stays, the other is played and the
+     * three others go. */
+    { static const int h[5] = {10, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Keep == 1 && !holds(d, 0) && holds(d, 4) && Hm_Discards == 3);
+    /* 12 and 13 fuse with the 1400 into a 200: in front of it they would
+     * fuse, so the 12 blocks instead and both others go. */
+    { static const int h[5] = {12, 13, 14, 10, 400}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Discards == 2 && marks(d) == 3 && thrown(d, 1) && thrown(d, 2) && !holds(d, 3) && !holds(d, 4));
     /* Expert off: the original planner, one card. */
     o.expert = 0;
     { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
