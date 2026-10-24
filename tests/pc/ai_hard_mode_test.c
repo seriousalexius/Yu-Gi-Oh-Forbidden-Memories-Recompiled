@@ -287,6 +287,14 @@ static void expert_cases(void)
     { static const int h[5] = {5, 6, 7, 8, 657}; b = xboard(h, strong, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
     assert(!holds(d, 4) && Hm_Discards >= 1);
+    /* A strong monster (2500) stays too, even if it does not beat the 3500. */
+    { static const int h[5] = {25, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!holds(d, 0) && !holds(d, 4) && Hm_Discards == 2);
+    /* Only the strongest of them stays: the other is the card it plays. */
+    { static const int h[5] = {25, 28, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!holds(d, 1) && !holds(d, 4) && holds(d, 0) && Hm_Discards == 2);
     /* A trap stays too. */
     { static const int h[5] = {5, 6, 400, 8, 10}; b = xboard(h, partner, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
@@ -306,9 +314,43 @@ static void expert_cases(void)
     assert(marks(d) == 1);
 }
 
+/* fork: Meteor B. Dragon (Mars/Sun) against a face-up Gate Guardian (Moon)
+ * and a weaker Jupiter monster: Sun (4000 against it), then the boss. */
+static HmCard mcard(int id)
+{
+    HmCard c = {id, 0, 0, 1500, 1200, 2, 3, 0};
+    if (id == 713) { c.attack = 3500; c.defense = 2000; c.star = 1; c.star2 = 8; }
+    if (id == 374) { c.attack = 3750; c.defense = 3400; c.star = 9; c.star2 = 1; }
+    return c;
+}
+static int none(int a, int b) { (void)a; (void)b; return 0; }
+static void boss_cases(void)
+{
+    static const HmRules mrules = {mcard, none, none, terrain, ritual};
+    HmOptions o = opts();
+    HmBoard b = empty();
+    HmDecision d;
+    o.expert = 1;
+    b.enemy[0] = mcard(374); b.enemy[0].star = 9;
+    b.enemy[1] = mcard(50); b.enemy[1].star = 2;
+    b.hand[0] = mcard(713); b.hand_count = 1;
+    d = Hm_PlanHand(&b, &o, &mrules);
+    assert(d.result == 1 && d.selection[0] == 11 && d.selection[7] == 1);
+    b.hand_count = 0; b.own[0] = mcard(713); b.own[0].star = 8;
+    d = Hm_PlanField(&b, &o, &mrules, 0);
+    assert(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56);
+    /* An even trade with the boss: only with another monster of ours behind. */
+    b = empty(); b.enemy[0] = xcard(37); b.own[0] = xcard(37);
+    d = Hm_PlanField(&b, &o, &xrules, 0);
+    assert(!(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56));
+    b.own[1] = xcard(12);
+    d = Hm_PlanField(&b, &o, &xrules, 0);
+    assert(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56);
+}
+
 int main(void)
 {
-    tactical_cases(); spell_cases(); hand_cases(); retail_cases(); bounded_fixtures(); expert_cases();
+    tactical_cases(); spell_cases(); hand_cases(); retail_cases(); bounded_fixtures(); expert_cases(); boss_cases();
     puts("AI hard mode: tactical, spell, fusion and 500 bounded fixtures passed");
     return 0;
 }

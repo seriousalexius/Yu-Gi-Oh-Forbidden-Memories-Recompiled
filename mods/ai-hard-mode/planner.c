@@ -64,13 +64,15 @@ int Hm_ChooseStar(const HmBoard *b, HmCard c, int pinned)
         /* A card with one star (no second, or the same twice) has no choice. */
         if (choice && (!c.star2 || c.star2 == c.star)) break;
         current.star = choice ? c.star2 : c.star;
-        score -= min(safety(b, current, 0), safety(b, current, 1));
         if (!pinned) for (i = 0; i < 5; i++) if (b->enemy[i].id > 0) {
             HmCard e = b->enemy[i];
             int diff = c.attack + Hm_StarBonus(current.star, e.star) -
                 ((e.flags & HM_DEFENSE) ? e.defense : e.attack);
             if (diff > 0) score = max(score, 2000 + diff + value(e) / 2);
         }
+        /* fork: the risk after the best hit (the max used to wipe it out:
+         * a star that hits a weak card left it under the strong one). */
+        score -= min(safety(b, current, 0), safety(b, current, 1));
         if (score > best) { best = score; answer = choice; }
     }
     return answer;
@@ -83,6 +85,20 @@ typedef struct {
     HmDecision best;
     int nodes;
 } AttackSearch;
+
+/* fork (expert): the player's strongest face-up monster is worth more than
+ * its stats, as an expert goes for the boss; an even trade with it pays
+ * when another monster of ours stays on the field. */
+static int boss(const AttackSearch *s, int attacker, HmCard e, int trade)
+{
+    int i, best = 0, others = 0;
+    if (!s->o->expert) return 0;
+    for (i = 0; i < 5; i++) if (s->b->enemy[i].id > 0) best = max(best, s->b->enemy[i].attack);
+    if (e.attack < best) return 0;
+    if (!trade) return 2 * e.attack;
+    for (i = 0; i < 5; i++) if (i != attacker && monster(s->b->own[i])) others++;
+    return others ? e.attack : 0;
+}
 
 static int attack_options(AttackSearch *s, unsigned used, unsigned dead, Attack *out)
 {
@@ -110,7 +126,7 @@ static int attack_options(AttackSearch *s, unsigned used, unsigned dead, Attack 
                     ((e.flags & HM_DEFENSE) ? e.defense : e.attack);
                 if (diff < 0 || (diff == 0 && ((e.flags & HM_DEFENSE) || !s->o->trades))) continue;
                 move.damage = (e.flags & HM_DEFENSE) ? 0 : diff;
-                move.removed = value(e) + 400;
+                move.removed = value(e) + 400 + boss(s, i, e, diff == 0);
                 move.lost = diff == 0 ? value(a) + 400 : 0;
                 move.gain = move.damage * 4 + move.removed - move.lost;
             }
@@ -658,7 +674,14 @@ static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
     if (threat >= 0) {
         outs_left = outs(b, o, r, b->enemy[threat], need, &keep);
         if (!outs_left) return best; /* nothing to dig for: hold the line */
-        for (i = 0; i < b->hand_count; i++) if (useful_spell(b->hand[i])) keep |= 1u << i;
+        /* The strongest other monster (2400 or more) stays as well: it holds
+         * the rest of the field. */
+        for (i = 0, j = -1; i < b->hand_count; i++) {
+            if (useful_spell(b->hand[i])) keep |= 1u << i;
+            else if (!(keep & (1u << i)) && power(b, o, r, b->hand[i], 0) >= 2400 &&
+                     (j < 0 || power(b, o, r, b->hand[i], 0) > power(b, o, r, b->hand[j], 0))) j = i;
+        }
+        if (j >= 0) keep |= 1u << j;
         spare = plan_hand(b, o, r, keep, 0);
         if (from_hand(b, &best) && !(spent(&best) & keep)) base = best;
         else if (!from_hand(b, &best) && (spent(&best) & keep)) return best; /* Swords, a trap... */
