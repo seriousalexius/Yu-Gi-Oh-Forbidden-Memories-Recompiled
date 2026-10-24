@@ -80,6 +80,7 @@ static const int opponents[DUELS_MAX] = {2, 3, 4, 9, 10, 11, 12, 13, 14, 16, 15,
  * change with each run (tier_plan). */
 static const char hero_tiers[] = "RRRCCCCCCC";
 #define ARENA_LP 12000         /* both sides' LP in an arena duel (campaign and Free Duel keep 8000) */
+#define ARENA_ATK_MAX 3000     /* no monster over it in the arena's cards, as the online 1v1 (Alessio, 25/10) */
 
 enum { PHASE_NONE, PHASE_HERO, PHASE_PICK, PHASE_READY, PHASE_RESULT, PHASE_PRIZE, PHASE_SUMMARY };
 
@@ -158,9 +159,13 @@ static int tier_of(int id)
     return id > 0 && id < (int)sizeof(fv_fasce) - 1 ? fv_fasce[id] : '?';
 }
 
+/* fasce.h's arena cards, but the monsters over ARENA_ATK_MAX (67, 217, 374,
+ * 713): out of the draft, the CPU's decks and so of the prizes; fusions in a
+ * duel stay free. */
 static int in_arena(int id)
 {
-    return id > 0 && id < (int)sizeof(fv_arena) - 1 && fv_arena[id] == '1' && Cards_Valid(id);
+    return id > 0 && id < (int)sizeof(fv_arena) - 1 && fv_arena[id] == '1' && Cards_Valid(id) &&
+           !(fv_is_monster(id) && fv_stat(id, 0) > ARENA_ATK_MAX);
 }
 
 static int copies_max(int tier)
@@ -410,7 +415,8 @@ static const char tier_letters[5] = {'M', 'S', 'E', 'R', 'C'};
 /* How many of the thirty picks are of each kind (Legendary monster M,
  * Legendary spell or trap S, E, R, C), from the run's seed alone: the
  * player's picks, the CPU's decks of that run and, online, both players'
- * with a seed in common. M 1-2 and S 1-2 (50/50%: tools/leggendarie.py),
+ * with a seed in common. M always 1 (its offer: the three monsters of
+ * ARENA_ATK_MAX) and S always 1 (Alessio, 25/10: the online 1v1's rules),
  * E 3-6 (15/35/35/15%), R 8-12 (10/20/40/20/10%), C the rest, at least 10. */
 static void tier_plan(unsigned seed, int n[5])
 {
@@ -418,8 +424,8 @@ static void tier_plan(unsigned seed, int n[5])
     unsigned state = seed * 2246822519u + 0x5EED7u;
     do {
         int x, i;
-        n[0] = 1 + roll(&state, 2);
-        n[1] = 1 + roll(&state, 2);
+        n[0] = 1;
+        n[1] = 1;
         for (x = roll(&state, 100), i = 0; x >= e_w[i]; x -= e_w[i], i++) {}
         n[2] = 3 + i;
         for (x = roll(&state, 100), i = 0; x >= r_w[i]; x -= r_w[i], i++) {}
@@ -428,11 +434,13 @@ static void tier_plan(unsigned seed, int n[5])
     } while (n[4] < 10);
 }
 
-/* "Leggendarie 1 mostro + 2 magie, 5 Epiche, 9 Rare, 13 Comuni" */
-static void tier_plan_text(unsigned seed, char *out, size_t size)
+/* "Leggendarie 1 mostro + 2 magie, 5 Epiche, 9 Rare, 13 Comuni", counted in
+ * the run's `order` (a run saved before 25/10 keeps its own plan). */
+static void tier_plan_text(const char *order, char *out, size_t size)
 {
-    int n[5];
-    tier_plan(seed, n);
+    int n[5] = {0}, i, t;
+    for (i = 0; order[i] && i < PICKS; i++)
+        for (t = 0; t < 5; t++) n[t] += order[i] == tier_letters[t];
     snprintf(out, size, "Leggendarie %d mostr%s + %d magi%s, %d Epich%s, %d Rar%s, %d Comun%s", n[0],
              n[0] == 1 ? "o" : "i", n[1], n[1] == 1 ? "a" : "e", n[2], n[2] == 1 ? "a" : "e", n[3],
              n[3] == 1 ? "a" : "e", n[4], n[4] == 1 ? "e" : "i");
@@ -778,7 +786,7 @@ static void choose_hero(int i)
     say("arena: eroe scelto %s", h->name);
     {
         char plan[96];
-        tier_plan_text(run.seed, plan, sizeof(plan));
+        tier_plan_text(run.order, plan, sizeof(plan));
         host->log(host, "arena: rarita' di questa arena: %s", plan);
     }
     host->log(host, "arena: ordine delle fasce %s", run.order);
@@ -1097,7 +1105,8 @@ static void log_prize_list(void)
     size_t used = 0;
     text[0] = 0;
     for (i = 0; i < n && i < CHOICES + 1; i++) {
-        snprintf(text + used, sizeof(text) - used, "%s%d", i ? ", " : "", list[i]);
+        snprintf(text + used, sizeof(text) - used, "%s%d%s", i ? ", " : "", list[i],
+                 fv_owned(list[i]) ? "" : " nuova");
         used = strlen(text);
     }
     host->log(host, "arena: carte premio proposte (%d): %s%s", n, text, n > CHOICES + 1 ? ", ..." : "");
@@ -1659,17 +1668,33 @@ static int draw_record(int x, int mid, int s)
     return MAX_LOSSES * 16 * s + 6 * s + host->text_width(host, text, s);
 }
 
-static void card_row(int id, int x, int mid, int w, int s, int with_stats)
+/* A small gold tag with `text`, its right edge at `right`; its width. */
+static int draw_tag(int right, int mid, const char *text, int s)
+{
+    int w = host->text_width(host, text, s) + 8 * s, h = 12 * s;
+    host->fill(host, right - w, mid - h / 2, w, h, 0xC8A040, 245);
+    host->draw_text(host, right - w + 4 * s, mid, text, 0x141A34, s);
+    return w;
+}
+
+/* A card's row; `tag` (or NULL) in a gold tag at its end, before the stats. */
+static void card_row_tag(int id, int x, int mid, int w, int s, int with_stats, const char *tag)
 {
     char name[64], stat[24];
-    int stat_w = with_stats ? host->text_width(host, "0000/0000", s) + 6 * s : 0;
+    int stat_w = with_stats ? host->text_width(host, "0000/0000", s) + 6 * s : 0, tag_w = 0;
+    if (tag) tag_w = draw_tag(x + w - stat_w, mid, tag, s) + 6 * s;
     fv_card_name(id, name, sizeof(name));
-    fv_fit(name, w - stat_w - fv_icon_room(s), s);
+    fv_fit(name, w - stat_w - tag_w - fv_icon_room(s), s);
     fv_icon_text(id, x, mid, name, fv_tier_rgb(id), s);
     if (with_stats) {
         fv_stats(id, stat, sizeof(stat));
         right_text(x + w, mid, stat, TEXT_RGB, s);
     }
+}
+
+static void card_row(int id, int x, int mid, int w, int s, int with_stats)
+{
+    card_row_tag(id, x, mid, w, s, with_stats, NULL);
 }
 
 /* `text` in lines `w` wide, the first one's middle at `mid`, down to
@@ -1785,7 +1810,7 @@ static void draw_intro(void)
         else if (!cost) snprintf(entry, sizeof(entry), "Ingresso: GRATIS, la tua prima arena! (hai %u starchip)", have);
         else snprintf(entry, sizeof(entry), "Ingresso: %ld starchip (ne hai %u)", cost, have);
         lines[0] = "Scegli un eroe tra 3: ti da 10 carte fisse del suo stile.";
-        lines[1] = "Poi 30 scelte, 1 carta su 3: ecco il tuo mazzo da 40.";
+        lines[1] = "Poi 30 scelte, 1 su 3: mazzo da 40, carte fino a 3000 ATK come l'1v1.";
         lines[2] = "Duelli la CPU finche perdi 3 volte o vinci 12 duelli.";
         lines[3] = last;
         lines[4] = "Da 7 vittorie: 1 carta tra 3 a caso del mazzo. Con 12: 2 volte.";
@@ -1873,7 +1898,7 @@ static void draw_pick(void)
     {
         char help[128], plan[96];
         int mid = p.top + CHOICES * (p.line + 8 * s) + p.line;
-        tier_plan_text(run.seed, plan, sizeof(plan));
+        tier_plan_text(run.order, plan, sizeof(plan));
         snprintf(help, sizeof(help), "Questa arena: %s", plan);
         fv_fit(help, list_w, s);
         host->draw_text(host, p.x + p.pad, mid, help, TEXT_RGB, s);
@@ -1978,7 +2003,9 @@ static void draw_prize(void)
         int mid = p.top + i * p.line + p.line / 2;
         if (list_top + i == cursor)
             host->fill(host, p.x + p.pad / 2, mid - p.line / 2, list_w + p.pad, p.line, FV_CURSOR_RGB, 230);
-        card_row(list[list_top + i], p.x + p.pad, mid, list_w, s, 1);
+        /* "NUOVA": a card the save has none of, in the trunk or the deck */
+        card_row_tag(list[list_top + i], p.x + p.pad, mid, list_w, s, 1,
+                     fv_owned(list[list_top + i]) ? NULL : "NUOVA");
     }
 }
 
