@@ -252,6 +252,8 @@ static int holds(HmDecision d, int slot)
     return 0;
 }
 static int marks(HmDecision d) { int n = 0; while (n < 5 && d.selection[n]) n++; return n; }
+/* Marked in front of the card played: thrown in a failed fusion. */
+static int thrown(HmDecision d, int slot) { return holds(d, slot) && d.selection[marks(d) - 1] != slot + 11; }
 static void expert_cases(void)
 {
     HmOptions o = opts();
@@ -287,14 +289,31 @@ static void expert_cases(void)
     { static const int h[5] = {5, 6, 7, 8, 657}; b = xboard(h, strong, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
     assert(!holds(d, 4) && Hm_Discards >= 1);
-    /* A strong monster (2500) stays too, even if it does not beat the 3500. */
+    /* A strong monster (2500) that does not hold the field is the card it
+     * plays; the other three go. */
     { static const int h[5] = {25, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
-    assert(!holds(d, 0) && !holds(d, 4) && Hm_Discards == 2);
-    /* Only the strongest of them stays: the other is the card it plays. */
+    assert(holds(d, 0) && !holds(d, 4) && Hm_Discards == 3);
+    /* Two of them: the stronger is played, the other thrown. */
     { static const int h[5] = {25, 28, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
-    assert(!holds(d, 1) && !holds(d, 4) && holds(d, 0) && Hm_Discards == 2);
+    assert(holds(d, 1) && !holds(d, 4) && Hm_Discards == 3);
+    /* A wall (DEF 3600 against the 3500) is never thrown: here it is the
+     * card played, the 2800 goes. */
+    { static const int h[5] = {25, 28, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    b.hand[0].defense = 3600;
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!thrown(d, 0) && thrown(d, 1) && !holds(d, 4) && Hm_Discards == 3);
+    /* So does the one that beats another face-up monster (2600) of the
+     * player nothing else handles, beside the wall; not once a monster of
+     * ours on the field beats it. */
+    { static const int h[5] = {25, 27, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    b.hand[0].defense = 3600; b.enemy[1] = xcard(26);
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!thrown(d, 0) && !thrown(d, 1) && !holds(d, 4) && Hm_Discards == 2);
+    b.own[0] = xcard(30);
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!thrown(d, 0) && !holds(d, 4) && Hm_Discards == 3);
     /* A trap stays too. */
     { static const int h[5] = {5, 6, 400, 8, 10}; b = xboard(h, partner, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
@@ -344,6 +363,18 @@ static void boss_cases(void)
     d = Hm_PlanField(&b, &o, &xrules, 0);
     assert(!(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56));
     b.own[1] = xcard(12);
+    d = Hm_PlanField(&b, &o, &xrules, 0);
+    assert(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56);
+    /* Not when the player keeps the best field: a 3800 wall our 3700 cannot
+     * break, or a face-down card (an average 1800), against our 1200. */
+    b.enemy[1] = xcard(28); b.enemy[1].defense = 3800; b.enemy[1].flags |= HM_DEFENSE;
+    d = Hm_PlanField(&b, &o, &xrules, 0);
+    assert(!(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56));
+    b.enemy[1].id = -1;
+    d = Hm_PlanField(&b, &o, &xrules, 0);
+    assert(!(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56));
+    /* A 3900 in hand for next turn makes it pay again. */
+    b.enemy[1].id = 28; b.hand[0] = xcard(39); b.hand_count = 1;
     d = Hm_PlanField(&b, &o, &xrules, 0);
     assert(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56);
 }

@@ -88,16 +88,25 @@ typedef struct {
 
 /* fork (expert): the player's strongest face-up monster is worth more than
  * its stats, as an expert goes for the boss; an even trade with it pays
- * when another monster of ours stays on the field. */
-static int boss(const AttackSearch *s, int attacker, HmCard e, int trade)
+ * only when we keep the best field after it: our best other monster (or the
+ * best one in hand, for next turn) beats the best the player keeps, ATK or
+ * DEF (a face-down card counts as an average 1800). A bad trade is never taken. */
+static int boss(const AttackSearch *s, int attacker, int target, int trade)
 {
-    int i, best = 0, others = 0;
+    HmCard e = s->b->enemy[target];
+    int i, best = 0, ours = 0, theirs = 0;
     if (!s->o->expert) return 0;
     for (i = 0; i < 5; i++) if (s->b->enemy[i].id > 0) best = max(best, s->b->enemy[i].attack);
     if (e.attack < best) return 0;
     if (!trade) return 2 * e.attack;
-    for (i = 0; i < 5; i++) if (i != attacker && monster(s->b->own[i])) others++;
-    return others ? e.attack : 0;
+    for (i = 0; i < 5; i++) if (i != attacker && monster(s->b->own[i])) ours = max(ours, s->b->own[i].attack);
+    for (i = 0; i < s->b->hand_count; i++) if (s->b->hand[i].id > 0 && monster(s->b->hand[i]))
+        ours = max(ours, s->b->hand[i].attack);
+    for (i = 0; i < 5; i++) if (i != target && s->b->enemy[i].id) {
+        HmCard x = s->b->enemy[i];
+        theirs = max(theirs, x.id < 0 ? 1800 : value(x));
+    }
+    return ours > theirs ? e.attack : -(value(e) + 400);
 }
 
 static int attack_options(AttackSearch *s, unsigned used, unsigned dead, Attack *out)
@@ -126,7 +135,7 @@ static int attack_options(AttackSearch *s, unsigned used, unsigned dead, Attack 
                     ((e.flags & HM_DEFENSE) ? e.defense : e.attack);
                 if (diff < 0 || (diff == 0 && ((e.flags & HM_DEFENSE) || !s->o->trades))) continue;
                 move.damage = (e.flags & HM_DEFENSE) ? 0 : diff;
-                move.removed = value(e) + 400 + boss(s, i, e, diff == 0);
+                move.removed = value(e) + 400 + boss(s, i, j, diff == 0);
                 move.lost = diff == 0 ? value(a) + 400 : 0;
                 move.gain = move.damage * 4 + move.removed - move.lost;
             }
@@ -654,11 +663,42 @@ static int prepend(const HmBoard *b, const HmRules *r, HmDecision *base, const i
     return 0;
 }
 
+/* fork: a hand monster that does not answer the threat stays (it may be
+ * played, it is not thrown) only when it holds the field: a wall whose DEF
+ * stands the threat's ATK, or the one that beats another face-up monster of
+ * the player nothing else of ours handles. */
+static unsigned field_keepers(const HmBoard *b, const HmOptions *o, const HmRules *r,
+                              int threat, unsigned keep)
+{
+    unsigned hold = 0;
+    int i, j, k, wall = -1;
+    for (i = 0; i < b->hand_count; i++) {
+        HmCard h = b->hand[i];
+        if ((keep & (1u << i)) || h.id <= 0 || !monster(h)) continue;
+        if (h.defense >= b->enemy[threat].attack && (wall < 0 || h.defense > b->hand[wall].defense)) wall = i;
+    }
+    if (wall >= 0) hold |= 1u << wall;
+    for (j = 0; j < 5; j++) {
+        HmCard e = b->enemy[j];
+        int stat = (e.flags & HM_DEFENSE) ? e.defense : e.attack, handled = 0, best = -1;
+        if (j == threat || e.id <= 0) continue;
+        for (k = 0; k < 5; k++) handled |= monster(b->own[k]) && b->own[k].attack > stat;
+        for (k = 0; k < b->hand_count; k++) handled |= kills(b->hand[k], e);
+        for (k = 0; k < 5; k++) handled |= kills(b->back[k], e);
+        if (handled) continue;
+        for (i = 0; i < b->hand_count; i++)
+            if (!(keep & (1u << i)) && power(b, o, r, b->hand[i], 0) > stat &&
+                (best < 0 || power(b, o, r, b->hand[i], 0) > power(b, o, r, b->hand[best], 0))) best = i;
+        if (best >= 0) hold |= 1u << best;
+    }
+    return hold;
+}
+
 static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
                          HmDecision best, int top)
 {
     HmDecision base = best, spare;
-    unsigned keep = 0, junk = 0, all = (1u << b->hand_count) - 1;
+    unsigned keep = 0, hold = 0, junk = 0, all = (1u << b->hand_count) - 1;
     int i, j, need = 0, threat = -1, list[5], n = 0, outs_left = 0;
     if (!b->deck_count || b->hand_count > 5) return best;
     for (i = 0; i < 5; i++) if (monster(b->own[i])) top = max(top, b->own[i].attack);
@@ -674,21 +714,15 @@ static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
     if (threat >= 0) {
         outs_left = outs(b, o, r, b->enemy[threat], need, &keep);
         if (!outs_left) return best; /* nothing to dig for: hold the line */
-        /* The strongest other monster (2400 or more) stays as well: it holds
-         * the rest of the field. */
-        for (i = 0, j = -1; i < b->hand_count; i++) {
-            if (useful_spell(b->hand[i])) keep |= 1u << i;
-            else if (!(keep & (1u << i)) && power(b, o, r, b->hand[i], 0) >= 2400 &&
-                     (j < 0 || power(b, o, r, b->hand[i], 0) > power(b, o, r, b->hand[j], 0))) j = i;
-        }
-        if (j >= 0) keep |= 1u << j;
+        for (i = 0; i < b->hand_count; i++) if (useful_spell(b->hand[i])) keep |= 1u << i;
+        hold = field_keepers(b, o, r, threat, keep);
         spare = plan_hand(b, o, r, keep, 0);
         if (from_hand(b, &best) && !(spent(&best) & keep)) base = best;
         else if (!from_hand(b, &best) && (spent(&best) & keep)) return best; /* Swords, a trap... */
         else if (from_hand(b, &spare) && spare.score >= best.score - 1500) base = spare;
         else if (from_hand(b, &best)) base = best;
         else return best;
-        junk = all & ~keep & ~spent(&base);
+        junk = all & ~keep & ~hold & ~spent(&base);
     } else {
         if (stalling(b) || !from_hand(b, &best)) return best;
         for (i = 0; i < b->hand_count; i++)
