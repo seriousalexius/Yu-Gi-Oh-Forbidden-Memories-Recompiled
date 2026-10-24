@@ -31,20 +31,46 @@ static const MemoriesModHost *host;
 static void *original_init, *original_run, *original_window, *original_swap;
 static void *original_search[5];
 
+/* fork: in an arena duel (the arena mod's "arena:duello") this mod always
+ * plays, with one setup for every player and a fair one: the CPU holds only
+ * its five cards and does not know the player's face-down cards, as the
+ * player does not know its; everything else at its strongest. Outside the
+ * arena it plays only when the player turns on "outside_arena". */
+static volatile int *arena_duel;
+static int in_arena(void)
+{
+    if (!arena_duel) arena_duel = (volatile int *)host->find(host, "arena:duello");
+    return arena_duel && *arena_duel;
+}
+static const struct { const char *key; int value; } arena_setup[] = {
+    {"hand_planning", 1}, {"fusion_search", 1}, {"guardian_stars", 1}, {"attack_planning", 1},
+    {"defensive_positions", 1}, {"spell_timing", 1}, {"effective_stats", 1}, {"equal_trades", 1},
+    {"preserve_hand", 1}, {"deck_access", 1}, {"hidden_cards", 1}, {"fusion_materials", 5},
+    {"search_budget", 20000}, {"blind_risk", 50}, {"material_cost", 150},
+};
 static int setting(const char *key, int fallback, int low, int high)
 {
     int n = host->setting(host, key, fallback);
+    unsigned i;
+    if (in_arena()) {
+        for (i = 0; i < sizeof(arena_setup) / sizeof(arena_setup[0]); i++)
+            if (!strcmp(arena_setup[i].key, key)) n = arena_setup[i].value;
+    }
     return n < low ? low : n > high ? high : n;
+}
+static int wanted(void)
+{
+    return in_arena() || setting("outside_arena", 0, 0, 1);
 }
 static int active(void)
 {
-    return D_8009B1D5 < 2 && D_8009B360[D_8009B1D5] >= 0 &&
+    return wanted() && D_8009B1D5 < 2 && D_8009B360[D_8009B1D5] >= 0 &&
         gDuel_bOpponentID >= 1 && gDuel_bOpponentID < AI_OPPONENT_COUNT &&
         (gAiScript_State.script_base == D_801A8000 || gAiScript_State.script_base == D_801A9800);
 }
 static int sees_hidden(void)
 {
-    int mode = setting("hidden_cards", 0, 0, 2), id = gDuel_bOpponentID;
+    int mode = wanted() ? setting("hidden_cards", 0, 0, 2) : 0, id = gDuel_bOpponentID;
     if (mode) return mode == 2;
     return id == 8 || id == 15 || (id >= 35 && id <= 38);
 }

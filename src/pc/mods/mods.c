@@ -1525,10 +1525,11 @@ static int read_manifest(Mod *mod, const char *directory, const char *origin)
 }
 
 /* fork: the mods that make the rules every player keeps the same, always on
- * (Alessio's draft of the drops, and every card obtainable). */
+ * (Alessio's draft of the drops, every card obtainable, and the Arena's CPU:
+ * AI Hard Mode plays outside the Arena only when its own setting says so). */
 static int locked_on(const char *id)
 {
-    return !strcmp(id, "draft-drops") || !strcmp(id, "drop-missing-cards");
+    return !strcmp(id, "draft-drops") || !strcmp(id, "drop-missing-cards") || !strcmp(id, "ai-hard-mode");
 }
 
 static int by_id(const char *id)
@@ -1579,6 +1580,12 @@ static void scan(const char *root, const char *origin)
             /* Two folders of one directory with one id: the first, in the
              * sorted order, is kept, whatever order the disk lists them. */
             warn(&mods[existing], 1, "%s was left out: same id as %s", path, mods[existing].directory);
+            Json_Free(candidate.manifest);
+        } else if (existing >= 0 && !strcmp(mods[existing].origin, "shipped")) {
+            /* fork: the mods the game ships are the ones every player keeps,
+             * so an update brings its versions: an older copy imported by
+             * hand (Import mod...) stays on disk but is left out. */
+            say("%s in %s was left out: the game's own copy is used", candidate.id, path);
             Json_Free(candidate.manifest);
         } else if (existing >= 0) {
             /* The player's copy wins over the one the release ships. */
@@ -1914,6 +1921,12 @@ int Mods_Discover(const char *directory, int *later)
     *later = 0;
     if (!read_manifest(&candidate, directory, "installed")) return -1;
     index = by_id(candidate.id);
+    if (index >= 0 && !strcmp(mods[index].origin, "shipped")) {
+        /* fork: as in scan, the game's own copy stays (and so it will at the next launch). */
+        Json_Free(candidate.manifest);
+        note(&mods[index], "the game's own copy is kept: %s is not used", directory);
+        return index;
+    }
     if (index < 0) {
         if (mod_count >= MODS_MAX) {
             Json_Free(candidate.manifest);
