@@ -15,10 +15,14 @@ typedef struct {
 typedef struct {
     HmCard own[5], enemy[5], back[5], enemy_back[5], hand[HM_HAND];
     int hand_count, lp, max_lp, enemy_lp, pinned, enemy_pinned, terrain;
+    /* fork: the cards still in this side's deck, as its deck list tells a
+     * player (never their order), and how many each side has left. */
+    int deck[40], deck_count, enemy_deck_count;
 } HmBoard;
 typedef struct {
     int hand, fusion, guardian, attacks, defense, spells, effective;
     int materials, budget, blind_risk, material_cost, trades;
+    int expert; /* fork: discard to dig, mind the deck race */
 } HmOptions;
 typedef struct {
     HmCard (*card)(int id);
@@ -32,6 +36,9 @@ typedef struct {
     unsigned char selection[12];
     int result, score, nodes;
 } HmDecision;
+/* fork: the last expert hand, for the log: cards thrown away, and how many
+ * cards left in the deck answer the monster it could not beat. */
+extern int Hm_Discards, Hm_Outs;
 
 /* The matchup the planner scores guardian stars by: the game's when the
  * adapter sets it (Duel_CalcGuardianStarMatchup), else the disc's cycles. */

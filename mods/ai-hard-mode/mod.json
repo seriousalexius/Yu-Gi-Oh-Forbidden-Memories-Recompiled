@@ -14,7 +14,14 @@
       "label": "Also outside the Arena",
       "type": "bool",
       "default": 0,
-      "description": "Off: campaign and Free Duel keep the original AI. In the Arena this mod always plays, the same for everyone: all planning on, five-card hand only, no hidden stats, five hand materials, search budget 20000 (the settings below are not used there)."
+      "description": "Off: campaign and Free Duel keep the original AI. In the Arena this mod always plays, the same for everyone: all planning on, five-card hand only, no hidden stats, five hand materials, search budget 20000, expert hand (the settings below are not used there)."
+    },
+    {
+      "key": "expert_hand",
+      "label": "Expert hand",
+      "type": "bool",
+      "default": 1,
+      "description": "Plays like an expert player: facing a monster it cannot beat or destroy this turn, it keeps the cards that can answer it with a card still in its deck and throws the others away in failed fusions, to draw more cards; it never runs its deck out before yours and plays one card a turn when you will run out first. It knows its own deck list, never the order, and never your hidden cards."
     },
     {
       "key": "hand_planning",

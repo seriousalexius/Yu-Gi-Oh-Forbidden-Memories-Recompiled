@@ -64,13 +64,15 @@ int Hm_ChooseStar(const HmBoard *b, HmCard c, int pinned)
         /* A card with one star (no second, or the same twice) has no choice. */
         if (choice && (!c.star2 || c.star2 == c.star)) break;
         current.star = choice ? c.star2 : c.star;
-        score -= min(safety(b, current, 0), safety(b, current, 1));
         if (!pinned) for (i = 0; i < 5; i++) if (b->enemy[i].id > 0) {
             HmCard e = b->enemy[i];
             int diff = c.attack + Hm_StarBonus(current.star, e.star) -
                 ((e.flags & HM_DEFENSE) ? e.defense : e.attack);
             if (diff > 0) score = max(score, 2000 + diff + value(e) / 2);
         }
+        /* fork: the risk after the best hit (the max used to wipe it out:
+         * a star that hits a weak card left it under the strong one). */
+        score -= min(safety(b, current, 0), safety(b, current, 1));
         if (score > best) { best = score; answer = choice; }
     }
     return answer;
@@ -83,6 +85,20 @@ typedef struct {
     HmDecision best;
     int nodes;
 } AttackSearch;
+
+/* fork (expert): the player's strongest face-up monster is worth more than
+ * its stats, as an expert goes for the boss; an even trade with it pays
+ * when another monster of ours stays on the field. */
+static int boss(const AttackSearch *s, int attacker, HmCard e, int trade)
+{
+    int i, best = 0, others = 0;
+    if (!s->o->expert) return 0;
+    for (i = 0; i < 5; i++) if (s->b->enemy[i].id > 0) best = max(best, s->b->enemy[i].attack);
+    if (e.attack < best) return 0;
+    if (!trade) return 2 * e.attack;
+    for (i = 0; i < 5; i++) if (i != attacker && monster(s->b->own[i])) others++;
+    return others ? e.attack : 0;
+}
 
 static int attack_options(AttackSearch *s, unsigned used, unsigned dead, Attack *out)
 {
@@ -110,7 +126,7 @@ static int attack_options(AttackSearch *s, unsigned used, unsigned dead, Attack 
                     ((e.flags & HM_DEFENSE) ? e.defense : e.attack);
                 if (diff < 0 || (diff == 0 && ((e.flags & HM_DEFENSE) || !s->o->trades))) continue;
                 move.damage = (e.flags & HM_DEFENSE) ? 0 : diff;
-                move.removed = value(e) + 400;
+                move.removed = value(e) + 400 + boss(s, i, e, diff == 0);
                 move.lost = diff == 0 ? value(a) + 400 : 0;
                 move.gain = move.damage * 4 + move.removed - move.lost;
             }
@@ -282,11 +298,16 @@ static int spell(const HmBoard *b, const HmOptions *o, const HmRules *r,
     return 0;
 }
 
-HmDecision Hm_PlanField(const HmBoard *b, const HmOptions *o, const HmRules *r,
+static int stalling(const HmBoard *b);
+HmDecision Hm_PlanField(const HmBoard *b, const HmOptions *from, const HmRules *r,
                         const HmDecision *retail)
 {
     HmDecision best = {{0}, 0, 0, 0}, a;
-    int i, target, score;
+    HmOptions careful = *from;
+    const HmOptions *o = &careful;
+    int i, target, score, wait = from->expert && stalling(b);
+    /* fork: winning the deck race, no blind attacks and defense on a tie. */
+    if (wait) careful.blind_risk = 0;
     if (retail && !o->attacks && !o->defense && !o->spells) return *retail;
     if (retail && retail->result == 2) {
         int slot = retail->selection[9];
@@ -314,7 +335,7 @@ HmDecision Hm_PlanField(const HmBoard *b, const HmOptions *o, const HmRules *r,
         best.result = 2;
         best.selection[9] = i + 1;
         best.selection[11] = o->defense ?
-            safety(b, b->own[i], 1) < safety(b, b->own[i], 0) : !stays(b->own[i].effect);
+            safety(b, b->own[i], 1) < safety(b, b->own[i], 0) + wait : !stays(b->own[i].effect);
         return best;
     }
     best.result = 3;
@@ -327,6 +348,7 @@ typedef struct {
     const HmRules *r;
     HmDecision best;
     int nodes, path[5];
+    int top; /* fork: the strongest ATK any play reaches */
 } HandSearch;
 
 static int destination(const HmBoard *b)
@@ -350,6 +372,7 @@ static void consider_monster(HandSearch *s, HmCard card, int count, int field)
     card.star = identity.star; card.star2 = identity.star2;
     choice = s->o->guardian ? Hm_ChooseStar(s->b, card, s->b->pinned) : 0;
     if (choice) card.star = card.star2;
+    s->top = max(s->top, card.attack);
     for (i = 0; i < 5; i++) if (s->b->enemy[i].id > 0 && !s->b->pinned) {
         HmCard e = s->b->enemy[i];
         int diff = card.attack + Hm_StarBonus(card.star, e.star) -
@@ -406,14 +429,16 @@ static void fusion_search(HandSearch *s, HmCard card, unsigned used, int count, 
     }
 }
 
-HmDecision Hm_PlanHand(const HmBoard *b, const HmOptions *o, const HmRules *r)
+/* fork: the hand cards in skip stay out of every play. */
+static HmDecision plan_hand(const HmBoard *b, const HmOptions *o, const HmRules *r,
+                            unsigned skip, int *top)
 {
-    HandSearch s = {b, o, r, {{0}, 0, 0, 0}, 0, {0}};
+    HandSearch s = {b, o, r, {{0}, 0, 0, 0}, 0, {0}, 0};
     int i, j, slot, target, score, immediate;
     /* Score every single-card option before spending the bounded fusion budget. */
     for (i = 0; i < b->hand_count; i++) {
         HmCard c = b->hand[i];
-        if (!c.id) continue;
+        if (!c.id || (skip & (1u << i))) continue;
         if (monster(c)) {
             if (o->effective) {
                 int bonus = r->terrain(c.type, b->terrain);
@@ -463,18 +488,235 @@ HmDecision Hm_PlanHand(const HmBoard *b, const HmOptions *o, const HmRules *r)
             bounded.materials = depth;
             for (i = 0; i < b->hand_count && s.nodes < o->budget; i++) {
                 HmCard c = b->hand[i];
-                if (!monster(c)) continue;
+                if (!monster(c) || (skip & (1u << i))) continue;
                 if (o->effective) {
                     int bonus = r->terrain(c.type, b->terrain);
                     c.attack = clamp(c.attack + bonus); c.defense = clamp(c.defense + bonus);
                 }
                 s.path[0] = i;
-                fusion_search(&s, c, 1u << i, 1, -1);
+                fusion_search(&s, c, skip | 1u << i, 1, -1);
             }
             for (i = 0; i < 5 && s.nodes < o->budget; i++) if (monster(b->own[i]))
-                fusion_search(&s, b->own[i], 0, 0, i);
+                fusion_search(&s, b->own[i], skip, 0, i);
         }
     }
     s.best.nodes = s.nodes;
+    if (top) *top = s.top;
     return s.best;
+}
+
+
+/* fork: the arena's expert hand (option expert). The CPU knows which cards
+ * are still in its deck, as a player knows his deck list (never their
+ * order), sees only what the player sees, and plays like an expert:
+ * - facing a monster no play of this turn beats or destroys, it keeps the
+ *   cards that make an answer with a card still in its deck, plays the best
+ *   of the others and throws the rest away in front of it, through fusions
+ *   that fail as a player's would, so that next turn it draws more cards;
+ * - otherwise it throws away only dead monsters, while its deck is long;
+ * - it never thins its deck below the player's once that race matters, and
+ *   spends one card a turn when the player will run out first. */
+int Hm_Discards, Hm_Outs;
+static int power(const HmBoard *b, const HmOptions *o, const HmRules *r, HmCard c, int field)
+{
+    if (!monster(c)) return 0;
+    /* Field snapshots already carry the terrain (effective stats). */
+    return field ? c.attack : c.attack + (o->effective ? r->terrain(c.type, b->terrain) : 0);
+}
+static int bonus(HmCard equip) { return equip.effect == 657 ? 1000 : 500; }
+static int kills(HmCard c, HmCard e)
+{
+    int type = removal_type(c.effect);
+    return c.id > 0 && !monster(c) && (c.effect == 337 || c.effect == 336 ||
+        (type >= 0 && e.type == type) || (c.effect == 661 && e.attack >= 1500));
+}
+static int useful_spell(HmCard c)
+{
+    /* Traps wait face down; removal and Swords stay useful. */
+    return c.id > 0 && !monster(c) && (c.type == 21 || c.effect == 348 || c.effect == 672 ||
+        c.effect == 337 || c.effect == 336 || c.effect == 661 || removal_type(c.effect) >= 0);
+}
+
+/* How many cards left in the deck answer e (beat need in battle, or destroy
+ * it), alone or with a card in hand or on the field; the hand cards that
+ * take part go in keep. */
+static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
+                HmCard e, int need, unsigned *keep)
+{
+    int i, j, f, n = 0;
+    for (i = 0; i < b->deck_count; i++) {
+        HmCard d = r->card(b->deck[i]);
+        int out;
+        if (!d.id) continue;
+        out = kills(d, e) || power(b, o, r, d, 0) > need;
+        for (j = 0; j < b->hand_count + 5; j++) {
+            int field = j >= b->hand_count, hit = 0;
+            HmCard h = field ? b->own[j - b->hand_count] : b->hand[j];
+            if (h.id <= 0) continue;
+            if (monster(h) && monster(d) && (f = r->fusion(h.id, d.id)) != 0)
+                hit = power(b, o, r, r->card(f), 0) > need;
+            else if (monster(h) && d.type == 23 && r->equip(d.id, h.id))
+                hit = power(b, o, r, h, field) + bonus(d) > need;
+            else if (!field && h.type == 23 && monster(d) && r->equip(h.id, d.id))
+                hit = power(b, o, r, d, 0) + bonus(h) > need;
+            if (hit) { out = 1; if (!field) *keep |= 1u << j; }
+        }
+        n += out;
+    }
+    return n;
+}
+
+/* The best a hand monster can still become, with any card it may meet. */
+static int potential(const HmBoard *b, const HmOptions *o, const HmRules *r, int slot)
+{
+    HmCard h = b->hand[slot];
+    int best = max(power(b, o, r, h, 0), h.defense), i, f;
+    for (i = 0; i < b->hand_count + 5 + b->deck_count; i++) {
+        HmCard x = i < b->hand_count ? b->hand[i] : i < b->hand_count + 5 ?
+            b->own[i - b->hand_count] : r->card(b->deck[i - b->hand_count - 5]);
+        if (i == slot || x.id <= 0) continue;
+        if (monster(x) && (f = r->fusion(h.id, x.id)) != 0)
+            best = max(best, power(b, o, r, r->card(f), 0));
+        else if (x.type == 23 && r->equip(x.id, h.id))
+            best = max(best, power(b, o, r, h, 0) + bonus(x));
+    }
+    return best;
+}
+
+/* As the game places a hand's marked cards: a fusion, else either card
+ * equips the other, else the earlier card goes to the graveyard. */
+static HmCard chain(const HmBoard *b, const HmRules *r, const unsigned char *slots, int n)
+{
+    HmCard cur = b->hand[slots[0] - 11], next;
+    int i, f;
+    for (i = 1; i < n; i++) {
+        next = b->hand[slots[i] - 11];
+        if ((f = r->fusion(cur.id, next.id)) != 0) cur = r->card(f);
+        else if (r->equip(next.id, cur.id)) cur.attack += bonus(next);
+        else if (r->equip(cur.id, next.id)) { next.attack += bonus(cur); cur = next; }
+        else cur = next;
+    }
+    return cur;
+}
+static int marked(const HmDecision *d)
+{
+    int n = 0;
+    while (n < 5 && d->selection[n]) n++;
+    return n;
+}
+static unsigned spent(const HmDecision *d)
+{
+    unsigned m = 0;
+    int i;
+    for (i = 0; i < marked(d); i++) m |= 1u << (d->selection[i] - 11);
+    return m;
+}
+/* A monster summoned from the hand alone: discards can go in front of it. */
+static int from_hand(const HmBoard *b, const HmDecision *d)
+{
+    int first = d->selection[0] - 11;
+    return d->result == 1 && d->selection[8] && d->selection[6] >= 1 && d->selection[6] <= 5 &&
+        first >= 0 && first < b->hand_count && monster(b->hand[first]);
+}
+static int affordable(const HmBoard *b, int cards)
+{
+    int left = b->deck_count - cards;
+    /* The player draws first: as many cards left keeps the race won. */
+    return left >= 12 || (left >= 2 && left >= b->enemy_deck_count);
+}
+static int stalling(const HmBoard *b)
+{
+    return b->deck_count && b->enemy_deck_count <= 12 && b->deck_count > b->enemy_deck_count;
+}
+
+/* Puts the n discards in front of base in an order that changes nothing of
+ * the play: no accidental fusion or equip on the way. */
+static int prepend(const HmBoard *b, const HmRules *r, HmDecision *base, const int *junk, int n)
+{
+    unsigned char full[5];
+    int m = marked(base), order[4], i, j, code, total = 1;
+    HmCard want = chain(b, r, base->selection, m), got;
+    if (n + m > 5) return 0;
+    for (i = 0; i < n; i++) total *= n;
+    for (code = 0; code < total; code++) {
+        unsigned seen = 0;
+        int c = code;
+        for (i = 0; i < n; i++, c /= n) { order[i] = c % n; seen |= 1u << order[i]; }
+        if (seen != (1u << n) - 1) continue;
+        for (i = 0; i < n; i++) full[i] = (unsigned char)(junk[order[i]] + 11);
+        for (j = 0; j < m; j++) full[n + j] = base->selection[j];
+        got = chain(b, r, full, n + m);
+        if (got.id == want.id && got.attack == want.attack) {
+            for (i = 0; i < n + m; i++) base->selection[i] = full[i];
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
+                         HmDecision best, int top)
+{
+    HmDecision base = best, spare;
+    unsigned keep = 0, junk = 0, all = (1u << b->hand_count) - 1;
+    int i, j, need = 0, threat = -1, list[5], n = 0, outs_left = 0;
+    if (!b->deck_count || b->hand_count > 5) return best;
+    for (i = 0; i < 5; i++) if (monster(b->own[i])) top = max(top, b->own[i].attack);
+    /* A face-up monster no play of this turn beats, and nothing destroys. */
+    for (i = 0; i < 5; i++) {
+        HmCard e = b->enemy[i];
+        int stat = (e.flags & HM_DEFENSE) ? e.defense : e.attack, answered = 0;
+        if (e.id <= 0 || stat <= top || e.attack <= top) continue;
+        for (j = 0; j < b->hand_count; j++) answered |= kills(b->hand[j], e);
+        for (j = 0; j < 5; j++) answered |= kills(b->back[j], e);
+        if (!answered && (threat < 0 || e.attack > b->enemy[threat].attack)) { threat = i; need = stat; }
+    }
+    if (threat >= 0) {
+        outs_left = outs(b, o, r, b->enemy[threat], need, &keep);
+        if (!outs_left) return best; /* nothing to dig for: hold the line */
+        /* The strongest other monster (2400 or more) stays as well: it holds
+         * the rest of the field. */
+        for (i = 0, j = -1; i < b->hand_count; i++) {
+            if (useful_spell(b->hand[i])) keep |= 1u << i;
+            else if (!(keep & (1u << i)) && power(b, o, r, b->hand[i], 0) >= 2400 &&
+                     (j < 0 || power(b, o, r, b->hand[i], 0) > power(b, o, r, b->hand[j], 0))) j = i;
+        }
+        if (j >= 0) keep |= 1u << j;
+        spare = plan_hand(b, o, r, keep, 0);
+        if (from_hand(b, &best) && !(spent(&best) & keep)) base = best;
+        else if (!from_hand(b, &best) && (spent(&best) & keep)) return best; /* Swords, a trap... */
+        else if (from_hand(b, &spare) && spare.score >= best.score - 1500) base = spare;
+        else if (from_hand(b, &best)) base = best;
+        else return best;
+        junk = all & ~keep & ~spent(&base);
+    } else {
+        if (stalling(b) || !from_hand(b, &best)) return best;
+        for (i = 0; i < b->hand_count; i++)
+            if (!(spent(&best) & (1u << i)) && monster(b->hand[i]) && potential(b, o, r, i) < 1300)
+                junk |= 1u << i;
+    }
+    for (i = 0; i < b->hand_count; i++) if ((junk & (1u << i)) && b->hand[i].id) {
+        /* Least valuable first: those go when the deck allows fewer. */
+        for (j = n; j > 0 && Hm_KeepValue(b->hand[list[j-1]]) > Hm_KeepValue(b->hand[i]); j--)
+            list[j] = list[j-1];
+        list[j] = i; n++;
+    }
+    for (n = min(n, 4); n > 0; n--) {
+        int cards = marked(&base) + n;
+        if (!affordable(b, cards) || (threat < 0 && b->deck_count - cards < 15)) continue;
+        if (prepend(b, r, &base, list, n)) break;
+    }
+    Hm_Discards = n; Hm_Outs = outs_left;
+    return base;
+}
+
+HmDecision Hm_PlanHand(const HmBoard *b, const HmOptions *o, const HmRules *r)
+{
+    HmOptions slow = *o;
+    int top = 0;
+    Hm_Discards = Hm_Outs = 0;
+    if (!o->expert) return plan_hand(b, o, r, 0, 0);
+    /* Ahead in the deck race, or short of cards: one card a turn where it can. */
+    if (stalling(b) || (b->deck_count && b->deck_count <= 8)) slow.material_cost += 400;
+    return expert(b, &slow, r, plan_hand(b, &slow, r, 0, &top), top);
 }

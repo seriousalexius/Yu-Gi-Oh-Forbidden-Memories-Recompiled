@@ -29,7 +29,7 @@ static int custom_matchup(int a, int d) { return a == 11 && d == 3 ? 1000 : a ==
 static const HmRules rules = {card, fusion, equip, terrain, ritual};
 static HmOptions opts(void)
 {
-    HmOptions o = {1,1,1,1,1,1,1,4,6000,50,150,1};
+    HmOptions o = {1,1,1,1,1,1,1,4,6000,50,150,1,0};
     return o;
 }
 static HmBoard empty(void)
@@ -220,9 +220,137 @@ static void bounded_fixtures(void)
     }
 }
 
+
+/* fork: the expert hand. Monsters 1-99 have ATK id*100; 10 + 20 fuse into
+ * 40; 657 is an equip (+1000), 337 destroys every enemy, 400 is a trap. */
+static HmCard xcard(int id)
+{
+    HmCard c = {id, id, 0, id * 100, id * 50, 1, 2, 0};
+    if (id == 657) { c.type = 23; c.attack = c.defense = 0; }
+    if (id == 337) { c.type = 20; c.attack = c.defense = 0; }
+    if (id == 400) { c.type = 21; c.attack = c.defense = 0; }
+    return c;
+}
+static int xfusion(int a, int b) { return (a == 10 && b == 20) || (a == 20 && b == 10) ? 40 : 0; }
+static int xequip(int a, int b) { return a == 657 && b > 0 && b < 100; }
+static const HmRules xrules = {xcard, xfusion, xequip, terrain, ritual};
+static HmBoard xboard(const int *hand, const int *deck, int decks, int enemy_deck)
+{
+    HmBoard b = empty();
+    int i;
+    for (i = 0; i < 5; i++) b.hand[i] = xcard(hand[i]);
+    b.hand_count = 5;
+    for (i = 0; i < decks; i++) b.deck[i] = deck[i % 10];
+    b.deck_count = decks; b.enemy_deck_count = enemy_deck;
+    b.enemy[0] = xcard(35); /* a 3500 in attack position */
+    return b;
+}
+static int holds(HmDecision d, int slot)
+{
+    int i;
+    for (i = 0; i < 5 && d.selection[i]; i++) if (d.selection[i] == slot + 11) return 1;
+    return 0;
+}
+static int marks(HmDecision d) { int n = 0; while (n < 5 && d.selection[n]) n++; return n; }
+static void expert_cases(void)
+{
+    HmOptions o = opts();
+    HmBoard b;
+    HmDecision d;
+    static const int weak[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 11};
+    static const int partner[10] = {1, 2, 3, 20, 5, 6, 7, 8, 9, 11};
+    static const int strong[10] = {1, 2, 3, 30, 5, 6, 7, 8, 9, 11};
+    o.expert = 1;
+
+    /* Nothing beats the 3500: keep 10 (10 + 20 in the deck), play one, throw three. */
+    { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(d.result == 1 && marks(d) == 4 && !holds(d, 4) && Hm_Discards == 3 && Hm_Outs >= 1);
+    /* Nothing in the deck answers it: no reason to dig. */
+    { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, weak, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(marks(d) == 1 && Hm_Discards == 0 && Hm_Outs == 0);
+    /* An answer in hand (337): no digging. */
+    { static const int h[5] = {5, 6, 7, 337, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Discards == 0);
+    /* 10 + 20 both in hand: the fusion beats it; the three dead monsters
+     * (no fusion with anything left) go in front of it, the deck is long. */
+    { static const int h[5] = {5, 6, 7, 20, 10}; b = xboard(h, weak, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(holds(d, 3) && holds(d, 4) && Hm_Discards == 3 && Hm_Outs == 0);
+    /* Not when the deck is short. */
+    { static const int h[5] = {5, 6, 7, 20, 10}; b = xboard(h, weak, 16, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(marks(d) == 2 && Hm_Discards == 0);
+    /* Megamorph makes a 3000 of the deck a 4000: it stays in hand. */
+    { static const int h[5] = {5, 6, 7, 8, 657}; b = xboard(h, strong, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!holds(d, 4) && Hm_Discards >= 1);
+    /* A strong monster (2500) stays too, even if it does not beat the 3500. */
+    { static const int h[5] = {25, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!holds(d, 0) && !holds(d, 4) && Hm_Discards == 2);
+    /* Only the strongest of them stays: the other is the card it plays. */
+    { static const int h[5] = {25, 28, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!holds(d, 1) && !holds(d, 4) && holds(d, 0) && Hm_Discards == 2);
+    /* A trap stays too. */
+    { static const int h[5] = {5, 6, 400, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(!holds(d, 2) && !holds(d, 4) && Hm_Discards == 2);
+    /* Fewer cards than the player and few left: it does not run out first. */
+    { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 10, 12); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Discards == 0 && marks(d) == 1);
+    /* Few left but more than the player: it may throw while it stays ahead. */
+    { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 10, 6); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Discards >= 1 && 10 - marks(d) >= 6);
+    /* Expert off: the original planner, one card. */
+    o.expert = 0;
+    { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(marks(d) == 1);
+}
+
+/* fork: Meteor B. Dragon (Mars/Sun) against a face-up Gate Guardian (Moon)
+ * and a weaker Jupiter monster: Sun (4000 against it), then the boss. */
+static HmCard mcard(int id)
+{
+    HmCard c = {id, 0, 0, 1500, 1200, 2, 3, 0};
+    if (id == 713) { c.attack = 3500; c.defense = 2000; c.star = 1; c.star2 = 8; }
+    if (id == 374) { c.attack = 3750; c.defense = 3400; c.star = 9; c.star2 = 1; }
+    return c;
+}
+static int none(int a, int b) { (void)a; (void)b; return 0; }
+static void boss_cases(void)
+{
+    static const HmRules mrules = {mcard, none, none, terrain, ritual};
+    HmOptions o = opts();
+    HmBoard b = empty();
+    HmDecision d;
+    o.expert = 1;
+    b.enemy[0] = mcard(374); b.enemy[0].star = 9;
+    b.enemy[1] = mcard(50); b.enemy[1].star = 2;
+    b.hand[0] = mcard(713); b.hand_count = 1;
+    d = Hm_PlanHand(&b, &o, &mrules);
+    assert(d.result == 1 && d.selection[0] == 11 && d.selection[7] == 1);
+    b.hand_count = 0; b.own[0] = mcard(713); b.own[0].star = 8;
+    d = Hm_PlanField(&b, &o, &mrules, 0);
+    assert(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56);
+    /* An even trade with the boss: only with another monster of ours behind. */
+    b = empty(); b.enemy[0] = xcard(37); b.own[0] = xcard(37);
+    d = Hm_PlanField(&b, &o, &xrules, 0);
+    assert(!(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56));
+    b.own[1] = xcard(12);
+    d = Hm_PlanField(&b, &o, &xrules, 0);
+    assert(d.result == 2 && d.selection[9] == 1 && d.selection[10] == 56);
+}
+
 int main(void)
 {
-    tactical_cases(); spell_cases(); hand_cases(); retail_cases(); bounded_fixtures();
+    tactical_cases(); spell_cases(); hand_cases(); retail_cases(); bounded_fixtures(); expert_cases(); boss_cases();
     puts("AI hard mode: tactical, spell, fusion and 500 bounded fixtures passed");
     return 0;
 }
