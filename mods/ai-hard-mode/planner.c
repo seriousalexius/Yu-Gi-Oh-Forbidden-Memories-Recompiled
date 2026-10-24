@@ -640,6 +640,17 @@ static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
             if (hit && field) out = 1;
             else if (hit) with[j] |= 1ull << i;
         }
+        /* fork: or with another card still in the deck (both are worth drawing). */
+        for (j = 0; !out && j < b->deck_count; j++) {
+            HmCard x = r->card(b->deck[j]);
+            if (j == i || !x.id) continue;
+            if (monster(d) && monster(x) && (f = r->fusion(d.id, x.id)) != 0)
+                out = power(b, o, r, r->card(f), 0) + edge(r->card(f), e, 0) > need;
+            else if (monster(d) && x.type == 23 && r->equip(x.id, d.id))
+                out = power(b, o, r, d, 0) + bonus(x) + edge(d, e, 0) > need;
+            else if (d.type == 23 && monster(x) && r->equip(d.id, x.id))
+                out = power(b, o, r, x, 0) + bonus(d) + edge(x, e, 0) > need;
+        }
         if (out) alone |= 1ull << i;
     }
     for (covered = alone, j = 0; j < b->hand_count; j++) covered |= with[j];
@@ -804,7 +815,7 @@ static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
                          HmDecision best, int *reach)
 {
     HmDecision base = best, spare, plain;
-    unsigned keep = 0, hold = 0, junk = 0, all = (1u << b->hand_count) - 1, loose;
+    unsigned keep = 0, hold = 0, junk = 0, all = (1u << b->hand_count) - 1, loose, tried = 0;
     int i, j, need = 0, threat = -1, n = 0, outs_left = 0;
     Hm_Why = HM_WHY_SHORT;
     if (!b->deck_count || b->hand_count > 5) return best;
@@ -815,17 +826,30 @@ static HmDecision expert(const HmBoard *b, const HmOptions *o, const HmRules *r,
     /* A face-up monster no play of this turn beats in battle (its guardian
      * star counts, a tie is no answer: the game trades both), and nothing
      * destroys; one in defense is harmless while our best tops its ATK. */
-    for (i = 0; i < 5; i++) {
-        HmCard e = b->enemy[i];
-        int stat = (e.flags & HM_DEFENSE) ? e.defense : e.attack, answered = 0;
-        if (e.id <= 0 || stat < reach[i] || ((e.flags & HM_DEFENSE) && e.attack <= reach[i])) continue;
-        for (j = 0; j < b->hand_count; j++) answered |= answers(b, o, r, b->hand[j], e, stat);
-        for (j = 0; j < 5; j++) answered |= answers(b, o, r, b->back[j], e, stat);
-        if (!answered && (threat < 0 || e.attack > b->enemy[threat].attack)) { threat = i; need = stat; }
+    /* fork: the strongest of them the deck still answers (none against a
+     * 3000 does not stop it digging for the 2000 beside it). */
+    for (;;) {
+        int top = -1, top_need = 0;
+        for (i = 0; i < 5; i++) {
+            HmCard e = b->enemy[i];
+            int stat = (e.flags & HM_DEFENSE) ? e.defense : e.attack, answered = 0;
+            if (e.id <= 0 || (tried & (1u << i)) || stat < reach[i] ||
+                ((e.flags & HM_DEFENSE) && e.attack <= reach[i])) continue;
+            for (j = 0; j < b->hand_count; j++) answered |= answers(b, o, r, b->hand[j], e, stat);
+            for (j = 0; j < 5; j++) answered |= answers(b, o, r, b->back[j], e, stat);
+            if (!answered && (top < 0 || e.attack > b->enemy[top].attack)) { top = i; top_need = stat; }
+        }
+        if (top < 0) break;
+        tried |= 1u << top;
+        if (threat < 0) { threat = top; need = top_need; }
+        keep = 0;
+        if ((outs_left = outs(b, o, r, b->enemy[top], top_need, &keep)) != 0) {
+            threat = top; need = top_need; break;
+        }
     }
     Hm_Threat = threat; Hm_Need = need;
     if (threat >= 0) {
-        outs_left = Hm_Outs = outs(b, o, r, b->enemy[threat], need, &keep);
+        Hm_Outs = outs_left;
         Hm_Keep = keep; Hm_Why = HM_WHY_NO_OUTS;
         if (!outs_left) return best; /* nothing to dig for: hold the line */
         for (i = 0; i < b->hand_count; i++) if (useful_spell(b->hand[i])) keep |= 1u << i;
