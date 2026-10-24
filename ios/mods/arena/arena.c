@@ -67,6 +67,8 @@ void Tower_Background(s32 on);
 #define PICKS 30
 #define CHOICES 3
 #define MAX_WINS 12
+/* The prize cards taken, kept across runs (the newest when it is full). */
+#define TAKEN_MAX 100
 #define MAX_LOSSES 3
 #define DUELS_MAX 15
 #define AUTO_FRAMES 6
@@ -105,6 +107,7 @@ static struct {
     unsigned rng, seed;
     int runs, best, hero_wins[HEROES_MAX], hero_runs[HEROES_MAX];
     int free_used;            /* the first run, free for everyone, was started */
+    int taken[TAKEN_MAX][3], taken_count; /* every prize card taken: card, wins, run number */
 } run;
 static int entry_refused;     /* Inizia without the starchips the entry asks: the intro says so */
 
@@ -567,6 +570,9 @@ static void save_state(void)
     for (i = 0; i < HEROES_MAX; i++) PUT("%s%d", i ? " " : "", run.hero_wins[i]);
     PUT("\ncorse_eroe=");
     for (i = 0; i < HEROES_MAX; i++) PUT("%s%d", i ? " " : "", run.hero_runs[i]);
+    PUT("\npremi_presi=");
+    for (i = 0; i < run.taken_count; i++)
+        PUT("%s%d:%d:%d", i ? " " : "", run.taken[i][0], run.taken[i][1], run.taken[i][2]);
     PUT("\n");
     rev++;
     if (net_on) return; /* the online draft is not the offline run */
@@ -589,6 +595,24 @@ static int numbers(const char *at, int *out, int max)
         if (end == at) break;
         out[n++] = (int)v;
         at = end;
+    }
+    return n;
+}
+
+/* "card:wins:run card:wins:run ..." */
+static int taken_list(const char *at, int (*out)[3], int max)
+{
+    int n = 0, k;
+    char *end;
+    while (n < max) {
+        for (k = 0; k < 3; k++) {
+            long v = strtol(at, &end, 10);
+            if (end == at) return n;
+            out[n][k] = (int)v;
+            at = end;
+            if (k < 2 && *at++ != ':') return n;
+        }
+        n++;
     }
     return n;
 }
@@ -644,6 +668,7 @@ static void load_state(void)
         else if (!strcmp(line, "gratis_usato")) run.free_used = atoi(value);
         else if (!strcmp(line, "vittorie_eroe")) numbers(value, run.hero_wins, HEROES_MAX);
         else if (!strcmp(line, "corse_eroe")) numbers(value, run.hero_runs, HEROES_MAX);
+        else if (!strcmp(line, "premi_presi")) run.taken_count = taken_list(value, run.taken, TAKEN_MAX);
     }
     /* A file that does not add up starts over (the statistics stay). */
     if (run.phase < PHASE_NONE || run.phase > PHASE_SUMMARY || (run.phase > PHASE_HERO && (run.hero < 0 ||
@@ -995,7 +1020,17 @@ static void pay(void)
         card_label(run.prizes[i], label, sizeof(label));
         host->log(host, "arena: carta premio %s: nel baule da %d a %d", label, before,
                   (int)*Cards_ChestSlot(gDuel_awPlayerDeck, run.prizes[i]));
+        if (run.taken_count == TAKEN_MAX) {
+            int k;
+            for (k = 1; k < TAKEN_MAX; k++) memcpy(run.taken[k - 1], run.taken[k], sizeof(run.taken[0]));
+            run.taken_count--;
+        }
+        run.taken[run.taken_count][0] = run.prizes[i];
+        run.taken[run.taken_count][1] = run.wins;
+        run.taken[run.taken_count][2] = run.runs + 1;
+        run.taken_count++;
     }
+    if (run.prize_count) host->log(host, "arena: premi presi in tutto %d", run.taken_count);
     run.paid = 1;
     run.runs++;
     if (run.wins > run.best) run.best = run.wins;
