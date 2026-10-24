@@ -405,6 +405,18 @@ static void expert_cases(void)
     { static const int h[5] = {12, 13, 14, 10, 400}; b = xboard(h, partner, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
     assert(Hm_Discards == 2 && marks(d) == 3 && thrown(d, 1) && thrown(d, 2) && !holds(d, 3) && !holds(d, 4));
+    /* Nothing in the deck answers the 3500, a 2500 there beats the 2000
+     * beside it: it digs for that one. */
+    { static const int h[5] = {5, 6, 7, 8, 9}; static const int a[10] = {1, 2, 3, 25, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, a, 30, 30); }
+    b.enemy[1] = xcard(20);
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 1 && Hm_Outs >= 1 && Hm_Discards >= 1);
+    /* 10 and 20 both still in the deck fuse over the 3500: worth digging. */
+    { static const int h[5] = {5, 6, 7, 8, 9}; static const int p[10] = {1, 2, 3, 10, 5, 6, 7, 8, 9, 20};
+      b = xboard(h, p, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 0 && Hm_Outs >= 2 && Hm_Discards >= 1);
     /* Expert off: the original planner, one card. */
     o.expert = 0;
     { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }
