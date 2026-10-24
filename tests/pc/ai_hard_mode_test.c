@@ -238,6 +238,12 @@ static int xfusion(int a, int b)
 {
     if ((a == 12 || a == 13) && b == 14) return 2; /* weak fusions with the 1400 */
     if (a == 14 && (b == 12 || b == 13)) return 2;
+    /* chains: 15 + 16 make a 2200 that fuses with 17 into a 4100; 18 + 19
+     * make a 2400 that fuses with 15 into a 4200. */
+    if ((a == 15 && b == 16) || (a == 16 && b == 15)) return 22;
+    if (a == 22 && b == 17) return 41;
+    if (a == 18 && b == 19) return 24;
+    if (a == 24 && b == 15) return 42;
     return (a == 10 && b == 20) || (a == 20 && b == 10) ? 40 : 0;
 }
 static int xequip(int a, int b) { return a == 657 && b > 0 && b < 100; }
@@ -417,6 +423,21 @@ static void expert_cases(void)
       b = xboard(h, p, 30, 30); }
     d = Hm_PlanHand(&b, &o, &xrules);
     assert(Hm_Threat == 0 && Hm_Outs >= 2 && Hm_Discards >= 1);
+    /* fork: chains. 15 in hand, 16 and 17 in the deck: 15 + 16 + 17 = 4100. */
+    { static const int h[5] = {15, 6, 7, 8, 9}; static const int c[10] = {1, 2, 3, 16, 5, 6, 7, 8, 9, 17};
+      b = xboard(h, c, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 0 && Hm_Outs >= 2 && Hm_Discards >= 1 && (Hm_Keep & 1));
+    /* 15 and 16 in hand make a 2200, the 17 in the deck finishes it. */
+    { static const int h[5] = {15, 16, 7, 8, 9}; static const int c[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 17};
+      b = xboard(h, c, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 0 && Hm_Outs >= 1 && (Hm_Keep & 3) == 3);
+    /* 18 + 19 of the deck make a 2400, the 15 in hand goes on top: 4200. */
+    { static const int h[5] = {15, 6, 7, 8, 9}; static const int c[10] = {1, 2, 3, 18, 5, 6, 7, 8, 9, 19};
+      b = xboard(h, c, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 0 && Hm_Outs >= 2 && Hm_Discards >= 1 && (Hm_Keep & 1));
     /* Expert off: the original planner, one card. */
     o.expert = 0;
     { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }

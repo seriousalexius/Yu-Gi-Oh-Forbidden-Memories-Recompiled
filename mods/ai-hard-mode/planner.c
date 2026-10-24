@@ -606,8 +606,33 @@ static int answers(const HmBoard *b, const HmOptions *o, const HmRules *r, HmCar
 }
 
 static int bits(unsigned long long m) { int n = 0; for (; m; m &= m - 1) n++; return n; }
+/* fork: one link of a chain, the way the game fuses: a fusion, else an
+ * equip on the monster so far (a field card keeps its effective stats). */
+typedef struct { HmCard c; int field; } Link;
+static Link link_up(const HmRules *r, Link a, HmCard x)
+{
+    Link out = {{0}, 0};
+    int f;
+    if (a.c.id <= 0 || x.id <= 0 || !monster(a.c)) return out;
+    if (monster(x) && (f = r->fusion(a.c.id, x.id)) != 0) out.c = r->card(f);
+    else if (x.type == 23 && r->equip(x.id, a.c.id)) { out = a; out.c.attack = clamp(out.c.attack + bonus(x)); }
+    return out;
+}
+static int wins(const HmBoard *b, const HmOptions *o, const HmRules *r, Link m, HmCard e, int need)
+{
+    return m.c.id > 0 && monster(m.c) && power(b, o, r, m.c, m.field) + edge(m.c, e, m.field) > need;
+}
+/* The deck cards in n answer with the hand cards in src (none: alone). */
+static void mark(unsigned long long *alone, unsigned long long *with, unsigned *tied,
+                 unsigned src, unsigned long long n)
+{
+    int j;
+    if (!src) *alone |= n;
+    for (j = 0; j < 5; j++) if (src & (1u << j)) { with[j] |= n; tied[j] |= src; }
+}
 /* How many cards left in the deck answer e (beat need in battle, or destroy
- * it), alone or with a card in hand or on the field. fork: the hand cards
+ * it), alone or with a card in hand or on the field (fork: or in a longer
+ * chain of fusions and equips). fork: the hand cards
  * that take part go in keep only for their share of those answers: the one
  * that makes the most of them, then each that adds a third of them (two
  * cards waiting for the same partner are one too many: the other goes, for
@@ -616,9 +641,12 @@ static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
                 HmCard e, int need, unsigned *keep)
 {
     unsigned long long alone = 0, with[5] = {0}, covered;
-    int i, j, f, n;
+    unsigned tied[5] = {0}; /* fork: the hand cards a chain needs together */
+    HmCard dk[40];
+    int i, j, f, n, s;
+    for (i = 0; i < b->deck_count; i++) dk[i] = r->card(b->deck[i]);
     for (i = 0; i < b->deck_count; i++) {
-        HmCard d = r->card(b->deck[i]);
+        HmCard d = dk[i];
         int out;
         if (!d.id) continue;
         out = answers(b, o, r, d, e, need) || power(b, o, r, d, 0) + edge(d, e, 0) > need;
@@ -653,6 +681,43 @@ static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
         }
         if (out) alone |= 1ull << i;
     }
+    /* fork: longer chains, in the order the game fuses: a hand or field
+     * monster, or what two hand cards make, meets a deck card and what comes
+     * out meets one more card of the deck or the hand; or two deck cards
+     * fuse and a hand card goes on top. */
+    for (s = 0; s < b->hand_count + 5 + b->hand_count * b->hand_count; s++) {
+        Link a = {{0}, 0};
+        unsigned src = 0;
+        if (s < b->hand_count) { a.c = b->hand[s]; src = 1u << s; }
+        else if (s < b->hand_count + 5) { a.c = b->own[s - b->hand_count]; a.field = 1; }
+        else {
+            int p = (s - b->hand_count - 5) / b->hand_count, q = (s - b->hand_count - 5) % b->hand_count;
+            Link h = {b->hand[p], 0};
+            if (p == q) continue;
+            a = link_up(r, h, b->hand[q]); src = (1u << p) | (1u << q);
+        }
+        if (a.c.id <= 0 || !monster(a.c)) continue;
+        for (i = 0; i < b->deck_count; i++) {
+            Link m = link_up(r, a, dk[i]);
+            if (m.c.id <= 0) continue;
+            if (wins(b, o, r, m, e, need)) { mark(&alone, with, tied, src, 1ull << i); continue; }
+            for (j = 0; j < b->deck_count; j++)
+                if (j != i && wins(b, o, r, link_up(r, m, dk[j]), e, need))
+                    mark(&alone, with, tied, src, (1ull << i) | (1ull << j));
+            for (j = 0; j < b->hand_count; j++)
+                if (!(src & (1u << j)) && wins(b, o, r, link_up(r, m, b->hand[j]), e, need))
+                    mark(&alone, with, tied, src | (1u << j), 1ull << i);
+        }
+    }
+    for (i = 0; i < b->deck_count; i++) for (j = 0; j < b->deck_count; j++) {
+        Link d = {dk[i], 0}, m;
+        if (j == i) continue;
+        m = link_up(r, d, dk[j]);
+        if (m.c.id <= 0 || wins(b, o, r, m, e, need)) continue;
+        for (s = 0; s < b->hand_count; s++)
+            if (wins(b, o, r, link_up(r, m, b->hand[s]), e, need))
+                mark(&alone, with, tied, 1u << s, (1ull << i) | (1ull << j));
+    }
     for (covered = alone, j = 0; j < b->hand_count; j++) covered |= with[j];
     n = bits(covered);
     for (covered = alone;;) {
@@ -660,7 +725,7 @@ static int outs(const HmBoard *b, const HmOptions *o, const HmRules *r,
         for (j = 0; j < b->hand_count; j++)
             if (!(*keep & (1u << j)) && bits(with[j] & ~covered) > gain) { gain = bits(with[j] & ~covered); pick = j; }
         if (pick < 0 || gain * 3 < n) break;
-        *keep |= 1u << pick; covered |= with[pick];
+        *keep |= (1u << pick) | tied[pick]; covered |= with[pick];
     }
     return n;
 }
