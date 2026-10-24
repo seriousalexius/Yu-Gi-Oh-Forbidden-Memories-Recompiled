@@ -3,12 +3,19 @@
   "name": "AI Hard Mode",
   "version": "0.1.0",
   "author": "DecompRecomp",
-  "description": "Configurable hand planning, fusions, guardian stars, attacks, defense, spells and information advantages.",
+  "description": "Always on in the Arena (fair: the CPU holds only its five cards and cannot see your face-down cards). Outside the Arena only with Also outside the Arena. Configurable hand planning, fusions, guardian stars, attacks, defense, spells and information advantages.",
   "min_api": 4,
   "game": "slus_01411",
   "library": "ai-hard-mode",
   "enabled": false,
   "settings": [
+    {
+      "key": "outside_arena",
+      "label": "Also outside the Arena",
+      "type": "bool",
+      "default": 0,
+      "description": "Off: campaign and Free Duel keep the original AI. In the Arena this mod always plays, the same for everyone: all planning on, five-card hand only, no hidden stats, five hand materials, search budget 20000 (the settings below are not used there)."
+    },
     {
       "key": "hand_planning",
       "label": "Plan hand plays",

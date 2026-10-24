@@ -1516,10 +1516,11 @@ static int read_manifest(Mod *mod, const char *directory, const char *origin)
 }
 
 /* fork: the mods that make the rules every player keeps the same, always on
- * (Alessio's draft of the drops, and every card obtainable). */
+ * (Alessio's draft of the drops, every card obtainable, and the Arena's CPU:
+ * AI Hard Mode plays outside the Arena only when its own setting says so). */
 static int locked_on(const char *id)
 {
-    return !strcmp(id, "draft-drops") || !strcmp(id, "drop-missing-cards");
+    return !strcmp(id, "draft-drops") || !strcmp(id, "drop-missing-cards") || !strcmp(id, "ai-hard-mode");
 }
 
 static int by_id(const char *id)
