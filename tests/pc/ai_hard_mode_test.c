@@ -231,6 +231,7 @@ static HmCard xcard(int id)
     if (id == 400) { c.type = 21; c.attack = c.defense = 0; }
     if (id == 349 || id == 669 || (id >= 330 && id <= 335)) { c.type = 20; c.attack = c.defense = 0; }
     if (id >= 681 && id <= 686) { c.type = 21; c.attack = c.defense = 0; }
+    if (id == 38) c.star = c.star2 = 2; /* Jupiter only: 500 less against a Mars */
     return c;
 }
 static int xfusion(int a, int b) { return (a == 10 && b == 20) || (a == 20 && b == 10) ? 40 : 0; }
@@ -368,6 +369,27 @@ static void expert_cases(void)
     { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 10, 6); }
     d = Hm_PlanHand(&b, &o, &xrules);
     assert(Hm_Discards >= 1 && 10 - marks(d) >= 6);
+    /* Only a tie with the 3500 (the game trades both): it is no answer, a
+     * 3600 waits in the deck, so it digs. */
+    { static const int h[5] = {35, 6, 7, 8, 9}; static const int t[10] = {1, 2, 3, 36, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, t, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 0 && Hm_Outs >= 1 && Hm_Discards >= 1);
+    /* Nor is a 3800 on a star that loses 500 to the 3500's Mars; on the
+     * field, the same. */
+    { static const int h[5] = {38, 6, 7, 8, 9}; static const int t[10] = {1, 2, 3, 36, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, t, 30, 30); }
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 0 && Hm_Discards >= 1);
+    { static const int h[5] = {5, 6, 7, 8, 9}; static const int t[10] = {1, 2, 3, 36, 5, 6, 7, 8, 9, 11};
+      b = xboard(h, t, 30, 30); }
+    b.own[0] = xcard(38);
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat == 0 && Hm_Discards >= 1);
+    /* A 3800 on a neutral star beats it: nothing to dig for. */
+    b.own[0].star = 1;
+    d = Hm_PlanHand(&b, &o, &xrules);
+    assert(Hm_Threat < 0);
     /* Expert off: the original planner, one card. */
     o.expert = 0;
     { static const int h[5] = {5, 6, 7, 8, 10}; b = xboard(h, partner, 30, 30); }

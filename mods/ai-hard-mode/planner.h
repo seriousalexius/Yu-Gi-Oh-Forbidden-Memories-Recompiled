@@ -39,6 +39,13 @@ typedef struct {
 /* fork: the last expert hand, for the log: cards thrown away, and how many
  * cards left in the deck answer the monster it could not beat. */
 extern int Hm_Discards, Hm_Outs;
+/* fork: why it dug or not (HM_WHY_*), the threat (enemy slot, -1 none), the
+ * stat to beat, our best ATK this turn against each enemy (star included),
+ * and the hand masks kept as answers, held for the field and thrown. */
+enum { HM_WHY_OFF, HM_WHY_SHORT, HM_WHY_NO_THREAT, HM_WHY_NO_OUTS, HM_WHY_NOT_FROM_HAND,
+       HM_WHY_NO_ROOM, HM_WHY_DIGS };
+extern int Hm_Threat, Hm_Need, Hm_Reach[5], Hm_Why;
+extern unsigned Hm_Keep, Hm_Hold, Hm_Junk;
 
 /* The matchup the planner scores guardian stars by: the game's when the
  * adapter sets it (Duel_CalcGuardianStarMatchup), else the disc's cycles. */
